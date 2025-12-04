@@ -1,0 +1,5 @@
+PyQt6
+openpyxl
+bcrypt  # Parola özetleme için
+python-docx
+pandas
