@@ -41,6 +41,11 @@ try:  # pragma: no cover - runtime import guard
 except ModuleNotFoundError:  # pragma: no cover
     from ui_activation_dialog import check_license_on_startup
 
+try:  # pragma: no cover - runtime import guard
+    from app.ui_agreements_dialog import check_agreements_on_startup
+except ModuleNotFoundError:  # pragma: no cover
+    from ui_agreements_dialog import check_agreements_on_startup
+
 
 def main():
     initialize_database()
@@ -58,6 +63,10 @@ def main():
 
     app = QApplication(sys.argv)
     load_theme_from_settings_and_apply()
+
+    # Sözleşme kontrolü - kabul edilmemişse uygulama açılmaz
+    if not check_agreements_on_startup():
+        return
 
     # Lisans kontrolü - aktive edilmemişse uygulama açılmaz
     if not check_license_on_startup():
