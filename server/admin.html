@@ -1055,16 +1055,17 @@
         }
 
         async function savePricing() {
+            const id = document.getElementById('pricingId').value;
             const data = {
-                id: document.getElementById('pricingId').value || null,
                 name: document.getElementById('pricingName').value,
-                price: document.getElementById('pricingPrice').value,
+                price: parseFloat(document.getElementById('pricingPrice').value) || 0,
                 period: document.getElementById('pricingPeriod').value,
                 features: document.getElementById('pricingFeatures').value,
                 is_popular: document.getElementById('pricingPopular').checked,
-                is_active: document.getElementById('pricingActive').checked
+                sort_order: 0
             };
-            await fetch(`${API_BASE}/admin/pricing/save`, {
+            const url = id ? `${API_BASE}/admin/pricing/update/${id}` : `${API_BASE}/admin/pricing/create`;
+            await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
                 body: JSON.stringify(data)
@@ -1075,8 +1076,8 @@
 
         async function deletePricing(id) {
             if (!confirm('Silinsin mi?')) return;
-            await fetch(`${API_BASE}/admin/pricing/delete`, {
-                method: 'POST',
+            await fetch(`${API_BASE}/admin/pricing/${id}`, {
+                method: 'DELETE',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
                 body: JSON.stringify({ id })
             });
@@ -1124,14 +1125,12 @@
 
         async function saveTestimonial() {
             const data = {
-                id: document.getElementById('testimonialId').value || null,
                 name: document.getElementById('testimonialName').value,
                 title: document.getElementById('testimonialTitle').value,
-                company: document.getElementById('testimonialCompany').value,
                 content: document.getElementById('testimonialContent').value,
-                rating: parseInt(document.getElementById('testimonialRating').value)
+                rating: parseInt(document.getElementById('testimonialRating').value) || 5
             };
-            await fetch(`${API_BASE}/admin/testimonials/save`, {
+            await fetch(`${API_BASE}/admin/testimonials/create`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
                 body: JSON.stringify(data)
@@ -1142,8 +1141,8 @@
 
         async function deleteTestimonial(id) {
             if (!confirm('Silinsin mi?')) return;
-            await fetch(`${API_BASE}/admin/testimonials/delete`, {
-                method: 'POST',
+            await fetch(`${API_BASE}/admin/testimonials/${id}`, {
+                method: 'DELETE',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
                 body: JSON.stringify({ id })
             });
@@ -1187,12 +1186,11 @@
 
         async function saveFaq() {
             const data = {
-                id: document.getElementById('faqId').value || null,
                 question: document.getElementById('faqQuestion').value,
                 answer: document.getElementById('faqAnswer').value,
-                sort_order: parseInt(document.getElementById('faqOrder').value)
+                sort_order: parseInt(document.getElementById('faqOrder').value) || 0
             };
-            await fetch(`${API_BASE}/admin/faq/save`, {
+            await fetch(`${API_BASE}/admin/faq/create`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
                 body: JSON.stringify(data)
@@ -1203,10 +1201,9 @@
 
         async function deleteFaq(id) {
             if (!confirm('Silinsin mi?')) return;
-            await fetch(`${API_BASE}/admin/faq/delete`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-                body: JSON.stringify({ id })
+            await fetch(`${API_BASE}/admin/faq/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${authToken}` }
             });
             loadFaq();
         }
@@ -1249,12 +1246,11 @@
 
         async function saveAnnouncement() {
             const data = {
-                id: document.getElementById('announcementId').value || null,
                 title: document.getElementById('announcementTitle').value,
                 content: document.getElementById('announcementContent').value,
-                is_active: document.getElementById('announcementActive').checked
+                announcement_type: 'info'
             };
-            await fetch(`${API_BASE}/admin/announcements/save`, {
+            await fetch(`${API_BASE}/admin/announcements/create`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
                 body: JSON.stringify(data)
@@ -1265,10 +1261,9 @@
 
         async function deleteAnnouncement(id) {
             if (!confirm('Silinsin mi?')) return;
-            await fetch(`${API_BASE}/admin/announcements/delete`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
-                body: JSON.stringify({ id })
+            await fetch(`${API_BASE}/admin/announcements/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${authToken}` }
             });
             loadAnnouncements();
         }
