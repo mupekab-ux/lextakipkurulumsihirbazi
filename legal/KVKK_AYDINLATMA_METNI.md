@@ -1,4 +1,4 @@
-# LEXTAKIP KİŞİSEL VERİLERİN KORUNMASI HAKKINDA AYDINLATMA METNİ
+# TAKİBİESASİ KİŞİSEL VERİLERİN KORUNMASI HAKKINDA AYDINLATMA METNİ
 
 **Son Güncelleme:** [TARİH]
 
@@ -10,14 +10,14 @@
 
 **[ŞİRKET ADI]**
 Adres: [ADRES]
-E-posta: kvkk@lextakip.com
-Web: www.lextakip.com
+E-posta: kvkk@takibiesasi.com
+Web: www.takibiesasi.com
 
 ---
 
 ## 2. İŞLENEN KİŞİSEL VERİLER
 
-LexTakip yazılımı ve hizmetleri kapsamında aşağıdaki kişisel verilerinizi işlemekteyiz:
+TakibiEsasi yazılımı ve hizmetleri kapsamında aşağıdaki kişisel verilerinizi işlemekteyiz:
 
 ### 2.1 Kimlik Bilgileri
 - Ad, soyad
@@ -154,7 +154,7 @@ Haklarınızı kullanmak için aşağıdaki yöntemlerle başvurabilirsiniz:
 ### 9.1 Başvuru Kanalları
 | Yöntem | Adres |
 |--------|-------|
-| E-posta | kvkk@lextakip.com |
+| E-posta | kvkk@takibiesasi.com |
 | Posta | [ADRES] |
 | KEP | [KEP ADRESİ] (varsa) |
 
@@ -173,7 +173,7 @@ Talebiniz en kısa sürede ve en geç 30 gün içinde ücretsiz olarak yanıtlan
 
 ## 10. ÇEREZ POLİTİKASI
 
-Web sitemiz (www.lextakip.com) çerez kullanmaktadır. Çerez kullanımı hakkında detaylı bilgi için Çerez Politikamızı inceleyiniz.
+Web sitemiz (www.takibiesasi.com) çerez kullanmaktadır. Çerez kullanımı hakkında detaylı bilgi için Çerez Politikamızı inceleyiniz.
 
 ### 10.1 Kullanılan Çerez Türleri
 | Çerez Türü | Amaç | Süre |
@@ -196,7 +196,7 @@ Sorularınız ve talepleriniz için:
 
 **[ŞİRKET ADI]**
 Veri Sorumlusu İletişim:
-E-posta: kvkk@lextakip.com
+E-posta: kvkk@takibiesasi.com
 Telefon: [TELEFON]
 Adres: [ADRES]
 

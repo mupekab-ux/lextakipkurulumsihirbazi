@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-LexTakip Lisans Sistemi
+TakibiEsasi Lisans Sistemi
 
 Bu modül, uygulamanın lisans doğrulama ve makine kimliği
 oluşturma işlemlerini yönetir.
@@ -27,7 +27,7 @@ from typing import Optional, Dict, Any, Tuple
 logger = logging.getLogger(__name__)
 
 # Lisans dosyası konumu
-LICENSE_FILE_NAME = ".lextakip_license"
+LICENSE_FILE_NAME = ".takibiesasi_license"
 
 
 def _get_license_dir() -> Path:
@@ -40,15 +40,15 @@ def _get_license_dir() -> Path:
         local_app_data = os.environ.get("LOCALAPPDATA", "")
 
         if app_data:
-            possible_dirs.append(Path(app_data) / "LexTakip")
+            possible_dirs.append(Path(app_data) / "TakibiEsasi")
         if local_app_data:
-            possible_dirs.append(Path(local_app_data) / "LexTakip")
-        possible_dirs.append(Path.home() / "LexTakip")
-        possible_dirs.append(Path.home() / ".lextakip")
+            possible_dirs.append(Path(local_app_data) / "TakibiEsasi")
+        possible_dirs.append(Path.home() / "TakibiEsasi")
+        possible_dirs.append(Path.home() / ".takibiesasi")
     else:
-        # Linux/Mac: ~/.config/lextakip
-        possible_dirs.append(Path.home() / ".config" / "lextakip")
-        possible_dirs.append(Path.home() / ".lextakip")
+        # Linux/Mac: ~/.config/takibiesasi
+        possible_dirs.append(Path.home() / ".config" / "takibiesasi")
+        possible_dirs.append(Path.home() / ".takibiesasi")
 
     # İlk yazılabilir dizini bul
     for license_dir in possible_dirs:
@@ -380,7 +380,7 @@ def get_license_info() -> Optional[Dict[str, Any]]:
 # =============================================================================
 
 # API endpoint'leri (sunucu kurulduktan sonra güncellenecek)
-API_BASE_URL = "https://api.lextakip.com"  # Placeholder
+API_BASE_URL = "https://api.takibiesasi.com"  # Placeholder
 
 async def activate_online(license_key: str) -> Tuple[bool, str]:
     """

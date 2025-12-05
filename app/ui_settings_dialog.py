@@ -223,7 +223,7 @@ class UserEditorDialog(QDialog):
 
     def __init__(self, parent=None, user: Dict[str, Any] | None = None):
         super().__init__(parent)
-        self.setWindowTitle("LexTakip - Kullanıcı")
+        self.setWindowTitle("TakibiEsasi - Kullanıcı")
         self.username = QLineEdit()
         self.password = QLineEdit()
         self.password.setEchoMode(QLineEdit.EchoMode.Password)
@@ -286,8 +286,8 @@ class SettingsDialog(QDialog):
         self.show_status_tab = show_status_tab
         self.can_manage_users = can_manage_users
         self.can_manage_backups = can_manage_backups
-        self.settings = QSettings("LexTakip", "LexTakipApp")
-        self.setWindowTitle("LexTakip - Ayarlar")
+        self.settings = QSettings("TakibiEsasi", "TakibiEsasiApp")
+        self.setWindowTitle("TakibiEsasi - Ayarlar")
         self.tabs = QTabWidget()
         self.status_table: QTableWidget | None = None
         self.status_add_btn: QPushButton | None = None
@@ -360,7 +360,7 @@ class SettingsDialog(QDialog):
         backup_form = QFormLayout(backup_settings_group)
 
         self.auto_backup_check = QCheckBox("Uygulama açılışında otomatik yedekle")
-        backup_settings = QSettings("MyCompany", "LexTakip")
+        backup_settings = QSettings("MyCompany", "TakibiEsasi")
         self.auto_backup_check.setChecked(
             backup_settings.value("backup/auto_backup", True, type=bool)
         )
@@ -660,7 +660,7 @@ class SettingsDialog(QDialog):
 
     def save(self) -> None:
         # Yedekleme ayarlarını kaydet
-        backup_settings = QSettings("MyCompany", "LexTakip")
+        backup_settings = QSettings("MyCompany", "TakibiEsasi")
         backup_settings.setValue("backup/auto_backup", self.auto_backup_check.isChecked())
         backup_settings.setValue("backup/keep_count", self.backup_keep_spin.value())
 

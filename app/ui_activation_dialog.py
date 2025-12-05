@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-LexTakip Aktivasyon Ekranı
+TakibiEsasi Aktivasyon Ekranı
 
 Uygulama ilk açıldığında veya lisans geçersiz olduğunda
 bu ekran gösterilir.
@@ -69,7 +69,7 @@ class ActivationDialog(QDialog):
 
     def _setup_ui(self) -> None:
         """UI bileşenlerini oluşturur."""
-        self.setWindowTitle("LexTakip - Lisans Aktivasyonu")
+        self.setWindowTitle("TakibiEsasi - Lisans Aktivasyonu")
         self.setFixedSize(500, 400)
         self.setWindowFlags(
             self.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint
@@ -80,7 +80,7 @@ class ActivationDialog(QDialog):
         layout.setContentsMargins(24, 24, 24, 24)
 
         # Başlık
-        title_label = QLabel("LexTakip Lisans Aktivasyonu")
+        title_label = QLabel("TakibiEsasi Lisans Aktivasyonu")
         title_font = QFont()
         title_font.setPointSize(16)
         title_font.setBold(True)
@@ -113,7 +113,7 @@ class ActivationDialog(QDialog):
 
         # Bilgi metni
         info_label = QLabel(
-            "Lisans satın almak için lextakip.com adresini ziyaret edin.\n"
+            "Lisans satın almak için takibiesasi.com adresini ziyaret edin.\n"
             "Satın alma sonrası size verilen lisans anahtarını aşağıya girin."
         )
         info_label.setWordWrap(True)
@@ -334,7 +334,7 @@ class LicenseInfoDialog(QDialog):
         layout.setContentsMargins(24, 24, 24, 24)
 
         # Başlık
-        title = QLabel("LexTakip Lisans Bilgileri")
+        title = QLabel("TakibiEsasi Lisans Bilgileri")
         title_font = QFont()
         title_font.setPointSize(14)
         title_font.setBold(True)

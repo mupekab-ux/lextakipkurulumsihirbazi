@@ -81,7 +81,7 @@ class AttachmentError(Exception):
 
 
 def _attachments_root() -> Path:
-    """Yeni klasör yapısı: Documents/LexTakip Dosyaları/"""
+    """Yeni klasör yapısı: Documents/TakibiEsasi Dosyaları/"""
     root = Path(get_case_files_root())
     root.mkdir(parents=True, exist_ok=True)
     return root

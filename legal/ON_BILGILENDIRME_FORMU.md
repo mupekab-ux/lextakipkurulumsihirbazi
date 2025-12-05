@@ -13,8 +13,8 @@
 | Satıcı Unvanı | [ŞİRKET ADI] |
 | Adresi | [ADRES] |
 | Telefon | [TELEFON] |
-| E-posta | satis@lextakip.com |
-| Web Sitesi | www.lextakip.com |
+| E-posta | satis@takibiesasi.com |
+| Web Sitesi | www.takibiesasi.com |
 | MERSİS No | [MERSİS NO] |
 
 ---
@@ -23,7 +23,7 @@
 
 | Bilgi | Açıklama |
 |-------|----------|
-| Ürün Adı | LexTakip - Avukat Dava Takip Yazılımı |
+| Ürün Adı | TakibiEsasi - Avukat Dava Takip Yazılımı |
 | Ürün Türü | Dijital Yazılım Lisansı |
 | Temel Özellikler | Dava takibi, finans yönetimi, tebligat takibi, arabuluculuk yönetimi, müvekkil yönetimi |
 | Lisans Türü | Kalıcı (Perpetual) - Tek Kullanıcı |
@@ -77,7 +77,7 @@
 
 ### 6.1 Dijital İçerik Hakkında Önemli Bilgi
 
-LexTakip yazılım lisansı, **dijital içerik** niteliğindedir.
+TakibiEsasi yazılım lisansı, **dijital içerik** niteliğindedir.
 
 6502 sayılı Kanun'un 53/ğ maddesi ve Mesafeli Sözleşmeler Yönetmeliği'nin 15/ğ maddesi uyarınca:
 
@@ -100,8 +100,8 @@ Sipariş onayı sırasında aşağıdaki onay kutusunu işaretlemeniz gerekmekte
 - Teknik sorunlar için 1 yıl ücretsiz destek sunulmaktadır
 
 ### 7.2 Destek Kanalları
-- E-posta: destek@lextakip.com
-- Destek portalı: panel.lextakip.com
+- E-posta: destek@takibiesasi.com
+- Destek portalı: panel.takibiesasi.com
 
 ### 7.3 Güncellemeler
 - Hata düzeltmeleri ücretsizdir
@@ -113,7 +113,7 @@ Sipariş onayı sırasında aşağıdaki onay kutusunu işaretlemeniz gerekmekte
 
 ### 8.1 Satıcıya Başvuru
 Şikayetleriniz için öncelikle satıcımıza başvurabilirsiniz:
-- E-posta: destek@lextakip.com
+- E-posta: destek@takibiesasi.com
 - Yanıt süresi: En geç 3 iş günü
 
 ### 8.2 Tüketici Hakları

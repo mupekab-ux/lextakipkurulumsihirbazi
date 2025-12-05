@@ -651,14 +651,14 @@ class EditDialog(QDialog):
 
     def _restore_dialog_size(self) -> None:
         """Kaydedilmiş pencere boyutunu yükle."""
-        settings = QSettings("LexTakip", "LexTakip")
+        settings = QSettings("TakibiEsasi", "TakibiEsasi")
         size = settings.value("EditDialog/size")
         if size:
             self.resize(size)
 
     def closeEvent(self, event) -> None:
         """Pencere boyutunu kaydet ve kapat."""
-        settings = QSettings("LexTakip", "LexTakip")
+        settings = QSettings("TakibiEsasi", "TakibiEsasi")
         settings.setValue("EditDialog/size", self.size())
         super().closeEvent(event)
 
@@ -681,7 +681,7 @@ class EditDialog(QDialog):
         )
         self._initial_assignee_ids: list[int] = []
         self.setWindowTitle(
-            "LexTakip - Dosya Düzenle" if dosya_id else "LexTakip - Yeni Dosya"
+            "TakibiEsasi - Dosya Düzenle" if dosya_id else "TakibiEsasi - Yeni Dosya"
         )
 
         main_layout = QVBoxLayout(self)

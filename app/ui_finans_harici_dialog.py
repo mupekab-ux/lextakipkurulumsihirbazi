@@ -1093,7 +1093,7 @@ class FinansHariciDialog(QDialog):
 
     def _load_client_cash_column_widths(self) -> None:
         """Müvekkil kasası sütun genişliklerini QSettings'den yükle."""
-        settings = QSettings("LexTakip", "LexTakip")
+        settings = QSettings("TakibiEsasi", "TakibiEsasi")
         widths = settings.value("HariciFinansDialog/client_cash_widths", None)
         if widths:
             header = self.client_cash_table.horizontalHeader()
@@ -1108,7 +1108,7 @@ class FinansHariciDialog(QDialog):
         """Müvekkil kasası sütun genişliklerini QSettings'e kaydet."""
         header = self.client_cash_table.horizontalHeader()
         widths = [header.sectionSize(i) for i in range(header.count() - 1)]  # Son sütun stretch
-        settings = QSettings("LexTakip", "LexTakip")
+        settings = QSettings("TakibiEsasi", "TakibiEsasi")
         settings.setValue("HariciFinansDialog/client_cash_widths", widths)
 
     def _on_client_cash_column_resized(self, index: int, old_size: int, new_size: int) -> None:

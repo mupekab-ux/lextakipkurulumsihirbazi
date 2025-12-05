@@ -15,7 +15,7 @@ Bu Mesafeli Satış Sözleşmesi ("Sözleşme"), 6502 sayılı Tüketicinin Koru
 | Unvan | [ŞİRKET ADI] |
 | Adres | [ADRES] |
 | Telefon | [TELEFON] |
-| E-posta | satis@lextakip.com |
+| E-posta | satis@takibiesasi.com |
 | MERSİS No | [MERSİS NO] |
 | Vergi Dairesi/No | [VERGİ DAİRESİ] / [VERGİ NO] |
 
@@ -32,7 +32,7 @@ Bu Mesafeli Satış Sözleşmesi ("Sözleşme"), 6502 sayılı Tüketicinin Koru
 
 ## 2. SÖZLEŞME KONUSU
 
-İşbu sözleşmenin konusu, Alıcı'nın Satıcı'ya ait www.lextakip.com internet sitesinden elektronik ortamda siparişini verdiği aşağıda nitelikleri ve satış fiyatı belirtilen ürünün satışı ve teslimi ile ilgili olarak 6502 sayılı Tüketicinin Korunması Hakkında Kanun ve Mesafeli Sözleşmeler Yönetmeliği hükümleri gereğince tarafların hak ve yükümlülüklerinin belirlenmesidir.
+İşbu sözleşmenin konusu, Alıcı'nın Satıcı'ya ait www.takibiesasi.com internet sitesinden elektronik ortamda siparişini verdiği aşağıda nitelikleri ve satış fiyatı belirtilen ürünün satışı ve teslimi ile ilgili olarak 6502 sayılı Tüketicinin Korunması Hakkında Kanun ve Mesafeli Sözleşmeler Yönetmeliği hükümleri gereğince tarafların hak ve yükümlülüklerinin belirlenmesidir.
 
 ---
 
@@ -42,7 +42,7 @@ Bu Mesafeli Satış Sözleşmesi ("Sözleşme"), 6502 sayılı Tüketicinin Koru
 
 | Bilgi | Değer |
 |-------|-------|
-| Ürün Adı | LexTakip - Avukat Dava Takip Yazılımı |
+| Ürün Adı | TakibiEsasi - Avukat Dava Takip Yazılımı |
 | Ürün Türü | Dijital Yazılım Lisansı |
 | Lisans Türü | Kalıcı (Perpetual) - Tek Kullanıcı |
 | Adet | 1 |
@@ -79,7 +79,7 @@ Bu Mesafeli Satış Sözleşmesi ("Sözleşme"), 6502 sayılı Tüketicinin Koru
 
 > "Elektronik ortamda anında ifa edilen hizmetler veya tüketiciye anında teslim edilen gayri maddi mallara ilişkin sözleşmelerde" cayma hakkı kullanılamaz.
 
-**LexTakip yazılım lisansı dijital bir üründür ve lisans anahtarının teslim edilmesiyle birlikte ifa tamamlanmış sayılır.**
+**TakibiEsasi yazılım lisansı dijital bir üründür ve lisans anahtarının teslim edilmesiyle birlikte ifa tamamlanmış sayılır.**
 
 ### 5.2 Alıcı Beyanı
 

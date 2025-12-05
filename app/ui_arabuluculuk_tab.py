@@ -354,7 +354,7 @@ class ArabuluculukTab(QWidget):
     def _load_column_widths(self) -> None:
         """Kaydedilmiş sütun genişliklerini yükle."""
         try:
-            settings = QSettings("MyCompany", "LexTakip")
+            settings = QSettings("MyCompany", "TakibiEsasi")
             widths = settings.value("arabuluculuk/col_widths", None)
             if widths is None:
                 return
@@ -376,7 +376,7 @@ class ArabuluculukTab(QWidget):
             if header is None:
                 return
             widths = [header.sectionSize(col) for col in range(header.count())]
-            settings = QSettings("MyCompany", "LexTakip")
+            settings = QSettings("MyCompany", "TakibiEsasi")
             settings.setValue("arabuluculuk/col_widths", widths)
             settings.sync()
         except Exception:

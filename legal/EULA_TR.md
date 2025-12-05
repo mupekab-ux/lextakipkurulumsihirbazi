@@ -1,8 +1,8 @@
-# LEXTAKIP SON KULLANICI LİSANS SÖZLEŞMESİ (EULA)
+# TAKİBİESASİ SON KULLANICI LİSANS SÖZLEŞMESİ (EULA)
 
 **Son Güncelleme:** [TARİH]
 
-Bu Son Kullanıcı Lisans Sözleşmesi ("Sözleşme"), [ŞİRKET ADI] ("Lisans Veren", "Biz") ile LexTakip yazılımını ("Yazılım") satın alan veya kullanan kişi veya kuruluş ("Lisans Alan", "Siz") arasında akdedilmiştir.
+Bu Son Kullanıcı Lisans Sözleşmesi ("Sözleşme"), [ŞİRKET ADI] ("Lisans Veren", "Biz") ile TakibiEsasi yazılımını ("Yazılım") satın alan veya kullanan kişi veya kuruluş ("Lisans Alan", "Siz") arasında akdedilmiştir.
 
 Yazılımı yükleyerek, kopyalayarak veya kullanarak bu Sözleşme'nin tüm şart ve koşullarını kabul etmiş sayılırsınız.
 
@@ -48,7 +48,7 @@ Yazılım, lisans doğrulaması için bilgisayarınızın benzersiz donanım kim
 Yazılım ve tüm kopyaları Lisans Veren'in mülkiyetindedir. Yazılım, Türkiye Cumhuriyeti telif hakkı yasaları ve uluslararası antlaşmalarla korunmaktadır.
 
 ### 3.2 Ticari Markalar
-"LexTakip" adı ve logosu Lisans Veren'in ticari markalarıdır. Bu Sözleşme, Lisans Alan'a bu markaları kullanma hakkı vermez.
+"TakibiEsasi" adı ve logosu Lisans Veren'in ticari markalarıdır. Bu Sözleşme, Lisans Alan'a bu markaları kullanma hakkı vermez.
 
 ---
 
@@ -142,8 +142,8 @@ Lisans Veren, bu Sözleşme'yi önceden bildirimde bulunarak değiştirebilir. D
 Bu Sözleşme hakkında sorularınız için:
 
 **[ŞİRKET ADI]**
-E-posta: destek@lextakip.com
-Web: www.lextakip.com
+E-posta: destek@takibiesasi.com
+Web: www.takibiesasi.com
 
 ---
 

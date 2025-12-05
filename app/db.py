@@ -12,7 +12,7 @@ try:  # pragma: no cover - runtime import guard
 except ModuleNotFoundError:  # pragma: no cover
     from utils import hash_password, iso_to_tr, normalize_hex, get_attachments_dir
 
-DOCS_DIR = os.path.join(os.path.expanduser("~"), "Documents", "LexTakip")
+DOCS_DIR = os.path.join(os.path.expanduser("~"), "Documents", "TakibiEsasi")
 os.makedirs(DOCS_DIR, exist_ok=True)
 DB_PATH = os.path.join(DOCS_DIR, "data.db")
 
@@ -3068,8 +3068,8 @@ def get_backup_info(backup_path: str) -> dict[str, Any] | None:
 
 # --------------------------------------------------------- Dosya Klasör Yönetimi --
 
-# Ana dosyalar klasörü (Documents/LexTakip Dosyaları)
-CASE_FILES_DIR = os.path.join(os.path.expanduser("~"), "Documents", "LexTakip Dosyaları")
+# Ana dosyalar klasörü (Documents/TakibiEsasi Dosyaları)
+CASE_FILES_DIR = os.path.join(os.path.expanduser("~"), "Documents", "TakibiEsasi Dosyaları")
 
 
 def get_case_files_root() -> str:

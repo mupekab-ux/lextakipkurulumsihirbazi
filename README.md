@@ -1,11 +1,11 @@
-# LexTakip
+# TakibiEsasi
 
 1) Python 3.12 kurun
 2) Gerekli paketleri yükleyin:
    pip install -r requirements.txt  # PyQt6, openpyxl, bcrypt, python-docx ve pandas içerir
-3) LexTakip uygulamasını çalıştırmak için:
+3) TakibiEsasi uygulamasını çalıştırmak için:
    python app/main.py
-4) Tek .exe (LexTakip.exe) üretmek için:
+4) Tek .exe (TakibiEsasi.exe) üretmek için:
    build.bat dosyasını çalıştırın
 
 Notlar:

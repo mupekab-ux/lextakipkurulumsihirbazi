@@ -2465,7 +2465,7 @@ class DosyalarTab(QWidget):
         # Kaydedilmiş sütun genişliklerini yükle
         restored = False
         try:
-            settings = QSettings("MyCompany", "LexTakip")
+            settings = QSettings("MyCompany", "TakibiEsasi")
             stored = settings.value("dosyalar/col_widths")
             widths: list[int] = []
             if isinstance(stored, (list, tuple)):
@@ -2522,7 +2522,7 @@ class DosyalarTab(QWidget):
             return
         try:
             widths = [header.sectionSize(col) for col in range(header.count())]
-            settings = QSettings("MyCompany", "LexTakip")
+            settings = QSettings("MyCompany", "TakibiEsasi")
             settings.setValue("dosyalar/col_widths", widths)
             settings.sync()
         except Exception:
@@ -2620,7 +2620,7 @@ class DosyalarTab(QWidget):
         export_table_to_pdf_with_selection(
             self.table_view,
             path,
-            title="LexTakip – Dosyalar Listesi",
+            title="TakibiEsasi – Dosyalar Listesi",
             subtitle=None,
             selected_rows=selected_rows,
         )
@@ -3441,14 +3441,14 @@ class GorevDialog(QDialog):
 
     def _restore_dialog_size(self) -> None:
         """Kaydedilmiş pencere boyutunu yükle."""
-        settings = QSettings("LexTakip", "LexTakip")
+        settings = QSettings("TakibiEsasi", "TakibiEsasi")
         size = settings.value("GorevDialog/size")
         if size:
             self.resize(size)
 
     def closeEvent(self, event) -> None:
         """Pencere boyutunu kaydet ve kapat."""
-        settings = QSettings("LexTakip", "LexTakip")
+        settings = QSettings("TakibiEsasi", "TakibiEsasi")
         settings.setValue("GorevDialog/size", self.size())
         super().closeEvent(event)
 
@@ -4339,7 +4339,7 @@ class GorevlerTab(QWidget):
     def _load_calendar_task_column_widths(self) -> None:
         """Takvim görev tablosu için kayıtlı sütun genişliklerini yükle."""
         try:
-            settings = QSettings("MyCompany", "LexTakip")
+            settings = QSettings("MyCompany", "TakibiEsasi")
             widths = settings.value("calendar_tasks/col_widths", None)
             if widths:
                 header = self.table.horizontalHeader()
@@ -4357,7 +4357,7 @@ class GorevlerTab(QWidget):
         try:
             header = self.table.horizontalHeader()
             widths = [header.sectionSize(col) for col in range(header.count())]
-            settings = QSettings("MyCompany", "LexTakip")
+            settings = QSettings("MyCompany", "TakibiEsasi")
             settings.setValue("calendar_tasks/col_widths", widths)
             settings.sync()
         except Exception:
@@ -4897,7 +4897,7 @@ class GorevlerTab(QWidget):
     def _load_todo_column_widths(self) -> None:
         """Kayıtlı sütun genişliklerini yükle."""
         try:
-            settings = QSettings("MyCompany", "LexTakip")
+            settings = QSettings("MyCompany", "TakibiEsasi")
             widths = settings.value("todo/col_widths", None)
             if widths:
                 header = self.todo_table.horizontalHeader()
@@ -4915,7 +4915,7 @@ class GorevlerTab(QWidget):
         try:
             header = self.todo_table.horizontalHeader()
             widths = [header.sectionSize(col) for col in range(header.count())]
-            settings = QSettings("MyCompany", "LexTakip")
+            settings = QSettings("MyCompany", "TakibiEsasi")
             settings.setValue("todo/col_widths", widths)
             settings.sync()
         except Exception:
@@ -5407,7 +5407,7 @@ class MainWindow(QMainWindow):
             self._apply_harici_search_filter
         )
         self._pending_harici_search_text = ""
-        self.setWindowTitle(f"LexTakip - Hoşgeldiniz, {current_user['username']}")
+        self.setWindowTitle(f"TakibiEsasi - Hoşgeldiniz, {current_user['username']}")
 
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
@@ -6684,7 +6684,7 @@ class MainWindow(QMainWindow):
         if self.harici_table_view is None:
             return
         try:
-            settings = QSettings("MyCompany", "LexTakip")
+            settings = QSettings("MyCompany", "TakibiEsasi")
             widths = settings.value("harici_finans/col_widths", None)
             if widths:
                 header = self.harici_table_view.horizontalHeader()
@@ -6704,7 +6704,7 @@ class MainWindow(QMainWindow):
         try:
             header = self.harici_table_view.horizontalHeader()
             widths = [header.sectionSize(col) for col in range(header.count())]
-            settings = QSettings("MyCompany", "LexTakip")
+            settings = QSettings("MyCompany", "TakibiEsasi")
             settings.setValue("harici_finans/col_widths", widths)
             settings.sync()
         except Exception:
@@ -6941,7 +6941,7 @@ class MainWindow(QMainWindow):
             export_table_to_pdf_with_selection(
                 self.finance_table_view,
                 path,
-                title="LexTakip – Finansal Takip",
+                title="TakibiEsasi – Finansal Takip",
                 subtitle=self._finance_filter_summary(),
                 selected_rows=selected_rows,
             )
@@ -6997,7 +6997,7 @@ class MainWindow(QMainWindow):
             export_table_to_pdf_with_selection(
                 view,
                 path,
-                title="LexTakip – Harici Finansal Takip",
+                title="TakibiEsasi – Harici Finansal Takip",
                 subtitle=self._harici_filter_summary(),
                 selected_rows=selected_rows,
             )
@@ -7572,7 +7572,7 @@ class MainWindow(QMainWindow):
             self._finance_widths_loaded = True
             return
 
-        settings = QSettings("MyCompany", "LexTakip")
+        settings = QSettings("MyCompany", "TakibiEsasi")
         stored = settings.value("finance/col_widths")
         widths: list[int] = []
         if isinstance(stored, (list, tuple)):
@@ -7611,7 +7611,7 @@ class MainWindow(QMainWindow):
             return
 
         widths = [header.sectionSize(col) for col in range(header.count())]
-        settings = QSettings("MyCompany", "LexTakip")
+        settings = QSettings("MyCompany", "TakibiEsasi")
         settings.setValue("finance/col_widths", widths)
         settings.sync()
 
@@ -7624,7 +7624,7 @@ class MainWindow(QMainWindow):
             return
         try:
             widths = [header.sectionSize(col) for col in range(header.count())]
-            settings = QSettings("MyCompany", "LexTakip")
+            settings = QSettings("MyCompany", "TakibiEsasi")
             settings.setValue("dosyalar/col_widths", widths)
             settings.sync()
         except Exception:

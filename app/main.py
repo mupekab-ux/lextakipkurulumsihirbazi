@@ -47,7 +47,7 @@ def main():
     ensure_vekalet_dir_exists()
 
     # Otomatik yedekleme (ayarlara göre)
-    settings = QSettings("MyCompany", "LexTakip")
+    settings = QSettings("MyCompany", "TakibiEsasi")
     auto_backup_enabled = settings.value("backup/auto_backup", True, type=bool)
     backup_keep_count = settings.value("backup/keep_count", 10, type=int)
 
