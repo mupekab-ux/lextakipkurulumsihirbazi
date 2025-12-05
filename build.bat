@@ -28,7 +28,7 @@ echo Uygulama derleniyor...
 echo Bu islem birkaç dakika surebilir...
 echo.
 
-pyinstaller TakibiEsasi.spec --noconfirm --clean
+python -m PyInstaller TakibiEsasi.spec --noconfirm --clean
 
 REM Sonuc kontrolu
 if exist "dist\TakibiEsasi.exe" (
