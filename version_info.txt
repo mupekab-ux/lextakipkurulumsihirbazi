@@ -1,0 +1,38 @@
+# UTF-8
+#
+# Windows Version Info dosyası
+# Bu dosya TakibiEsasi.exe için Windows bilgilerini içerir
+#
+
+VSVersionInfo(
+  ffi=FixedFileInfo(
+    filevers=(1, 0, 0, 0),
+    prodvers=(1, 0, 0, 0),
+    mask=0x3f,
+    flags=0x0,
+    OS=0x40004,
+    fileType=0x1,
+    subtype=0x0,
+    date=(0, 0)
+  ),
+  kids=[
+    StringFileInfo(
+      [
+        StringTable(
+          u'041f04b0',
+          [
+            StringStruct(u'CompanyName', u'TakibiEsasi'),
+            StringStruct(u'FileDescription', u'Avukatlar için Takip Yönetim Sistemi'),
+            StringStruct(u'FileVersion', u'1.0.0'),
+            StringStruct(u'InternalName', u'TakibiEsasi'),
+            StringStruct(u'LegalCopyright', u'Copyright (c) 2024 TakibiEsasi. Tüm hakları saklıdır.'),
+            StringStruct(u'OriginalFilename', u'TakibiEsasi.exe'),
+            StringStruct(u'ProductName', u'TakibiEsasi'),
+            StringStruct(u'ProductVersion', u'1.0.0'),
+          ]
+        )
+      ]
+    ),
+    VarFileInfo([VarStruct(u'Translation', [0x041f, 1200])])
+  ]
+)
