@@ -59,11 +59,13 @@ def init_db():
     conn = get_db()
     cur = conn.cursor()
 
+    # Licenses table
     cur.execute("""
         CREATE TABLE IF NOT EXISTS licenses (
             id SERIAL PRIMARY KEY,
             license_key VARCHAR(50) UNIQUE NOT NULL,
             machine_id VARCHAR(100),
+            user_name VARCHAR(200),
             is_active BOOLEAN DEFAULT TRUE,
             transfer_count INTEGER DEFAULT 0,
             customer_name VARCHAR(200),
@@ -71,6 +73,80 @@ def init_db():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             activated_at TIMESTAMP,
             last_check TIMESTAMP
+        )
+    """)
+
+    # Site settings table
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS site_settings (
+            id SERIAL PRIMARY KEY,
+            setting_key VARCHAR(100) UNIQUE NOT NULL,
+            setting_value TEXT,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    # Pricing plans table
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS pricing_plans (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(100) NOT NULL,
+            price DECIMAL(10,2) NOT NULL,
+            period VARCHAR(50),
+            features TEXT,
+            is_popular BOOLEAN DEFAULT FALSE,
+            sort_order INTEGER DEFAULT 0,
+            is_active BOOLEAN DEFAULT TRUE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    # Testimonials table
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS testimonials (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(200) NOT NULL,
+            title VARCHAR(200),
+            content TEXT NOT NULL,
+            rating INTEGER DEFAULT 5,
+            is_active BOOLEAN DEFAULT TRUE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    # FAQ table
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS faq (
+            id SERIAL PRIMARY KEY,
+            question TEXT NOT NULL,
+            answer TEXT NOT NULL,
+            sort_order INTEGER DEFAULT 0,
+            is_active BOOLEAN DEFAULT TRUE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    # Announcements table
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS announcements (
+            id SERIAL PRIMARY KEY,
+            title VARCHAR(300) NOT NULL,
+            content TEXT NOT NULL,
+            announcement_type VARCHAR(50) DEFAULT 'info',
+            is_active BOOLEAN DEFAULT TRUE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    # Contact messages table
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS contact_messages (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(200) NOT NULL,
+            email VARCHAR(200) NOT NULL,
+            message TEXT NOT NULL,
+            is_read BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
 
@@ -117,6 +193,10 @@ class SetTransferRequest(BaseModel):
     license_key: str
     transfer_count: int
 
+class SetUserNameRequest(BaseModel):
+    license_key: str
+    user_name: str
+
 class ReleaseRequest(BaseModel):
     version: str
     download_url: str
@@ -129,6 +209,39 @@ class SetCurrentReleaseRequest(BaseModel):
 
 class DeleteFileRequest(BaseModel):
     filename: str
+
+class SiteSettingRequest(BaseModel):
+    key: str
+    value: str
+
+class PricingPlanRequest(BaseModel):
+    name: str
+    price: float
+    period: Optional[str] = None
+    features: Optional[str] = None
+    is_popular: bool = False
+    sort_order: int = 0
+
+class TestimonialRequest(BaseModel):
+    name: str
+    title: Optional[str] = None
+    content: str
+    rating: int = 5
+
+class FAQRequest(BaseModel):
+    question: str
+    answer: str
+    sort_order: int = 0
+
+class AnnouncementRequest(BaseModel):
+    title: str
+    content: str
+    announcement_type: str = "info"
+
+class ContactMessageRequest(BaseModel):
+    name: str
+    email: str
+    message: str
 
 # ============ HELPERS ============
 
@@ -328,6 +441,11 @@ async def check_update(req: UpdateCheckRequest):
         "is_critical": release.get('is_critical', False)
     }
 
+@app.get("/api/releases/latest")
+async def get_latest_release():
+    """Get latest release info (public)"""
+    return get_current_release()
+
 # ============ ADMIN API ============
 
 @app.post("/api/admin/login")
@@ -472,6 +590,22 @@ async def admin_set_transfer(req: SetTransferRequest, authorization: str = Heade
 
     return {"success": True}
 
+@app.post("/api/admin/license/set-username")
+async def admin_set_username(req: SetUserNameRequest, authorization: str = Header(None)):
+    """Set user name for a license"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute("UPDATE licenses SET user_name = %s WHERE license_key = %s", (req.user_name, req.license_key))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return {"success": True}
+
 @app.get("/api/admin/releases")
 async def admin_releases(authorization: str = Header(None)):
     """Get all releases"""
@@ -563,6 +697,400 @@ async def admin_delete_file(req: DeleteFileRequest, authorization: str = Header(
         return {"success": True}
 
     return {"success": False, "error": "Dosya bulunamadı"}
+
+# ============ SITE SETTINGS API ============
+
+@app.get("/api/site/settings")
+async def get_site_settings():
+    """Get all site settings (public)"""
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    cur.execute("SELECT setting_key, setting_value FROM site_settings")
+    rows = cur.fetchall()
+
+    settings = {row['setting_key']: row['setting_value'] for row in rows}
+
+    cur.close()
+    conn.close()
+
+    return settings
+
+@app.post("/api/admin/settings/update")
+async def admin_update_setting(req: SiteSettingRequest, authorization: str = Header(None)):
+    """Update a site setting"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute("""
+        INSERT INTO site_settings (setting_key, setting_value, updated_at)
+        VALUES (%s, %s, CURRENT_TIMESTAMP)
+        ON CONFLICT (setting_key)
+        DO UPDATE SET setting_value = %s, updated_at = CURRENT_TIMESTAMP
+    """, (req.key, req.value, req.value))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return {"success": True}
+
+# ============ PRICING API ============
+
+@app.get("/api/site/pricing")
+async def get_pricing():
+    """Get active pricing plans (public)"""
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    cur.execute("SELECT * FROM pricing_plans WHERE is_active = TRUE ORDER BY sort_order")
+    plans = [dict(row) for row in cur.fetchall()]
+
+    cur.close()
+    conn.close()
+
+    return plans
+
+@app.get("/api/admin/pricing")
+async def admin_get_pricing(authorization: str = Header(None)):
+    """Get all pricing plans"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    cur.execute("SELECT * FROM pricing_plans ORDER BY sort_order")
+    plans = [dict(row) for row in cur.fetchall()]
+
+    cur.close()
+    conn.close()
+
+    return plans
+
+@app.post("/api/admin/pricing/create")
+async def admin_create_pricing(req: PricingPlanRequest, authorization: str = Header(None)):
+    """Create a pricing plan"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute("""
+        INSERT INTO pricing_plans (name, price, period, features, is_popular, sort_order)
+        VALUES (%s, %s, %s, %s, %s, %s)
+    """, (req.name, req.price, req.period, req.features, req.is_popular, req.sort_order))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return {"success": True}
+
+@app.post("/api/admin/pricing/update/{plan_id}")
+async def admin_update_pricing(plan_id: int, req: PricingPlanRequest, authorization: str = Header(None)):
+    """Update a pricing plan"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute("""
+        UPDATE pricing_plans
+        SET name = %s, price = %s, period = %s, features = %s, is_popular = %s, sort_order = %s
+        WHERE id = %s
+    """, (req.name, req.price, req.period, req.features, req.is_popular, req.sort_order, plan_id))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return {"success": True}
+
+@app.delete("/api/admin/pricing/{plan_id}")
+async def admin_delete_pricing(plan_id: int, authorization: str = Header(None)):
+    """Delete a pricing plan"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute("DELETE FROM pricing_plans WHERE id = %s", (plan_id,))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return {"success": True}
+
+# ============ TESTIMONIALS API ============
+
+@app.get("/api/site/testimonials")
+async def get_testimonials():
+    """Get active testimonials (public)"""
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    cur.execute("SELECT * FROM testimonials WHERE is_active = TRUE ORDER BY created_at DESC")
+    testimonials = [dict(row) for row in cur.fetchall()]
+
+    cur.close()
+    conn.close()
+
+    return testimonials
+
+@app.get("/api/admin/testimonials")
+async def admin_get_testimonials(authorization: str = Header(None)):
+    """Get all testimonials"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    cur.execute("SELECT * FROM testimonials ORDER BY created_at DESC")
+    testimonials = [dict(row) for row in cur.fetchall()]
+
+    cur.close()
+    conn.close()
+
+    return testimonials
+
+@app.post("/api/admin/testimonials/create")
+async def admin_create_testimonial(req: TestimonialRequest, authorization: str = Header(None)):
+    """Create a testimonial"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute("""
+        INSERT INTO testimonials (name, title, content, rating)
+        VALUES (%s, %s, %s, %s)
+    """, (req.name, req.title, req.content, req.rating))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return {"success": True}
+
+@app.delete("/api/admin/testimonials/{testimonial_id}")
+async def admin_delete_testimonial(testimonial_id: int, authorization: str = Header(None)):
+    """Delete a testimonial"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute("DELETE FROM testimonials WHERE id = %s", (testimonial_id,))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return {"success": True}
+
+# ============ FAQ API ============
+
+@app.get("/api/site/faq")
+async def get_faq():
+    """Get active FAQ items (public)"""
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    cur.execute("SELECT * FROM faq WHERE is_active = TRUE ORDER BY sort_order")
+    items = [dict(row) for row in cur.fetchall()]
+
+    cur.close()
+    conn.close()
+
+    return items
+
+@app.get("/api/admin/faq")
+async def admin_get_faq(authorization: str = Header(None)):
+    """Get all FAQ items"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    cur.execute("SELECT * FROM faq ORDER BY sort_order")
+    items = [dict(row) for row in cur.fetchall()]
+
+    cur.close()
+    conn.close()
+
+    return items
+
+@app.post("/api/admin/faq/create")
+async def admin_create_faq(req: FAQRequest, authorization: str = Header(None)):
+    """Create a FAQ item"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute("""
+        INSERT INTO faq (question, answer, sort_order)
+        VALUES (%s, %s, %s)
+    """, (req.question, req.answer, req.sort_order))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return {"success": True}
+
+@app.delete("/api/admin/faq/{faq_id}")
+async def admin_delete_faq(faq_id: int, authorization: str = Header(None)):
+    """Delete a FAQ item"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute("DELETE FROM faq WHERE id = %s", (faq_id,))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return {"success": True}
+
+# ============ ANNOUNCEMENTS API ============
+
+@app.get("/api/site/announcements")
+async def get_announcements():
+    """Get active announcements (public)"""
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    cur.execute("SELECT * FROM announcements WHERE is_active = TRUE ORDER BY created_at DESC")
+    items = [dict(row) for row in cur.fetchall()]
+
+    cur.close()
+    conn.close()
+
+    return items
+
+@app.get("/api/admin/announcements")
+async def admin_get_announcements(authorization: str = Header(None)):
+    """Get all announcements"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    cur.execute("SELECT * FROM announcements ORDER BY created_at DESC")
+    items = [dict(row) for row in cur.fetchall()]
+
+    cur.close()
+    conn.close()
+
+    return items
+
+@app.post("/api/admin/announcements/create")
+async def admin_create_announcement(req: AnnouncementRequest, authorization: str = Header(None)):
+    """Create an announcement"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute("""
+        INSERT INTO announcements (title, content, announcement_type)
+        VALUES (%s, %s, %s)
+    """, (req.title, req.content, req.announcement_type))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return {"success": True}
+
+@app.delete("/api/admin/announcements/{announcement_id}")
+async def admin_delete_announcement(announcement_id: int, authorization: str = Header(None)):
+    """Delete an announcement"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute("DELETE FROM announcements WHERE id = %s", (announcement_id,))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return {"success": True}
+
+# ============ CONTACT MESSAGES API ============
+
+@app.post("/api/contact")
+async def submit_contact(req: ContactMessageRequest):
+    """Submit a contact message (public)"""
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute("""
+        INSERT INTO contact_messages (name, email, message)
+        VALUES (%s, %s, %s)
+    """, (req.name, req.email, req.message))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return {"success": True}
+
+@app.get("/api/admin/messages")
+async def admin_get_messages(authorization: str = Header(None)):
+    """Get all contact messages"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    cur.execute("SELECT * FROM contact_messages ORDER BY created_at DESC")
+    messages = [dict(row) for row in cur.fetchall()]
+
+    cur.close()
+    conn.close()
+
+    return messages
+
+@app.post("/api/admin/messages/read")
+async def admin_mark_message_read(message_id: int, authorization: str = Header(None)):
+    """Mark a message as read"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute("UPDATE contact_messages SET is_read = TRUE WHERE id = %s", (message_id,))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return {"success": True}
+
+@app.delete("/api/admin/messages/{message_id}")
+async def admin_delete_message(message_id: int, authorization: str = Header(None)):
+    """Delete a message"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute("DELETE FROM contact_messages WHERE id = %s", (message_id,))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return {"success": True}
 
 # ============ ADMIN PANEL ============
 
