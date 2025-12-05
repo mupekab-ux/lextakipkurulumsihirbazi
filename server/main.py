@@ -113,6 +113,10 @@ class CreateLicenseRequest(BaseModel):
 class LicenseActionRequest(BaseModel):
     license_key: str
 
+class SetTransferRequest(BaseModel):
+    license_key: str
+    transfer_count: int
+
 class ReleaseRequest(BaseModel):
     version: str
     download_url: str
@@ -442,6 +446,25 @@ async def admin_reset_transfer(req: LicenseActionRequest, authorization: str = H
     cur = conn.cursor()
 
     cur.execute("UPDATE licenses SET transfer_count = 0, machine_id = NULL WHERE license_key = %s", (req.license_key,))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return {"success": True}
+
+@app.post("/api/admin/license/set-transfer")
+async def admin_set_transfer(req: SetTransferRequest, authorization: str = Header(None)):
+    """Set transfer count to a specific value"""
+    verify_admin_token(authorization)
+
+    if req.transfer_count < 0:
+        return {"success": False, "error": "Transfer sayısı negatif olamaz"}
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute("UPDATE licenses SET transfer_count = %s WHERE license_key = %s", (req.transfer_count, req.license_key))
 
     conn.commit()
     cur.close()
