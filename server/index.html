@@ -2147,7 +2147,7 @@
         // Load pricing
         async function loadPricing() {
             try {
-                const response = await fetch(API_BASE + '/api/pricing');
+                const response = await fetch(API_BASE + '/api/site/pricing');
                 if (response.ok) {
                     const plans = await response.json();
                     const grid = document.getElementById('pricing-grid');
@@ -2183,7 +2183,7 @@
         // Load testimonials
         async function loadTestimonials() {
             try {
-                const response = await fetch(API_BASE + '/api/testimonials');
+                const response = await fetch(API_BASE + '/api/site/testimonials');
                 if (response.ok) {
                     const testimonials = await response.json();
                     const wrapper = document.getElementById('testimonials-wrapper');
@@ -2222,7 +2222,7 @@
         // Load FAQ
         async function loadFAQ() {
             try {
-                const response = await fetch(API_BASE + '/api/faq');
+                const response = await fetch(API_BASE + '/api/site/faq');
                 if (response.ok) {
                     const faqs = await response.json();
                     const list = document.getElementById('faq-list');
