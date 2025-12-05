@@ -57,20 +57,21 @@ def _get_license_file_path() -> Path:
 # =============================================================================
 
 def _get_cpu_id() -> str:
-    """CPU kimliğini alır (Windows için WMIC, Linux için /proc/cpuinfo)."""
+    """CPU kimliğini alır (Windows için PowerShell, Linux için /proc/cpuinfo)."""
     try:
         if platform.system() == "Windows":
-            # Windows: WMIC ile CPU ID
+            # Windows: PowerShell ile CPU ID
             result = subprocess.run(
-                ["wmic", "cpu", "get", "processorid"],
+                ["powershell", "-Command",
+                 "(Get-CimInstance -ClassName Win32_Processor).ProcessorId"],
                 capture_output=True,
                 text=True,
                 timeout=10,
-                creationflags=subprocess.CREATE_NO_WINDOW if platform.system() == "Windows" else 0
+                creationflags=subprocess.CREATE_NO_WINDOW
             )
-            lines = result.stdout.strip().split('\n')
-            if len(lines) >= 2:
-                return lines[1].strip()
+            cpu_id = result.stdout.strip()
+            if cpu_id:
+                return cpu_id
         else:
             # Linux: /proc/cpuinfo'dan model name veya Serial
             with open("/proc/cpuinfo", "r") as f:
@@ -87,19 +88,18 @@ def _get_disk_serial() -> str:
     """Birincil disk seri numarasını alır."""
     try:
         if platform.system() == "Windows":
-            # Windows: WMIC ile disk seri numarası
+            # Windows: PowerShell ile disk seri numarası
             result = subprocess.run(
-                ["wmic", "diskdrive", "get", "serialnumber"],
+                ["powershell", "-Command",
+                 "(Get-CimInstance -ClassName Win32_DiskDrive | Select-Object -First 1).SerialNumber"],
                 capture_output=True,
                 text=True,
                 timeout=10,
-                creationflags=subprocess.CREATE_NO_WINDOW if platform.system() == "Windows" else 0
+                creationflags=subprocess.CREATE_NO_WINDOW
             )
-            lines = result.stdout.strip().split('\n')
-            for line in lines[1:]:
-                serial = line.strip()
-                if serial and serial != "SerialNumber":
-                    return serial
+            serial = result.stdout.strip()
+            if serial:
+                return serial
         else:
             # Linux: lsblk veya /sys/block/*/serial
             result = subprocess.run(
@@ -134,15 +134,16 @@ def _get_windows_product_id() -> str:
     try:
         if platform.system() == "Windows":
             result = subprocess.run(
-                ["wmic", "os", "get", "serialnumber"],
+                ["powershell", "-Command",
+                 "(Get-CimInstance -ClassName Win32_OperatingSystem).SerialNumber"],
                 capture_output=True,
                 text=True,
                 timeout=10,
                 creationflags=subprocess.CREATE_NO_WINDOW
             )
-            lines = result.stdout.strip().split('\n')
-            if len(lines) >= 2:
-                return lines[1].strip()
+            serial = result.stdout.strip()
+            if serial:
+                return serial
     except Exception as e:
         logger.warning(f"Windows ürün kimliği alınamadı: {e}")
 
