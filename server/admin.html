@@ -1019,7 +1019,7 @@
         // Pricing
         async function loadPricing() {
             try {
-                const response = await fetch(`${API_BASE}/pricing`);
+                const response = await fetch(`${API_BASE}/admin/pricing`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await response.json();
                 const container = document.getElementById('pricingList');
                 if (data?.length > 0) {
@@ -1087,7 +1087,7 @@
         // Testimonials
         async function loadTestimonials() {
             try {
-                const response = await fetch(`${API_BASE}/testimonials`);
+                const response = await fetch(`${API_BASE}/admin/testimonials`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await response.json();
                 const container = document.getElementById('testimonialsList');
                 if (data?.length > 0) {
@@ -1152,7 +1152,7 @@
         // FAQ
         async function loadFaq() {
             try {
-                const response = await fetch(`${API_BASE}/faq`);
+                const response = await fetch(`${API_BASE}/admin/faq`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await response.json();
                 const container = document.getElementById('faqList');
                 if (data?.length > 0) {
@@ -1211,7 +1211,7 @@
         // Announcements
         async function loadAnnouncements() {
             try {
-                const response = await fetch(`${API_BASE}/announcements`);
+                const response = await fetch(`${API_BASE}/admin/announcements`, { headers: { 'Authorization': `Bearer ${authToken}` } });
                 const data = await response.json();
                 const container = document.getElementById('announcementsList');
                 if (data?.length > 0) {
