@@ -32,19 +32,40 @@ LICENSE_FILE_NAME = ".lextakip_license"
 
 def _get_license_dir() -> Path:
     """Lisans dosyasının saklanacağı dizini döndürür."""
+    possible_dirs = []
+
     if platform.system() == "Windows":
-        # Windows: %APPDATA%/LexTakip
+        # Windows: Birkaç alternatif konum dene
         app_data = os.environ.get("APPDATA", "")
+        local_app_data = os.environ.get("LOCALAPPDATA", "")
+
         if app_data:
-            license_dir = Path(app_data) / "LexTakip"
-        else:
-            license_dir = Path.home() / "LexTakip"
+            possible_dirs.append(Path(app_data) / "LexTakip")
+        if local_app_data:
+            possible_dirs.append(Path(local_app_data) / "LexTakip")
+        possible_dirs.append(Path.home() / "LexTakip")
+        possible_dirs.append(Path.home() / ".lextakip")
     else:
         # Linux/Mac: ~/.config/lextakip
-        license_dir = Path.home() / ".config" / "lextakip"
+        possible_dirs.append(Path.home() / ".config" / "lextakip")
+        possible_dirs.append(Path.home() / ".lextakip")
 
-    license_dir.mkdir(parents=True, exist_ok=True)
-    return license_dir
+    # İlk yazılabilir dizini bul
+    for license_dir in possible_dirs:
+        try:
+            license_dir.mkdir(parents=True, exist_ok=True)
+            # Yazma testi yap
+            test_file = license_dir / ".write_test"
+            test_file.write_text("test")
+            test_file.unlink()
+            return license_dir
+        except (PermissionError, OSError):
+            continue
+
+    # Hiçbiri çalışmazsa, uygulama dizinini kullan
+    app_dir = Path(__file__).parent / ".license_data"
+    app_dir.mkdir(parents=True, exist_ok=True)
+    return app_dir
 
 
 def _get_license_file_path() -> Path:
