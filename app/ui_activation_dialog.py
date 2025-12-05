@@ -32,19 +32,23 @@ try:  # pragma: no cover - runtime import guard
     from app.license import (
         get_short_machine_id,
         activate_online,
+        verify_online,
         is_activated,
         get_license_info,
         format_license_for_display,
         get_system_info,
+        delete_license,
     )
 except ModuleNotFoundError:  # pragma: no cover
     from license import (
         get_short_machine_id,
         activate_online,
+        verify_online,
         is_activated,
         get_license_info,
         format_license_for_display,
         get_system_info,
+        delete_license,
     )
 
 logger = logging.getLogger(__name__)
@@ -408,12 +412,32 @@ def check_license_on_startup() -> bool:
     """
     Uygulama başlangıcında lisans kontrolü yapar.
 
+    Her açılışta online doğrulama yapılır. Sunucuya ulaşılamazsa
+    offline mod devreye girer.
+
     Returns:
         True: Lisans geçerli, uygulama açılabilir
         False: Lisans geçersiz veya kullanıcı iptal etti
     """
     if is_activated():
-        return True
+        # Online doğrulama yap
+        valid, message = verify_online()
+        if valid:
+            return True
+        else:
+            # Lisans geçersiz - sunucu tarafından iptal edilmiş olabilir
+            # "Farklı cihaz" veya "Lisans devre dışı" mesajı varsa yerel lisansı sil
+            if "devre" in message.lower() or "geçersiz" in message.lower():
+                delete_license()
+                QMessageBox.warning(
+                    None,
+                    "Lisans Geçersiz",
+                    f"{message}\n\nLütfen yeniden aktive edin."
+                )
+            # Aktivasyon diyaloğunu göster
+            dialog = ActivationDialog()
+            result = dialog.exec()
+            return result == QDialog.DialogCode.Accepted and is_activated()
 
     # Aktivasyon diyaloğunu göster
     dialog = ActivationDialog()
