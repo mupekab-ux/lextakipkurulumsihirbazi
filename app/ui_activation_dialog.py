@@ -26,6 +26,7 @@ from PyQt6.QtWidgets import (
     QGroupBox,
     QSpacerItem,
     QSizePolicy,
+    QFileDialog,
 )
 
 try:  # pragma: no cover - runtime import guard
@@ -50,6 +51,11 @@ except ModuleNotFoundError:  # pragma: no cover
         get_system_info,
         delete_license,
     )
+
+try:  # pragma: no cover - runtime import guard
+    from app.transfer import import_transfer_package, TRANSFER_EXTENSION
+except ModuleNotFoundError:  # pragma: no cover
+    from transfer import import_transfer_package, TRANSFER_EXTENSION
 
 logger = logging.getLogger(__name__)
 
@@ -136,6 +142,27 @@ class ActivationDialog(QDialog):
         license_layout.addWidget(self.license_input)
 
         layout.addWidget(license_group)
+
+        # Transfer bağlantısı
+        self.import_btn = QPushButton("📥 Mevcut Verileri İçe Aktar")
+        self.import_btn.setToolTip(
+            "Başka bir bilgisayardan aktardığınız transfer dosyasını (.teb) yükleyin"
+        )
+        self.import_btn.setStyleSheet("""
+            QPushButton {
+                background-color: transparent;
+                color: #2196F3;
+                border: 1px solid #2196F3;
+                border-radius: 4px;
+                padding: 8px;
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                background-color: #E3F2FD;
+            }
+        """)
+        self.import_btn.clicked.connect(self._import_transfer)
+        layout.addWidget(self.import_btn)
 
         # Durum mesajı
         self.status_label = QLabel("")
@@ -239,6 +266,70 @@ class ActivationDialog(QDialog):
             new_pos = min(cursor_pos + (len(formatted) - len(text)), len(formatted))
             self.license_input.setCursorPosition(max(0, new_pos))
             self.license_input.blockSignals(False)
+
+    def _import_transfer(self) -> None:
+        """Transfer paketini içe aktarır."""
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Transfer Paketini Seç",
+            "",
+            f"TakibiEsasi Transfer (*{TRANSFER_EXTENSION})"
+        )
+
+        if not file_path:
+            return
+
+        # Onay iste
+        reply = QMessageBox.question(
+            self,
+            "Veri İçe Aktarma",
+            "Transfer paketi içe aktarılacak.\n\n"
+            "Mevcut verileriniz varsa yedeklenecektir.\n\n"
+            "Devam etmek istiyor musunuz?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        self.status_label.setText("Veriler içe aktarılıyor...")
+        self.status_label.setStyleSheet("color: #2196F3;")
+        QApplication.processEvents()
+
+        try:
+            success, message, license_key = import_transfer_package(file_path)
+
+            if success:
+                self.status_label.setText("Veriler içe aktarıldı!")
+                self.status_label.setStyleSheet("color: #4CAF50; font-weight: bold;")
+
+                # Lisans anahtarını otomatik doldur
+                if license_key:
+                    self.license_input.setText(license_key)
+                    QMessageBox.information(
+                        self,
+                        "Başarılı",
+                        f"{message}\n\n"
+                        f"Lisans anahtarınız otomatik olarak dolduruldu.\n"
+                        f"Şimdi 'Aktive Et' butonuna tıklayarak devam edin."
+                    )
+                else:
+                    QMessageBox.information(
+                        self,
+                        "Başarılı",
+                        f"{message}\n\n"
+                        "Lisans anahtarınızı girerek devam edin."
+                    )
+            else:
+                self.status_label.setText(message)
+                self.status_label.setStyleSheet("color: #F44336;")
+                QMessageBox.warning(self, "Hata", message)
+
+        except Exception as e:
+            self.status_label.setText(f"Hata: {str(e)}")
+            self.status_label.setStyleSheet("color: #F44336;")
+            logger.exception("Transfer içe aktarma hatası")
 
     def _activate_license(self) -> None:
         """Lisansı aktive eder."""

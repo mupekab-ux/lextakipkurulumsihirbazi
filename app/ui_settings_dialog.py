@@ -130,6 +130,11 @@ try:  # pragma: no cover - runtime import guard
 except ModuleNotFoundError:  # pragma: no cover
     from ui_activation_dialog import LicenseInfoDialog
 
+try:  # pragma: no cover - runtime import guard
+    from app.ui_transfer_dialog import TransferDialog
+except ModuleNotFoundError:  # pragma: no cover
+    from ui_transfer_dialog import TransferDialog
+
 
 PERMISSION_FIELDS: list[tuple[str, str]] = [
     ("view_all_cases", "Tüm dosyaları görebilir mi?"),
@@ -457,6 +462,27 @@ class SettingsDialog(QDialog):
         data_ops_layout.addWidget(load_info_label)
 
         b_layout.addWidget(data_ops_group)
+
+        # Bilgisayar Transferi Grubu
+        transfer_group = QGroupBox("Bilgisayar Transferi")
+        transfer_layout = QVBoxLayout(transfer_group)
+
+        self.transfer_btn = QPushButton("Bilgisayar Transferi...")
+        self.transfer_btn.setToolTip(
+            "Verilerinizi başka bir bilgisayara taşımak için dışa/içe aktarın"
+        )
+        self.transfer_btn.clicked.connect(self._show_transfer_dialog)
+        transfer_layout.addWidget(self.transfer_btn)
+
+        transfer_info_label = QLabel(
+            "Yeni bir bilgisayara geçerken tüm verilerinizi (davalar, ayarlar, "
+            "lisans) tek bir dosya ile taşıyabilirsiniz."
+        )
+        transfer_info_label.setWordWrap(True)
+        transfer_info_label.setStyleSheet("color: #888; font-size: 11px;")
+        transfer_layout.addWidget(transfer_info_label)
+
+        b_layout.addWidget(transfer_group)
         b_layout.addStretch()
 
         backup_tab.setLayout(b_layout)
@@ -1484,4 +1510,9 @@ class SettingsDialog(QDialog):
     def _show_license_info(self) -> None:
         """Lisans bilgileri diyaloğunu gösterir."""
         dialog = LicenseInfoDialog(self)
+        dialog.exec()
+
+    def _show_transfer_dialog(self) -> None:
+        """Bilgisayar transferi diyaloğunu gösterir."""
+        dialog = TransferDialog(self)
         dialog.exec()
