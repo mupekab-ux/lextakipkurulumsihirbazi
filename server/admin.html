@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TakibiEsasi Admin Panel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .nav-tab.active { background-color: #3b82f6; color: white; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Login Screen -->
+    <div id="loginScreen" class="min-h-screen flex items-center justify-center">
+        <div class="bg-white p-8 rounded-lg shadow-lg w-96">
+            <div class="text-center mb-6">
+                <i class="fas fa-shield-alt text-4xl text-blue-600 mb-2"></i>
+                <h1 class="text-2xl font-bold text-gray-800">TakibiEsasi</h1>
+                <p class="text-gray-500">Admin Panel</p>
+            </div>
+            <div class="space-y-4">
+                <input type="text" id="username" placeholder="Kullanıcı Adı"
+                    class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <input type="password" id="password" placeholder="Şifre"
+                    class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onkeypress="if(event.key==='Enter')login()">
+                <button onclick="login()"
+                    class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition">
+                    <i class="fas fa-sign-in-alt mr-2"></i>Giriş Yap
+                </button>
+            </div>
+            <p id="loginError" class="text-red-500 text-center mt-4 hidden"></p>
+        </div>
+    </div>
+
+    <!-- Admin Panel -->
+    <div id="adminPanel" class="hidden">
+        <!-- Header -->
+        <header class="bg-white shadow">
+            <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+                <div class="flex items-center space-x-3">
+                    <i class="fas fa-shield-alt text-2xl text-blue-600"></i>
+                    <h1 class="text-xl font-bold text-gray-800">TakibiEsasi Admin</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-gray-600"><i class="fas fa-user mr-2"></i>Admin</span>
+                    <button onclick="logout()" class="text-red-500 hover:text-red-700">
+                        <i class="fas fa-sign-out-alt mr-1"></i>Çıkış
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="bg-white border-b">
+            <div class="max-w-7xl mx-auto px-4">
+                <div class="flex space-x-1">
+                    <button onclick="showTab('dashboard')" class="nav-tab active px-4 py-3 rounded-t-lg transition" data-tab="dashboard">
+                        <i class="fas fa-chart-line mr-2"></i>Dashboard
+                    </button>
+                    <button onclick="showTab('licenses')" class="nav-tab px-4 py-3 rounded-t-lg transition hover:bg-gray-100" data-tab="licenses">
+                        <i class="fas fa-key mr-2"></i>Lisanslar
+                    </button>
+                    <button onclick="showTab('releases')" class="nav-tab px-4 py-3 rounded-t-lg transition hover:bg-gray-100" data-tab="releases">
+                        <i class="fas fa-box mr-2"></i>Sürümler
+                    </button>
+                    <button onclick="showTab('upload')" class="nav-tab px-4 py-3 rounded-t-lg transition hover:bg-gray-100" data-tab="upload">
+                        <i class="fas fa-upload mr-2"></i>Dosya Yükle
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="max-w-7xl mx-auto px-4 py-6">
+            <!-- Dashboard Tab -->
+            <div id="dashboard" class="tab-content active">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center">
+                            <div class="bg-green-100 p-3 rounded-full">
+                                <i class="fas fa-check-circle text-green-600 text-xl"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-gray-500 text-sm">Aktif Lisans</p>
+                                <p id="statActive" class="text-2xl font-bold text-gray-800">-</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center">
+                            <div class="bg-blue-100 p-3 rounded-full">
+                                <i class="fas fa-users text-blue-600 text-xl"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-gray-500 text-sm">Toplam Lisans</p>
+                                <p id="statTotal" class="text-2xl font-bold text-gray-800">-</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center">
+                            <div class="bg-yellow-100 p-3 rounded-full">
+                                <i class="fas fa-clock text-yellow-600 text-xl"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-gray-500 text-sm">Bugün Aktivasyon</p>
+                                <p id="statToday" class="text-2xl font-bold text-gray-800">-</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <div class="flex items-center">
+                            <div class="bg-purple-100 p-3 rounded-full">
+                                <i class="fas fa-download text-purple-600 text-xl"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-gray-500 text-sm">Güncel Sürüm</p>
+                                <p id="statVersion" class="text-2xl font-bold text-gray-800">-</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="bg-white rounded-lg shadow">
+                    <div class="px-6 py-4 border-b">
+                        <h2 class="text-lg font-semibold text-gray-800">
+                            <i class="fas fa-history mr-2"></i>Son Aktivasyonlar
+                        </h2>
+                    </div>
+                    <div class="p-6">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="text-left text-gray-500 text-sm">
+                                    <th class="pb-3">Lisans</th>
+                                    <th class="pb-3">Makine ID</th>
+                                    <th class="pb-3">Tarih</th>
+                                    <th class="pb-3">Durum</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recentActivations">
+                                <tr><td colspan="4" class="text-center text-gray-500 py-4">Yükleniyor...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Licenses Tab -->
+            <div id="licenses" class="tab-content">
+                <div class="bg-white rounded-lg shadow">
+                    <div class="px-6 py-4 border-b flex justify-between items-center">
+                        <h2 class="text-lg font-semibold text-gray-800">
+                            <i class="fas fa-key mr-2"></i>Lisans Yönetimi
+                        </h2>
+                        <button onclick="showCreateLicenseModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+                            <i class="fas fa-plus mr-2"></i>Yeni Lisans
+                        </button>
+                    </div>
+                    <div class="p-6">
+                        <div class="mb-4 flex space-x-4">
+                            <input type="text" id="licenseSearch" placeholder="Lisans ara..."
+                                class="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                onkeyup="filterLicenses()">
+                            <select id="licenseFilter" class="px-4 py-2 border rounded-lg" onchange="filterLicenses()">
+                                <option value="all">Tümü</option>
+                                <option value="active">Aktif</option>
+                                <option value="inactive">Pasif</option>
+                            </select>
+                        </div>
+                        <table class="w-full">
+                            <thead>
+                                <tr class="text-left text-gray-500 text-sm border-b">
+                                    <th class="pb-3 pr-4">Lisans Anahtarı</th>
+                                    <th class="pb-3 pr-4">Durum</th>
+                                    <th class="pb-3 pr-4">Makine ID</th>
+                                    <th class="pb-3 pr-4">Transfer</th>
+                                    <th class="pb-3 pr-4">Aktivasyon</th>
+                                    <th class="pb-3">İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody id="licensesList">
+                                <tr><td colspan="6" class="text-center text-gray-500 py-4">Yükleniyor...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Releases Tab -->
+            <div id="releases" class="tab-content">
+                <div class="bg-white rounded-lg shadow">
+                    <div class="px-6 py-4 border-b flex justify-between items-center">
+                        <h2 class="text-lg font-semibold text-gray-800">
+                            <i class="fas fa-box mr-2"></i>Sürüm Yönetimi
+                        </h2>
+                        <button onclick="showReleaseModal()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">
+                            <i class="fas fa-plus mr-2"></i>Yeni Sürüm Yayınla
+                        </button>
+                    </div>
+                    <div class="p-6">
+                        <div class="mb-6 p-4 bg-blue-50 rounded-lg">
+                            <h3 class="font-semibold text-blue-800 mb-2"><i class="fas fa-info-circle mr-2"></i>Güncel Sürüm Bilgisi</h3>
+                            <div id="currentRelease" class="text-blue-700">Yükleniyor...</div>
+                        </div>
+                        <table class="w-full">
+                            <thead>
+                                <tr class="text-left text-gray-500 text-sm border-b">
+                                    <th class="pb-3 pr-4">Sürüm</th>
+                                    <th class="pb-3 pr-4">Yayın Tarihi</th>
+                                    <th class="pb-3 pr-4">Kritik</th>
+                                    <th class="pb-3 pr-4">Notlar</th>
+                                    <th class="pb-3">İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody id="releasesList">
+                                <tr><td colspan="5" class="text-center text-gray-500 py-4">Yükleniyor...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Upload Tab -->
+            <div id="upload" class="tab-content">
+                <div class="bg-white rounded-lg shadow">
+                    <div class="px-6 py-4 border-b">
+                        <h2 class="text-lg font-semibold text-gray-800">
+                            <i class="fas fa-upload mr-2"></i>Kurulum Dosyası Yükle
+                        </h2>
+                    </div>
+                    <div class="p-6">
+                        <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center" id="dropZone">
+                            <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-4"></i>
+                            <p class="text-gray-600 mb-4">Setup dosyasını buraya sürükleyin veya</p>
+                            <input type="file" id="fileInput" accept=".exe" class="hidden" onchange="handleFileSelect(event)">
+                            <button onclick="document.getElementById('fileInput').click()"
+                                class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
+                                <i class="fas fa-folder-open mr-2"></i>Dosya Seç
+                            </button>
+                            <p class="text-gray-400 text-sm mt-4">Maksimum dosya boyutu: 200 MB</p>
+                        </div>
+                        <div id="uploadProgress" class="hidden mt-4">
+                            <div class="flex justify-between mb-2">
+                                <span id="uploadFileName" class="text-gray-700"></span>
+                                <span id="uploadPercent" class="text-gray-500">0%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div id="uploadBar" class="bg-blue-600 h-2 rounded-full transition-all" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div id="uploadedFiles" class="mt-6">
+                            <h3 class="font-semibold text-gray-800 mb-3">Yüklü Dosyalar</h3>
+                            <div id="filesList" class="space-y-2">Yükleniyor...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Create License Modal -->
+    <div id="createLicenseModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white rounded-lg shadow-xl w-96 p-6">
+            <h3 class="text-lg font-semibold mb-4"><i class="fas fa-key mr-2"></i>Yeni Lisans Oluştur</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm text-gray-600 mb-1">Müşteri Adı (opsiyonel)</label>
+                    <input type="text" id="newLicenseCustomer" class="w-full px-4 py-2 border rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-600 mb-1">E-posta (opsiyonel)</label>
+                    <input type="email" id="newLicenseEmail" class="w-full px-4 py-2 border rounded-lg">
+                </div>
+            </div>
+            <div class="flex justify-end space-x-3 mt-6">
+                <button onclick="hideCreateLicenseModal()" class="px-4 py-2 border rounded-lg hover:bg-gray-100">İptal</button>
+                <button onclick="createLicense()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Oluştur</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Release Modal -->
+    <div id="releaseModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white rounded-lg shadow-xl w-[500px] p-6">
+            <h3 class="text-lg font-semibold mb-4"><i class="fas fa-box mr-2"></i>Yeni Sürüm Yayınla</h3>
+            <div class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">Sürüm Numarası *</label>
+                        <input type="text" id="releaseVersion" placeholder="1.0.0" class="w-full px-4 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-600 mb-1">Minimum Sürüm</label>
+                        <input type="text" id="releaseMinVersion" placeholder="1.0.0" class="w-full px-4 py-2 border rounded-lg">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-600 mb-1">İndirme URL *</label>
+                    <input type="text" id="releaseUrl" placeholder="https://takibiesasi.com/download/TakibiEsasi_Setup_1.0.0.exe"
+                        class="w-full px-4 py-2 border rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-600 mb-1">Sürüm Notları *</label>
+                    <textarea id="releaseNotes" rows="3" placeholder="Bu sürümde yapılan değişiklikler..."
+                        class="w-full px-4 py-2 border rounded-lg"></textarea>
+                </div>
+                <div class="flex items-center">
+                    <input type="checkbox" id="releaseCritical" class="mr-2">
+                    <label for="releaseCritical" class="text-sm text-gray-600">Kritik güncelleme (kullanıcı atlayamaz)</label>
+                </div>
+            </div>
+            <div class="flex justify-end space-x-3 mt-6">
+                <button onclick="hideReleaseModal()" class="px-4 py-2 border rounded-lg hover:bg-gray-100">İptal</button>
+                <button onclick="publishRelease()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">Yayınla</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+        let authToken = localStorage.getItem('adminToken');
+
+        // Login
+        async function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/admin/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    authToken = data.token;
+                    localStorage.setItem('adminToken', authToken);
+                    showAdminPanel();
+                } else {
+                    showError('Kullanıcı adı veya şifre hatalı');
+                }
+            } catch (e) {
+                showError('Bağlantı hatası');
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('adminToken');
+            authToken = null;
+            document.getElementById('loginScreen').classList.remove('hidden');
+            document.getElementById('adminPanel').classList.add('hidden');
+        }
+
+        function showError(msg) {
+            const el = document.getElementById('loginError');
+            el.textContent = msg;
+            el.classList.remove('hidden');
+        }
+
+        function showAdminPanel() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('adminPanel').classList.remove('hidden');
+            loadDashboard();
+            loadLicenses();
+            loadReleases();
+            loadFiles();
+        }
+
+        // Tab Navigation
+        function showTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+        }
+
+        // Dashboard
+        async function loadDashboard() {
+            try {
+                const response = await fetch(`${API_BASE}/admin/stats`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                const data = await response.json();
+
+                document.getElementById('statActive').textContent = data.active_licenses || 0;
+                document.getElementById('statTotal').textContent = data.total_licenses || 0;
+                document.getElementById('statToday').textContent = data.today_activations || 0;
+                document.getElementById('statVersion').textContent = data.current_version || '-';
+
+                // Recent activations
+                const tbody = document.getElementById('recentActivations');
+                if (data.recent_activations && data.recent_activations.length > 0) {
+                    tbody.innerHTML = data.recent_activations.map(a => `
+                        <tr class="border-b">
+                            <td class="py-3 pr-4 font-mono text-sm">${a.license_key.substring(0, 16)}...</td>
+                            <td class="py-3 pr-4 font-mono text-xs">${a.machine_id ? a.machine_id.substring(0, 12) + '...' : '-'}</td>
+                            <td class="py-3 pr-4 text-sm">${formatDate(a.activated_at)}</td>
+                            <td class="py-3"><span class="px-2 py-1 rounded-full text-xs ${a.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">${a.is_active ? 'Aktif' : 'Pasif'}</span></td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center text-gray-500 py-4">Henüz aktivasyon yok</td></tr>';
+                }
+            } catch (e) {
+                console.error('Dashboard yüklenemedi:', e);
+            }
+        }
+
+        // Licenses
+        async function loadLicenses() {
+            try {
+                const response = await fetch(`${API_BASE}/admin/licenses`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                const data = await response.json();
+
+                const tbody = document.getElementById('licensesList');
+                if (data.licenses && data.licenses.length > 0) {
+                    tbody.innerHTML = data.licenses.map(l => `
+                        <tr class="border-b license-row" data-active="${l.is_active}" data-key="${l.license_key.toLowerCase()}">
+                            <td class="py-3 pr-4 font-mono text-sm">${l.license_key}</td>
+                            <td class="py-3 pr-4">
+                                <span class="px-2 py-1 rounded-full text-xs ${l.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                    ${l.is_active ? 'Aktif' : 'Pasif'}
+                                </span>
+                            </td>
+                            <td class="py-3 pr-4 font-mono text-xs">${l.machine_id ? l.machine_id.substring(0, 16) + '...' : '-'}</td>
+                            <td class="py-3 pr-4 text-sm">${l.transfer_count || 0}/2</td>
+                            <td class="py-3 pr-4 text-sm">${l.activated_at ? formatDate(l.activated_at) : '-'}</td>
+                            <td class="py-3">
+                                <button onclick="toggleLicense('${l.license_key}')"
+                                    class="text-sm px-2 py-1 rounded ${l.is_active ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-green-100 text-green-700 hover:bg-green-200'}">
+                                    ${l.is_active ? 'Kapat' : 'Aç'}
+                                </button>
+                                <button onclick="resetTransfer('${l.license_key}')"
+                                    class="text-sm px-2 py-1 rounded bg-yellow-100 text-yellow-700 hover:bg-yellow-200 ml-1">
+                                    Transfer Sıfırla
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-gray-500 py-4">Lisans bulunamadı</td></tr>';
+                }
+            } catch (e) {
+                console.error('Lisanslar yüklenemedi:', e);
+            }
+        }
+
+        function filterLicenses() {
+            const search = document.getElementById('licenseSearch').value.toLowerCase();
+            const filter = document.getElementById('licenseFilter').value;
+
+            document.querySelectorAll('.license-row').forEach(row => {
+                const key = row.dataset.key;
+                const isActive = row.dataset.active === 'true';
+
+                let show = key.includes(search);
+                if (filter === 'active') show = show && isActive;
+                if (filter === 'inactive') show = show && !isActive;
+
+                row.style.display = show ? '' : 'none';
+            });
+        }
+
+        async function toggleLicense(key) {
+            if (!confirm('Lisans durumunu değiştirmek istediğinize emin misiniz?')) return;
+
+            try {
+                await fetch(`${API_BASE}/admin/license/toggle`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ license_key: key })
+                });
+                loadLicenses();
+                loadDashboard();
+            } catch (e) {
+                alert('İşlem başarısız');
+            }
+        }
+
+        async function resetTransfer(key) {
+            if (!confirm('Transfer sayacını sıfırlamak istediğinize emin misiniz?')) return;
+
+            try {
+                await fetch(`${API_BASE}/admin/license/reset-transfer`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ license_key: key })
+                });
+                loadLicenses();
+                alert('Transfer sayacı sıfırlandı');
+            } catch (e) {
+                alert('İşlem başarısız');
+            }
+        }
+
+        function showCreateLicenseModal() {
+            document.getElementById('createLicenseModal').classList.remove('hidden');
+        }
+
+        function hideCreateLicenseModal() {
+            document.getElementById('createLicenseModal').classList.add('hidden');
+        }
+
+        async function createLicense() {
+            const customer = document.getElementById('newLicenseCustomer').value;
+            const email = document.getElementById('newLicenseEmail').value;
+
+            try {
+                const response = await fetch(`${API_BASE}/admin/license/create`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ customer_name: customer, email: email })
+                });
+                const data = await response.json();
+
+                hideCreateLicenseModal();
+                loadLicenses();
+                loadDashboard();
+
+                alert(`Lisans oluşturuldu:\n\n${data.license_key}\n\nBu anahtarı müşteriye gönderin.`);
+            } catch (e) {
+                alert('Lisans oluşturulamadı');
+            }
+        }
+
+        // Releases
+        async function loadReleases() {
+            try {
+                const response = await fetch(`${API_BASE}/admin/releases`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                const data = await response.json();
+
+                // Current release info
+                if (data.current) {
+                    document.getElementById('currentRelease').innerHTML = `
+                        <strong>v${data.current.version}</strong> - ${data.current.release_notes}<br>
+                        <span class="text-sm">Yayın: ${data.current.release_date} |
+                        ${data.current.is_critical ? '<span class="text-red-600">Kritik</span>' : 'Normal'}</span>
+                    `;
+                }
+
+                // Releases list
+                const tbody = document.getElementById('releasesList');
+                if (data.releases && data.releases.length > 0) {
+                    tbody.innerHTML = data.releases.map(r => `
+                        <tr class="border-b">
+                            <td class="py-3 pr-4 font-semibold">v${r.version}</td>
+                            <td class="py-3 pr-4 text-sm">${r.release_date}</td>
+                            <td class="py-3 pr-4">
+                                <span class="px-2 py-1 rounded-full text-xs ${r.is_critical ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}">
+                                    ${r.is_critical ? 'Kritik' : 'Normal'}
+                                </span>
+                            </td>
+                            <td class="py-3 pr-4 text-sm text-gray-600">${r.release_notes}</td>
+                            <td class="py-3">
+                                <button onclick="setCurrentRelease('${r.version}')"
+                                    class="text-sm px-2 py-1 rounded bg-blue-100 text-blue-700 hover:bg-blue-200">
+                                    Aktif Yap
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-gray-500 py-4">Sürüm bulunamadı</td></tr>';
+                }
+            } catch (e) {
+                console.error('Sürümler yüklenemedi:', e);
+            }
+        }
+
+        function showReleaseModal() {
+            document.getElementById('releaseModal').classList.remove('hidden');
+        }
+
+        function hideReleaseModal() {
+            document.getElementById('releaseModal').classList.add('hidden');
+        }
+
+        async function publishRelease() {
+            const version = document.getElementById('releaseVersion').value;
+            const url = document.getElementById('releaseUrl').value;
+            const notes = document.getElementById('releaseNotes').value;
+            const minVersion = document.getElementById('releaseMinVersion').value || version;
+            const critical = document.getElementById('releaseCritical').checked;
+
+            if (!version || !url || !notes) {
+                alert('Lütfen tüm zorunlu alanları doldurun');
+                return;
+            }
+
+            try {
+                await fetch(`${API_BASE}/admin/release/publish`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({
+                        version,
+                        download_url: url,
+                        release_notes: notes,
+                        min_version: minVersion,
+                        is_critical: critical
+                    })
+                });
+
+                hideReleaseModal();
+                loadReleases();
+                loadDashboard();
+                alert('Sürüm yayınlandı!');
+            } catch (e) {
+                alert('Sürüm yayınlanamadı');
+            }
+        }
+
+        async function setCurrentRelease(version) {
+            if (!confirm(`v${version} sürümünü aktif yapmak istediğinize emin misiniz?`)) return;
+
+            try {
+                await fetch(`${API_BASE}/admin/release/set-current`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ version })
+                });
+                loadReleases();
+                loadDashboard();
+            } catch (e) {
+                alert('İşlem başarısız');
+            }
+        }
+
+        // File Upload
+        async function loadFiles() {
+            try {
+                const response = await fetch(`${API_BASE}/admin/files`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                const data = await response.json();
+
+                const container = document.getElementById('filesList');
+                if (data.files && data.files.length > 0) {
+                    container.innerHTML = data.files.map(f => `
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div class="flex items-center">
+                                <i class="fas fa-file-archive text-gray-400 mr-3"></i>
+                                <div>
+                                    <p class="font-medium">${f.name}</p>
+                                    <p class="text-sm text-gray-500">${formatSize(f.size)} - ${f.date}</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <button onclick="copyUrl('${f.url}')" class="text-blue-600 hover:text-blue-800">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                                <button onclick="deleteFile('${f.name}')" class="text-red-600 hover:text-red-800">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    container.innerHTML = '<p class="text-gray-500 text-center py-4">Henüz dosya yüklenmemiş</p>';
+                }
+            } catch (e) {
+                console.error('Dosyalar yüklenemedi:', e);
+            }
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) uploadFile(file);
+        }
+
+        // Drag & Drop
+        const dropZone = document.getElementById('dropZone');
+        if (dropZone) {
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('border-blue-500', 'bg-blue-50');
+            });
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('border-blue-500', 'bg-blue-50');
+            });
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('border-blue-500', 'bg-blue-50');
+                const file = e.dataTransfer.files[0];
+                if (file) uploadFile(file);
+            });
+        }
+
+        async function uploadFile(file) {
+            const progress = document.getElementById('uploadProgress');
+            const bar = document.getElementById('uploadBar');
+            const percent = document.getElementById('uploadPercent');
+            const fileName = document.getElementById('uploadFileName');
+
+            fileName.textContent = file.name;
+            progress.classList.remove('hidden');
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', `${API_BASE}/admin/upload`);
+                xhr.setRequestHeader('Authorization', `Bearer ${authToken}`);
+
+                xhr.upload.onprogress = (e) => {
+                    if (e.lengthComputable) {
+                        const p = Math.round((e.loaded / e.total) * 100);
+                        bar.style.width = p + '%';
+                        percent.textContent = p + '%';
+                    }
+                };
+
+                xhr.onload = () => {
+                    if (xhr.status === 200) {
+                        alert('Dosya yüklendi!');
+                        loadFiles();
+                    } else {
+                        alert('Yükleme başarısız');
+                    }
+                    progress.classList.add('hidden');
+                    bar.style.width = '0%';
+                };
+
+                xhr.send(formData);
+            } catch (e) {
+                alert('Yükleme hatası');
+                progress.classList.add('hidden');
+            }
+        }
+
+        function copyUrl(url) {
+            navigator.clipboard.writeText(url);
+            alert('URL kopyalandı!');
+        }
+
+        async function deleteFile(name) {
+            if (!confirm(`${name} dosyasını silmek istediğinize emin misiniz?`)) return;
+
+            try {
+                await fetch(`${API_BASE}/admin/file/delete`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ filename: name })
+                });
+                loadFiles();
+            } catch (e) {
+                alert('Silme başarısız');
+            }
+        }
+
+        // Helpers
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            const d = new Date(dateStr);
+            return d.toLocaleDateString('tr-TR') + ' ' + d.toLocaleTimeString('tr-TR', {hour: '2-digit', minute: '2-digit'});
+        }
+
+        function formatSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        // Auto-login if token exists
+        if (authToken) {
+            showAdminPanel();
+        }
+    </script>
+</body>
+</html>
