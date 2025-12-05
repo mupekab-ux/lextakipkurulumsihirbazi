@@ -31,7 +31,7 @@ from PyQt6.QtWidgets import (
 try:  # pragma: no cover - runtime import guard
     from app.license import (
         get_short_machine_id,
-        activate_offline,
+        activate_online,
         is_activated,
         get_license_info,
         format_license_for_display,
@@ -40,7 +40,7 @@ try:  # pragma: no cover - runtime import guard
 except ModuleNotFoundError:  # pragma: no cover
     from license import (
         get_short_machine_id,
-        activate_offline,
+        activate_online,
         is_activated,
         get_license_info,
         format_license_for_display,
@@ -251,8 +251,8 @@ class ActivationDialog(QDialog):
         QApplication.processEvents()
 
         try:
-            # Aktivasyon işlemi
-            success, message = activate_offline(license_key)
+            # Online aktivasyon işlemi
+            success, message = activate_online(license_key)
 
             if success:
                 self.status_label.setText(message)

@@ -376,18 +376,17 @@ def get_license_info() -> Optional[Dict[str, Any]]:
 
 
 # =============================================================================
-# ONLINE AKTİVASYON (Sunucu kurulduktan sonra etkinleştirilecek)
+# ONLINE AKTİVASYON
 # =============================================================================
 
-# API endpoint'leri (sunucu kurulduktan sonra güncellenecek)
-API_BASE_URL = "https://api.takibiesasi.com"  # Placeholder
+import requests
 
-async def activate_online(license_key: str) -> Tuple[bool, str]:
+API_BASE_URL = "https://api.takibiesasi.com"
+
+
+def activate_online(license_key: str) -> Tuple[bool, str]:
     """
     Online lisans aktivasyonu yapar.
-
-    NOT: Bu fonksiyon sunucu kurulduktan sonra implement edilecek.
-    Şimdilik offline aktivasyon için placeholder.
 
     Args:
         license_key: Müşterinin satın aldığı lisans anahtarı
@@ -395,25 +394,89 @@ async def activate_online(license_key: str) -> Tuple[bool, str]:
     Returns:
         (başarılı_mı, mesaj) tuple'ı
     """
-    # TODO: Sunucu kurulduktan sonra implement edilecek
-    # Şimdilik test modu - her anahtar kabul edilir
-
     machine_id = generate_machine_id()
-    activation_date = datetime.utcnow().isoformat()
 
-    # Lisansı kaydet
-    success = save_license(
-        license_key=license_key,
-        activation_date=activation_date,
-        machine_id=machine_id,
-        customer_name="Test Kullanıcı",
-        customer_email=""
-    )
+    try:
+        response = requests.post(
+            f"{API_BASE_URL}/api/activate",
+            json={
+                "license_key": license_key,
+                "machine_id": machine_id
+            },
+            timeout=30
+        )
 
-    if success:
-        return True, "Lisans başarıyla aktive edildi."
-    else:
-        return False, "Lisans kaydedilemedi."
+        if response.status_code == 200:
+            data = response.json()
+            if data.get("success"):
+                # Lisansı yerel dosyaya kaydet
+                activation_date = datetime.utcnow().isoformat()
+                save_license(
+                    license_key=license_key,
+                    activation_date=activation_date,
+                    machine_id=machine_id
+                )
+                return True, data.get("message", "Lisans başarıyla aktive edildi.")
+            else:
+                return False, data.get("message", "Aktivasyon başarısız.")
+
+        elif response.status_code == 404:
+            return False, "Lisans anahtarı bulunamadı."
+        elif response.status_code == 403:
+            detail = response.json().get("detail", "Lisans kullanılamaz.")
+            return False, detail
+        else:
+            return False, f"Sunucu hatası: {response.status_code}"
+
+    except requests.exceptions.ConnectionError:
+        return False, "Sunucuya bağlanılamadı. İnternet bağlantınızı kontrol edin."
+    except requests.exceptions.Timeout:
+        return False, "Sunucu yanıt vermedi. Lütfen tekrar deneyin."
+    except Exception as e:
+        logger.error(f"Aktivasyon hatası: {e}")
+        return False, f"Beklenmeyen hata: {str(e)}"
+
+
+def verify_online() -> Tuple[bool, str]:
+    """
+    Lisansı online olarak doğrular.
+
+    Returns:
+        (geçerli_mi, mesaj) tuple'ı
+    """
+    license_data = load_license()
+    if not license_data:
+        return False, "Yerel lisans bulunamadı."
+
+    license_key = license_data.get("license_key", "")
+    machine_id = generate_machine_id()
+
+    try:
+        response = requests.post(
+            f"{API_BASE_URL}/api/verify",
+            json={
+                "license_key": license_key,
+                "machine_id": machine_id
+            },
+            timeout=30
+        )
+
+        if response.status_code == 200:
+            data = response.json()
+            if data.get("valid"):
+                return True, data.get("message", "Lisans geçerli.")
+            else:
+                return False, data.get("message", "Lisans geçersiz.")
+        else:
+            return False, f"Sunucu hatası: {response.status_code}"
+
+    except requests.exceptions.ConnectionError:
+        # Offline mod - yerel lisansı kabul et
+        logger.warning("Sunucuya bağlanılamadı, offline mod kullanılıyor")
+        return verify_local_license()
+    except Exception as e:
+        logger.error(f"Doğrulama hatası: {e}")
+        return verify_local_license()
 
 
 def activate_offline(license_key: str) -> Tuple[bool, str]:
