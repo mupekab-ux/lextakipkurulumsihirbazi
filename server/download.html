@@ -1048,14 +1048,22 @@
                 if (response.ok) {
                     currentRelease = await response.json();
 
-                    // Update UI
-                    document.getElementById('version-text').textContent = 'v' + currentRelease.version;
-                    document.getElementById('file-size').textContent = formatFileSize(currentRelease.file_size);
-                    document.getElementById('release-date').textContent = formatDate(currentRelease.created_at);
+                    // Check if we have a valid release with download_url
+                    if (currentRelease && currentRelease.version && currentRelease.download_url) {
+                        // Update UI
+                        document.getElementById('version-text').textContent = 'v' + currentRelease.version;
+                        document.getElementById('file-size').textContent = '-'; // API'de boyut yok
+                        document.getElementById('release-date').textContent = currentRelease.release_date || '-';
 
-                    // Show download button
-                    document.getElementById('download-btn').style.display = 'flex';
-                    document.getElementById('no-release').style.display = 'none';
+                        // Show download button
+                        document.getElementById('download-btn').style.display = 'flex';
+                        document.getElementById('no-release').style.display = 'none';
+                    } else {
+                        // No valid release
+                        document.getElementById('download-btn').style.display = 'none';
+                        document.getElementById('no-release').style.display = 'block';
+                        document.getElementById('version-badge').style.display = 'none';
+                    }
                 } else {
                     // No release available
                     document.getElementById('download-btn').style.display = 'none';
@@ -1073,7 +1081,7 @@
         async function startDownload(e) {
             e.preventDefault();
 
-            if (!currentRelease || !currentRelease.filename) {
+            if (!currentRelease || !currentRelease.download_url) {
                 showToast('Indirme baslatilamadi!', 'error');
                 return;
             }
@@ -1090,13 +1098,8 @@
             progressText.textContent = 'Indirme basliyor...';
 
             try {
-                // Increment download count
-                fetch(API_BASE + '/api/releases/' + currentRelease.id + '/download', {
-                    method: 'POST'
-                }).catch(() => {});
-
-                // Start download
-                const downloadUrl = API_BASE + '/releases/' + currentRelease.filename;
+                // Use download_url directly from API
+                const downloadUrl = currentRelease.download_url;
 
                 // Simulate progress for better UX
                 let progress = 0;
@@ -1110,7 +1113,7 @@
                 // Create download link
                 const link = document.createElement('a');
                 link.href = downloadUrl;
-                link.download = currentRelease.filename;
+                link.download = '';
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
