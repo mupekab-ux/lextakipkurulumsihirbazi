@@ -125,6 +125,11 @@ except ModuleNotFoundError:  # pragma: no cover
         THEME_DARK_BLUE,
     )
 
+try:  # pragma: no cover - runtime import guard
+    from app.ui_activation_dialog import LicenseInfoDialog
+except ModuleNotFoundError:  # pragma: no cover
+    from ui_activation_dialog import LicenseInfoDialog
+
 
 PERMISSION_FIELDS: list[tuple[str, str]] = [
     ("view_all_cases", "Tüm dosyaları görebilir mi?"),
@@ -325,6 +330,15 @@ class SettingsDialog(QDialog):
         )
         theme_info_label.setWordWrap(True)
         g_layout.addWidget(theme_info_label)
+
+        # Lisans bilgileri grubu
+        license_group = QGroupBox("Lisans Bilgileri")
+        license_layout = QHBoxLayout(license_group)
+        self.license_info_btn = QPushButton("Lisans Bilgilerini Görüntüle")
+        self.license_info_btn.clicked.connect(self._show_license_info)
+        license_layout.addWidget(self.license_info_btn)
+        license_layout.addStretch()
+        g_layout.addWidget(license_group)
 
         g_layout.addStretch()
         general_tab.setLayout(g_layout)
@@ -1466,3 +1480,8 @@ class SettingsDialog(QDialog):
             QMessageBox.warning(self, "Hata", "Admin kullanıcısı silinemez.")
             return
         self.load_users()
+
+    def _show_license_info(self) -> None:
+        """Lisans bilgileri diyaloğunu gösterir."""
+        dialog = LicenseInfoDialog(self)
+        dialog.exec()

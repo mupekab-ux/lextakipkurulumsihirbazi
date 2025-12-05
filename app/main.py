@@ -36,6 +36,11 @@ try:  # pragma: no cover - runtime import guard
 except ModuleNotFoundError:  # pragma: no cover
     from ui_login_dialog import LoginDialog
 
+try:  # pragma: no cover - runtime import guard
+    from app.ui_activation_dialog import check_license_on_startup
+except ModuleNotFoundError:  # pragma: no cover
+    from ui_activation_dialog import check_license_on_startup
+
 
 def main():
     initialize_database()
@@ -53,6 +58,11 @@ def main():
 
     app = QApplication(sys.argv)
     load_theme_from_settings_and_apply()
+
+    # Lisans kontrolü - aktive edilmemişse uygulama açılmaz
+    if not check_license_on_startup():
+        return
+
     stored_hash = get_setting("app_password")
     if stored_hash:
         pwd, ok = QInputDialog.getText(
