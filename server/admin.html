@@ -1277,7 +1277,8 @@
         async function loadMessages() {
             try {
                 const response = await fetch(`${API_BASE}/admin/messages`, { headers: { 'Authorization': `Bearer ${authToken}` } });
-                const data = await response.json();
+                const result = await response.json();
+                const data = Array.isArray(result) ? result : (result.messages || []);
                 const container = document.getElementById('messagesList');
                 const unreadCount = data.filter(m => !m.is_read).length;
                 document.getElementById('unreadBadge').textContent = unreadCount;
