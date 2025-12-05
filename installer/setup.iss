@@ -50,6 +50,9 @@ ArchitecturesAllowed=x64
 ArchitecturesInstallIn64BitMode=x64
 MinVersion=10.0
 
+; Lisans dosyasi (EULA + KVKK)
+LicenseFile=license_tr.txt
+
 ; Diger ayarlar
 DisableWelcomePage=no
 DisableDirPage=no

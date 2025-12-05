@@ -1,0 +1,118 @@
+TAKİBİESASİ KULLANICI SÖZLEŞMESİ VE KVKK AYDINLATMA METNİ
+============================================================
+
+Bu yazılımı yükleyerek aşağıdaki sözleşme ve aydınlatma metnini kabul etmiş sayılırsınız.
+
+
+BÖLÜM 1: SON KULLANICI LİSANS SÖZLEŞMESİ (EULA)
+------------------------------------------------------------
+
+1. LİSANS VERİLMESİ
+
+1.1 Lisans Kapsamı
+- Yazılımı TEK BİR BİLGİSAYARDA kurma ve kullanma hakkı
+- Yazılımı yalnızca KENDİ TİCARİ VEYA KİŞİSEL İŞLERİNİZ için kullanma hakkı
+
+1.2 Lisans Türü
+Bu lisans KALICI (perpetual) bir lisanstır. Bir kez satın aldığınızda, sözleşme şartlarına uyduğunuz sürece süresiz kullanabilirsiniz.
+
+1.3 Cihaz Değişikliği
+Her lisans için 2 (iki) adet cihaz transferi hakkı tanınmıştır. Transfer işlemi müşteri paneli üzerinden gerçekleştirilebilir.
+
+
+2. KISITLAMALAR
+
+Aşağıdaki eylemler YASAKLANMIŞTIR:
+- Yazılımı kopyalamak, çoğaltmak veya dağıtmak
+- Yazılımı ters mühendislik yapmak, kaynak kodunu elde etmeye çalışmak
+- Yazılımı değiştirmek, uyarlamak veya türev çalışmalar oluşturmak
+- Yazılımı kiralamak, satmak, lisanslamak veya başka şekilde devretmek
+- Yazılımın lisans koruma mekanizmalarını atlatmaya çalışmak
+- Yazılımı birden fazla bilgisayarda eş zamanlı kullanmak
+- Yazılımı yasadışı amaçlarla kullanmak
+
+
+3. FİKRİ MÜLKİYET HAKLARI
+
+Yazılım ve tüm kopyaları TakibiEsasi'nin mülkiyetindedir. Yazılım, Türkiye Cumhuriyeti telif hakkı yasaları ve uluslararası antlaşmalarla korunmaktadır.
+
+
+4. GARANTİ REDDİ
+
+Yazılım "OLDUĞU GİBİ" ve "MEVCUT OLDUĞU ŞEKİLDE" sunulmaktadır. Aşağıdaki konularda garanti verilmez:
+- Yazılımın kesintisiz veya hatasız çalışacağı
+- Yazılımın tüm sistemlerle uyumlu olacağı
+- Yazılımın belirli bir amaca uygun olacağı
+
+
+5. SORUMLULUK SINIRLAMASI
+
+Toplam sorumluluk, ödenen lisans bedelini aşamaz.
+
+
+6. SÖZLEŞMENİN FESHİ
+
+Sözleşme şartlarının ihlali halinde lisans otomatik olarak feshedilir ve yazılımı kullanma hakkınız sona erer.
+
+
+------------------------------------------------------------
+BÖLÜM 2: KVKK AYDINLATMA METNİ
+------------------------------------------------------------
+
+6698 sayılı Kişisel Verilerin Korunması Kanunu kapsamında:
+
+
+1. VERİ SORUMLUSU
+
+TakibiEsasi
+E-posta: kvkk@takibiesasi.com
+Web: www.takibiesasi.com
+
+
+2. İŞLENEN KİŞİSEL VERİLER
+
+- Kimlik Bilgileri: Ad, soyad
+- İletişim Bilgileri: E-posta adresi, telefon numarası
+- Müşteri İşlem Bilgileri: Lisans anahtarı, satın alma tarihi
+- Teknik Bilgiler: Makine Kimliği (donanım parmak izi), yazılım sürümü
+
+
+3. İŞLEME AMAÇLARI
+
+- Yazılım lisansının oluşturulması ve yönetimi
+- Lisans aktivasyonu ve doğrulaması
+- Teknik destek hizmeti sunulması
+- Yazılım güncellemelerinin bildirilmesi
+
+
+4. VERİ AKTARIMI
+
+Kişisel verileriniz yurt dışına aktarılmamaktadır. Sadece yasal zorunluluklar ve ödeme işlemleri kapsamında yetkili kurumlara aktarılabilir.
+
+
+5. HAKLARINIZ (KVKK m.11)
+
+a) Kişisel verilerinizin işlenip işlenmediğini öğrenme
+b) İşlenmişse buna ilişkin bilgi talep etme
+c) İşlenme amacını ve amacına uygun kullanılıp kullanılmadığını öğrenme
+d) Eksik veya yanlış işlenmişse düzeltilmesini isteme
+e) KVKK m.7 kapsamında silinmesini veya yok edilmesini isteme
+f) Kanuna aykırı işleme nedeniyle zarara uğramanız halinde tazminat talep etme
+
+
+6. BAŞVURU
+
+Haklarınızı kullanmak için kvkk@takibiesasi.com adresine başvurabilirsiniz.
+Talebiniz en geç 30 gün içinde ücretsiz olarak yanıtlanacaktır.
+
+
+------------------------------------------------------------
+
+Bu sözleşmeyi ve aydınlatma metnini okudum, anladım ve kabul ediyorum.
+
+TakibiEsasi
+www.takibiesasi.com
+destek@takibiesasi.com
+
+Sürüm: 1.0
+Tarih: 2024
