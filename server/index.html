@@ -1,0 +1,2303 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TakibiEsasi - Profesyonel Hukuki Takip Yazılımı</title>
+    <meta name="description" content="TakibiEsasi ile hukuki süreçlerinizi kolayca yönetin. Avukatlar ve hukuk büroları için geliştirilmiş profesyonel takip yazılımı.">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- AOS Animation -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+
+    <!-- Swiper CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css">
+
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #818cf8;
+            --secondary: #0ea5e9;
+            --accent: #f59e0b;
+            --dark: #0f172a;
+            --dark-light: #1e293b;
+            --gray: #64748b;
+            --gray-light: #94a3b8;
+            --light: #f8fafc;
+            --white: #ffffff;
+            --success: #10b981;
+            --gradient: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            --gradient-dark: linear-gradient(135deg, #1e1b4b 0%, #0c4a6e 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--dark);
+            color: var(--light);
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--dark);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-dark);
+        }
+
+        /* Navbar */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            padding: 1rem 2rem;
+            transition: all 0.3s ease;
+            background: transparent;
+        }
+
+        .navbar.scrolled {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(20px);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+            padding: 0.75rem 2rem;
+        }
+
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            width: 45px;
+            height: 45px;
+            background: var(--gradient);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+        }
+
+        .logo-text {
+            font-size: 1.5rem;
+            font-weight: 800;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--gray-light);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            position: relative;
+            padding: 0.5rem 0;
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--gradient);
+            transition: width 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: var(--white);
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        .nav-cta {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: none;
+            font-size: 0.95rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+        }
+
+        .btn-outline:hover {
+            background: var(--primary);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .btn-primary {
+            background: var(--gradient);
+            color: white;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.5);
+        }
+
+        .btn-large {
+            padding: 1rem 2.5rem;
+            font-size: 1.1rem;
+        }
+
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            padding: 8rem 2rem 4rem;
+        }
+
+        #particles-js {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .hero-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--gradient-dark);
+            z-index: 0;
+        }
+
+        .hero-glow {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            filter: blur(150px);
+            opacity: 0.3;
+            animation: float 8s ease-in-out infinite;
+        }
+
+        .hero-glow-1 {
+            background: var(--primary);
+            top: -200px;
+            right: -100px;
+        }
+
+        .hero-glow-2 {
+            background: var(--secondary);
+            bottom: -200px;
+            left: -100px;
+            animation-delay: -4s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(30px, 30px) scale(1.1); }
+        }
+
+        .hero-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(99, 102, 241, 0.2);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            color: var(--primary-light);
+            margin-bottom: 1.5rem;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4); }
+            50% { box-shadow: 0 0 0 10px rgba(99, 102, 241, 0); }
+        }
+
+        .hero-title {
+            font-size: 3.5rem;
+            font-weight: 800;
+            line-height: 1.2;
+            margin-bottom: 1.5rem;
+        }
+
+        .hero-title span {
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .typed-wrapper {
+            height: 60px;
+            display: flex;
+            align-items: center;
+        }
+
+        .typed-text {
+            font-size: 2rem;
+            font-weight: 600;
+            color: var(--secondary);
+        }
+
+        .typed-cursor {
+            font-size: 2rem;
+            color: var(--secondary);
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
+        .hero-description {
+            font-size: 1.2rem;
+            color: var(--gray-light);
+            margin-bottom: 2rem;
+            line-height: 1.8;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 3rem;
+        }
+
+        .hero-stats {
+            display: flex;
+            gap: 3rem;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--gray-light);
+        }
+
+        .hero-image {
+            position: relative;
+        }
+
+        .hero-mockup {
+            width: 100%;
+            max-width: 600px;
+            border-radius: 20px;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5);
+            transform: perspective(1000px) rotateY(-10deg);
+            transition: transform 0.5s ease;
+        }
+
+        .hero-mockup:hover {
+            transform: perspective(1000px) rotateY(0deg);
+        }
+
+        .hero-floating-card {
+            position: absolute;
+            background: rgba(30, 41, 59, 0.9);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 1rem 1.5rem;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .hero-card-1 {
+            top: 10%;
+            left: -50px;
+            animation-delay: -2s;
+        }
+
+        .hero-card-2 {
+            bottom: 20%;
+            right: -30px;
+            animation-delay: -4s;
+        }
+
+        .hero-card-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--gradient);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .hero-card-title {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .hero-card-value {
+            color: var(--success);
+            font-weight: 700;
+        }
+
+        /* Features Section */
+        .features {
+            padding: 8rem 2rem;
+            background: var(--dark);
+            position: relative;
+        }
+
+        .section-header {
+            text-align: center;
+            max-width: 700px;
+            margin: 0 auto 4rem;
+        }
+
+        .section-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            color: var(--primary-light);
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .section-title {
+            font-size: 2.75rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+        }
+
+        .section-title span {
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .section-description {
+            font-size: 1.1rem;
+            color: var(--gray-light);
+            line-height: 1.8;
+        }
+
+        .features-grid {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+        }
+
+        .feature-card {
+            background: linear-gradient(145deg, rgba(30, 41, 59, 0.6) 0%, rgba(30, 41, 59, 0.3) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 2.5rem;
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--gradient);
+            transform: scaleX(0);
+            transition: transform 0.4s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            border-color: rgba(99, 102, 241, 0.3);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+        }
+
+        .feature-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .feature-icon {
+            width: 70px;
+            height: 70px;
+            background: var(--gradient);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.75rem;
+            color: white;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.3);
+        }
+
+        .feature-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .feature-description {
+            color: var(--gray-light);
+            line-height: 1.7;
+        }
+
+        /* Screenshots Section */
+        .screenshots {
+            padding: 8rem 2rem;
+            background: linear-gradient(180deg, var(--dark) 0%, var(--dark-light) 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .screenshots-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .swiper {
+            padding: 2rem 0 4rem;
+        }
+
+        .swiper-slide {
+            display: flex;
+            justify-content: center;
+        }
+
+        .screenshot-card {
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            overflow: hidden;
+            transition: all 0.4s ease;
+            max-width: 800px;
+        }
+
+        .screenshot-card:hover {
+            transform: scale(1.02);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
+        }
+
+        .screenshot-img {
+            width: 100%;
+            height: 400px;
+            object-fit: cover;
+            background: linear-gradient(135deg, var(--dark-light) 0%, var(--dark) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--gray);
+            font-size: 1.2rem;
+        }
+
+        .screenshot-info {
+            padding: 1.5rem 2rem;
+        }
+
+        .screenshot-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .screenshot-desc {
+            color: var(--gray-light);
+            font-size: 0.95rem;
+        }
+
+        .swiper-pagination-bullet {
+            background: var(--gray);
+            opacity: 1;
+        }
+
+        .swiper-pagination-bullet-active {
+            background: var(--primary);
+            width: 30px;
+            border-radius: 5px;
+        }
+
+        /* Pricing Section */
+        .pricing {
+            padding: 8rem 2rem;
+            background: var(--dark);
+            position: relative;
+        }
+
+        .pricing-grid {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2rem;
+        }
+
+        .pricing-card {
+            background: linear-gradient(145deg, rgba(30, 41, 59, 0.8) 0%, rgba(30, 41, 59, 0.4) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 24px;
+            padding: 3rem 2.5rem;
+            position: relative;
+            transition: all 0.4s ease;
+        }
+
+        .pricing-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .pricing-card.popular {
+            background: linear-gradient(145deg, rgba(99, 102, 241, 0.2) 0%, rgba(14, 165, 233, 0.1) 100%);
+            border: 2px solid var(--primary);
+            transform: scale(1.05);
+        }
+
+        .pricing-card.popular:hover {
+            transform: scale(1.05) translateY(-10px);
+        }
+
+        .popular-badge {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--gradient);
+            padding: 0.5rem 1.5rem;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+        }
+
+        .pricing-name {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .pricing-price {
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin-bottom: 0.25rem;
+        }
+
+        .pricing-price span {
+            font-size: 1rem;
+            font-weight: 400;
+            color: var(--gray-light);
+        }
+
+        .pricing-period {
+            color: var(--gray-light);
+            margin-bottom: 2rem;
+        }
+
+        .pricing-features {
+            list-style: none;
+            margin-bottom: 2rem;
+        }
+
+        .pricing-features li {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .pricing-features li:last-child {
+            border-bottom: none;
+        }
+
+        .pricing-features i {
+            color: var(--success);
+            font-size: 1.1rem;
+        }
+
+        .pricing-btn {
+            width: 100%;
+            justify-content: center;
+        }
+
+        /* Testimonials Section */
+        .testimonials {
+            padding: 8rem 2rem;
+            background: linear-gradient(180deg, var(--dark) 0%, var(--dark-light) 100%);
+        }
+
+        .testimonials-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .testimonials-slider {
+            padding: 2rem 0;
+        }
+
+        .testimonial-card {
+            background: linear-gradient(145deg, rgba(30, 41, 59, 0.7) 0%, rgba(30, 41, 59, 0.3) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 2.5rem;
+            position: relative;
+        }
+
+        .testimonial-quote {
+            position: absolute;
+            top: 2rem;
+            right: 2rem;
+            font-size: 4rem;
+            color: var(--primary);
+            opacity: 0.2;
+        }
+
+        .testimonial-stars {
+            color: var(--accent);
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .testimonial-content {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: var(--gray-light);
+            margin-bottom: 2rem;
+            font-style: italic;
+        }
+
+        .testimonial-author {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .testimonial-avatar {
+            width: 60px;
+            height: 60px;
+            background: var(--gradient);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: white;
+        }
+
+        .testimonial-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .testimonial-title {
+            color: var(--gray-light);
+            font-size: 0.9rem;
+        }
+
+        /* FAQ Section */
+        .faq {
+            padding: 8rem 2rem;
+            background: var(--dark);
+        }
+
+        .faq-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .faq-item {
+            background: linear-gradient(145deg, rgba(30, 41, 59, 0.6) 0%, rgba(30, 41, 59, 0.3) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .faq-item:hover {
+            border-color: rgba(99, 102, 241, 0.3);
+        }
+
+        .faq-question {
+            width: 100%;
+            padding: 1.5rem 2rem;
+            background: none;
+            border: none;
+            color: var(--white);
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-align: left;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .faq-question:hover {
+            color: var(--primary-light);
+        }
+
+        .faq-question i {
+            transition: transform 0.3s ease;
+            color: var(--primary);
+        }
+
+        .faq-item.active .faq-question i {
+            transform: rotate(180deg);
+        }
+
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease;
+        }
+
+        .faq-answer-content {
+            padding: 0 2rem 1.5rem;
+            color: var(--gray-light);
+            line-height: 1.8;
+        }
+
+        .faq-item.active .faq-answer {
+            max-height: 500px;
+        }
+
+        /* Contact Section */
+        .contact {
+            padding: 8rem 2rem;
+            background: linear-gradient(180deg, var(--dark) 0%, var(--dark-light) 100%);
+            position: relative;
+        }
+
+        .contact-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+        }
+
+        .contact-info {
+            padding-right: 2rem;
+        }
+
+        .contact-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+        }
+
+        .contact-description {
+            color: var(--gray-light);
+            font-size: 1.1rem;
+            line-height: 1.8;
+            margin-bottom: 2rem;
+        }
+
+        .contact-methods {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .contact-method {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .contact-method-icon {
+            width: 50px;
+            height: 50px;
+            background: var(--gradient);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            color: white;
+        }
+
+        .contact-method-text h4 {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .contact-method-text p {
+            color: var(--gray-light);
+        }
+
+        .contact-form-container {
+            background: linear-gradient(145deg, rgba(30, 41, 59, 0.8) 0%, rgba(30, 41, 59, 0.4) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 24px;
+            padding: 3rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: var(--gray-light);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 1rem 1.5rem;
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: white;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+
+        .form-input::placeholder {
+            color: var(--gray);
+        }
+
+        textarea.form-input {
+            resize: vertical;
+            min-height: 150px;
+        }
+
+        .form-btn {
+            width: 100%;
+            padding: 1rem 2rem;
+            background: var(--gradient);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .form-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.4);
+        }
+
+        .form-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Announcements Banner */
+        .announcement-banner {
+            background: var(--gradient);
+            padding: 0.75rem 2rem;
+            text-align: center;
+            font-weight: 500;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .announcement-banner::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            animation: shine 3s infinite;
+        }
+
+        @keyframes shine {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .announcement-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+        }
+
+        .announcement-close {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 1.25rem;
+            opacity: 0.8;
+            transition: opacity 0.3s;
+        }
+
+        .announcement-close:hover {
+            opacity: 1;
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--dark);
+            padding: 5rem 2rem 2rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .footer-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 4rem;
+            margin-bottom: 4rem;
+        }
+
+        .footer-brand {
+            max-width: 350px;
+        }
+
+        .footer-logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .footer-description {
+            color: var(--gray-light);
+            line-height: 1.8;
+            margin-bottom: 1.5rem;
+        }
+
+        .footer-social {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .footer-social a {
+            width: 45px;
+            height: 45px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--gray-light);
+            font-size: 1.25rem;
+            transition: all 0.3s ease;
+        }
+
+        .footer-social a:hover {
+            background: var(--gradient);
+            color: white;
+            transform: translateY(-3px);
+        }
+
+        .footer-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+        }
+
+        .footer-links {
+            list-style: none;
+        }
+
+        .footer-links li {
+            margin-bottom: 0.75rem;
+        }
+
+        .footer-links a {
+            color: var(--gray-light);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .footer-links a:hover {
+            color: var(--primary-light);
+            transform: translateX(5px);
+        }
+
+        .footer-bottom {
+            padding-top: 2rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .footer-copyright {
+            color: var(--gray);
+        }
+
+        .footer-legal {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .footer-legal a {
+            color: var(--gray);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .footer-legal a:hover {
+            color: var(--primary-light);
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: var(--dark-light);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transform: translateX(150%);
+            transition: transform 0.4s ease;
+            z-index: 9999;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.success {
+            border-color: var(--success);
+        }
+
+        .toast.error {
+            border-color: #ef4444;
+        }
+
+        .toast-icon {
+            font-size: 1.5rem;
+        }
+
+        .toast.success .toast-icon {
+            color: var(--success);
+        }
+
+        .toast.error .toast-icon {
+            color: #ef4444;
+        }
+
+        /* Loading Animation */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .hero-title {
+                font-size: 2.75rem;
+            }
+
+            .features-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .footer-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 968px) {
+            .nav-links {
+                display: none;
+            }
+
+            .mobile-menu-btn {
+                display: block;
+            }
+
+            .hero-container {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+
+            .hero-buttons {
+                justify-content: center;
+            }
+
+            .hero-stats {
+                justify-content: center;
+            }
+
+            .hero-image {
+                display: none;
+            }
+
+            .contact-container {
+                grid-template-columns: 1fr;
+            }
+
+            .contact-info {
+                padding-right: 0;
+                text-align: center;
+            }
+
+            .contact-methods {
+                align-items: center;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .section-title {
+                font-size: 2rem;
+            }
+
+            .hero-title {
+                font-size: 2.25rem;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .pricing-card.popular {
+                transform: scale(1);
+            }
+
+            .footer-grid {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+
+            .footer-bottom {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .footer-legal {
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero-stats {
+                flex-direction: column;
+                gap: 1.5rem;
+            }
+
+            .hero-buttons {
+                flex-direction: column;
+            }
+
+            .btn-large {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Announcement Banner -->
+    <div class="announcement-banner" id="announcement-banner" style="display: none;">
+        <div class="announcement-content">
+            <i class="fas fa-bullhorn"></i>
+            <span id="announcement-text"></span>
+        </div>
+        <button class="announcement-close" onclick="closeAnnouncement()">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+
+    <!-- Navbar -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="#" class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-balance-scale"></i>
+                </div>
+                <span class="logo-text">TakibiEsasi</span>
+            </a>
+
+            <ul class="nav-links">
+                <li><a href="#features">Ozellikler</a></li>
+                <li><a href="#screenshots">Ekran Goruntuleri</a></li>
+                <li><a href="#pricing">Fiyatlandirma</a></li>
+                <li><a href="#testimonials">Yorumlar</a></li>
+                <li><a href="#faq">SSS</a></li>
+                <li><a href="#contact">Iletisim</a></li>
+            </ul>
+
+            <div class="nav-cta">
+                <a href="/download.html" class="btn btn-primary">
+                    <i class="fas fa-download"></i>
+                    Indir
+                </a>
+            </div>
+
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-bg"></div>
+        <div class="hero-glow hero-glow-1"></div>
+        <div class="hero-glow hero-glow-2"></div>
+        <div id="particles-js"></div>
+
+        <div class="hero-container">
+            <div class="hero-content" data-aos="fade-right" data-aos-duration="1000">
+                <div class="hero-badge">
+                    <i class="fas fa-rocket"></i>
+                    <span id="hero-badge-text">Yeni Versiyon Yayinda!</span>
+                </div>
+
+                <h1 class="hero-title">
+                    Hukuki Sureclerinizi<br>
+                    <span>Kolayca Yonetin</span>
+                </h1>
+
+                <div class="typed-wrapper">
+                    <span class="typed-text" id="typed"></span>
+                    <span class="typed-cursor">|</span>
+                </div>
+
+                <p class="hero-description" id="hero-description">
+                    TakibiEsasi ile dava takibi, muvekkillerinizi ve tum hukuki sureclerinizi tek bir platformdan profesyonelce yonetin. Avukatlar ve hukuk burolari icin ozel olarak tasarlandi.
+                </p>
+
+                <div class="hero-buttons">
+                    <a href="/download.html" class="btn btn-primary btn-large">
+                        <i class="fas fa-download"></i>
+                        Hemen Indirin
+                    </a>
+                    <a href="#features" class="btn btn-outline btn-large">
+                        <i class="fas fa-play-circle"></i>
+                        Kesfet
+                    </a>
+                </div>
+
+                <div class="hero-stats">
+                    <div class="stat-item">
+                        <div class="stat-number" data-count="500">0</div>
+                        <div class="stat-label">Aktif Kullanici</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" data-count="10000">0</div>
+                        <div class="stat-label">Takip Edilen Dava</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" data-count="99">0</div>
+                        <div class="stat-label">% Memnuniyet</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hero-image" data-aos="fade-left" data-aos-duration="1000" data-aos-delay="200">
+                <div class="hero-floating-card hero-card-1" data-aos="fade-up" data-aos-delay="600">
+                    <div class="hero-card-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="hero-card-title">Verimlilik</div>
+                    <div class="hero-card-value">+45% Artis</div>
+                </div>
+
+                <img src="/screenshots/dashboard.png" alt="TakibiEsasi Dashboard" class="hero-mockup"
+                     onerror="this.style.display='flex'; this.style.background='linear-gradient(135deg, #1e293b 0%, #0f172a 100%)'; this.style.alignItems='center'; this.style.justifyContent='center'; this.style.height='400px'; this.innerHTML='<div style=\"text-align:center;color:#64748b;\"><i class=\"fas fa-desktop\" style=\"font-size:4rem;margin-bottom:1rem;\"></i><p>Ekran Goruntusu</p></div>';">
+
+                <div class="hero-floating-card hero-card-2" data-aos="fade-up" data-aos-delay="800">
+                    <div class="hero-card-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <div class="hero-card-title">Guvenlik</div>
+                    <div class="hero-card-value">256-bit SSL</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <div class="section-header" data-aos="fade-up">
+            <span class="section-badge">
+                <i class="fas fa-star"></i>
+                Ozellikler
+            </span>
+            <h2 class="section-title">Guclu <span>Ozellikler</span></h2>
+            <p class="section-description">
+                TakibiEsasi, hukuki sureclerinizi yonetmek icin ihtiyaciniz olan tum ozellikleri tek bir platformda sunar.
+            </p>
+        </div>
+
+        <div class="features-grid">
+            <div class="feature-card" data-aos="fade-up" data-aos-delay="100">
+                <div class="feature-icon">
+                    <i class="fas fa-gavel"></i>
+                </div>
+                <h3 class="feature-title">Dava Takibi</h3>
+                <p class="feature-description">
+                    Tum davalarinizi tek bir ekranda takip edin. Durusma tarihleri, belgeler ve notlar her zaman elinizin altinda.
+                </p>
+            </div>
+
+            <div class="feature-card" data-aos="fade-up" data-aos-delay="200">
+                <div class="feature-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <h3 class="feature-title">Muvekkil Yonetimi</h3>
+                <p class="feature-description">
+                    Muvekkillerinizin tum bilgilerini, iletisim gecmisini ve dosyalarini organize bir sekilde saklain.
+                </p>
+            </div>
+
+            <div class="feature-card" data-aos="fade-up" data-aos-delay="300">
+                <div class="feature-icon">
+                    <i class="fas fa-bell"></i>
+                </div>
+                <h3 class="feature-title">Hatirlaticilar</h3>
+                <p class="feature-description">
+                    Onemli tarihleri asla kacirmayin. Otomatik hatirlaticilar ile her zaman hazirlikli olun.
+                </p>
+            </div>
+
+            <div class="feature-card" data-aos="fade-up" data-aos-delay="400">
+                <div class="feature-icon">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                <h3 class="feature-title">Belge Yonetimi</h3>
+                <p class="feature-description">
+                    Tum belgelerinizi kategorize edin ve aninda erisin. PDF, Word ve diger formatlari destekler.
+                </p>
+            </div>
+
+            <div class="feature-card" data-aos="fade-up" data-aos-delay="500">
+                <div class="feature-icon">
+                    <i class="fas fa-chart-bar"></i>
+                </div>
+                <h3 class="feature-title">Raporlama</h3>
+                <p class="feature-description">
+                    Detayli raporlar ile is yukunuzu analiz edin. Grafik ve tablolarla verileri gorselleştirin.
+                </p>
+            </div>
+
+            <div class="feature-card" data-aos="fade-up" data-aos-delay="600">
+                <div class="feature-icon">
+                    <i class="fas fa-lock"></i>
+                </div>
+                <h3 class="feature-title">Guvenli Depolama</h3>
+                <p class="feature-description">
+                    Tum verileriniz 256-bit sifreleme ile korunur. KVKK uyumlu altyapi ile guvendeyiz.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Screenshots Section -->
+    <section class="screenshots" id="screenshots">
+        <div class="screenshots-container">
+            <div class="section-header" data-aos="fade-up">
+                <span class="section-badge">
+                    <i class="fas fa-image"></i>
+                    Ekran Goruntuleri
+                </span>
+                <h2 class="section-title">Uygulama <span>Goruntuleri</span></h2>
+                <p class="section-description">
+                    TakibiEsasi'nin modern ve kullanici dostu arayuzunu kesfedin.
+                </p>
+            </div>
+
+            <div class="swiper screenshots-slider" data-aos="fade-up" data-aos-delay="200">
+                <div class="swiper-wrapper">
+                    <div class="swiper-slide">
+                        <div class="screenshot-card">
+                            <div class="screenshot-img">
+                                <img src="/screenshots/dashboard.png" alt="Ana Panel" style="width:100%;height:100%;object-fit:cover;"
+                                     onerror="this.parentElement.innerHTML='<div style=\"display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;\"><i class=\"fas fa-th-large\" style=\"font-size:4rem;color:#64748b;margin-bottom:1rem;\"></i><span style=\"color:#64748b;\">Ana Panel Goruntusu</span></div>';">
+                            </div>
+                            <div class="screenshot-info">
+                                <h4 class="screenshot-title">Ana Panel</h4>
+                                <p class="screenshot-desc">Tum bilgilerinize hizli erisim icin tasarlanmis modern panel</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="swiper-slide">
+                        <div class="screenshot-card">
+                            <div class="screenshot-img">
+                                <img src="/screenshots/cases.png" alt="Dava Listesi" style="width:100%;height:100%;object-fit:cover;"
+                                     onerror="this.parentElement.innerHTML='<div style=\"display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;\"><i class=\"fas fa-folder-open\" style=\"font-size:4rem;color:#64748b;margin-bottom:1rem;\"></i><span style=\"color:#64748b;\">Dava Listesi Goruntusu</span></div>';">
+                            </div>
+                            <div class="screenshot-info">
+                                <h4 class="screenshot-title">Dava Listesi</h4>
+                                <p class="screenshot-desc">Tum davalarinizi organize bir sekilde goruntuleyebilirsiniz</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="swiper-slide">
+                        <div class="screenshot-card">
+                            <div class="screenshot-img">
+                                <img src="/screenshots/clients.png" alt="Muvekkil Yonetimi" style="width:100%;height:100%;object-fit:cover;"
+                                     onerror="this.parentElement.innerHTML='<div style=\"display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;\"><i class=\"fas fa-users\" style=\"font-size:4rem;color:#64748b;margin-bottom:1rem;\"></i><span style=\"color:#64748b;\">Muvekkil Yonetimi Goruntusu</span></div>';">
+                            </div>
+                            <div class="screenshot-info">
+                                <h4 class="screenshot-title">Muvekkil Yonetimi</h4>
+                                <p class="screenshot-desc">Muvekkil bilgilerinizi kolayca yonetin</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="swiper-slide">
+                        <div class="screenshot-card">
+                            <div class="screenshot-img">
+                                <img src="/screenshots/calendar.png" alt="Takvim" style="width:100%;height:100%;object-fit:cover;"
+                                     onerror="this.parentElement.innerHTML='<div style=\"display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;\"><i class=\"fas fa-calendar-alt\" style=\"font-size:4rem;color:#64748b;margin-bottom:1rem;\"></i><span style=\"color:#64748b;\">Takvim Goruntusu</span></div>';">
+                            </div>
+                            <div class="screenshot-info">
+                                <h4 class="screenshot-title">Takvim</h4>
+                                <p class="screenshot-desc">Durusma ve randevularinizi takvim uzerinden takip edin</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="swiper-pagination"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section class="pricing" id="pricing">
+        <div class="section-header" data-aos="fade-up">
+            <span class="section-badge">
+                <i class="fas fa-tags"></i>
+                Fiyatlandirma
+            </span>
+            <h2 class="section-title">Uygun <span>Fiyatlar</span></h2>
+            <p class="section-description">
+                Ihtiyaciniza uygun paketi secin ve hemen kullanmaya baslayin.
+            </p>
+        </div>
+
+        <div class="pricing-grid" id="pricing-grid">
+            <!-- Fiyat kartlari API'den yuklenecek -->
+            <div class="pricing-card" data-aos="fade-up" data-aos-delay="100">
+                <div class="pricing-name">Yukleniyor...</div>
+                <div class="pricing-price">-<span> TL</span></div>
+                <div class="pricing-period">/ ay</div>
+                <ul class="pricing-features">
+                    <li><i class="fas fa-check"></i> Veriler yukleniyor...</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section class="testimonials" id="testimonials">
+        <div class="testimonials-container">
+            <div class="section-header" data-aos="fade-up">
+                <span class="section-badge">
+                    <i class="fas fa-quote-right"></i>
+                    Yorumlar
+                </span>
+                <h2 class="section-title">Musterilerimiz <span>Ne Diyor?</span></h2>
+                <p class="section-description">
+                    TakibiEsasi kullaniclarinin gercek deneyimlerini okuyun.
+                </p>
+            </div>
+
+            <div class="swiper testimonials-slider" data-aos="fade-up" data-aos-delay="200">
+                <div class="swiper-wrapper" id="testimonials-wrapper">
+                    <!-- Yorumlar API'den yuklenecek -->
+                    <div class="swiper-slide">
+                        <div class="testimonial-card">
+                            <i class="fas fa-quote-right testimonial-quote"></i>
+                            <div class="testimonial-stars">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                            </div>
+                            <p class="testimonial-content">Yorumlar yukleniyor...</p>
+                            <div class="testimonial-author">
+                                <div class="testimonial-avatar">?</div>
+                                <div>
+                                    <div class="testimonial-name">-</div>
+                                    <div class="testimonial-title">-</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="swiper-pagination"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section class="faq" id="faq">
+        <div class="faq-container">
+            <div class="section-header" data-aos="fade-up">
+                <span class="section-badge">
+                    <i class="fas fa-question-circle"></i>
+                    SSS
+                </span>
+                <h2 class="section-title">Sikca Sorulan <span>Sorular</span></h2>
+                <p class="section-description">
+                    Merak ettiginiz sorularin cevaplarini burada bulabilirsiniz.
+                </p>
+            </div>
+
+            <div id="faq-list" data-aos="fade-up" data-aos-delay="200">
+                <!-- SSS API'den yuklenecek -->
+                <div class="faq-item">
+                    <button class="faq-question">
+                        <span>Sorular yukleniyor...</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <div class="faq-answer-content">Lutfen bekleyin...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section class="contact" id="contact">
+        <div class="contact-container">
+            <div class="contact-info" data-aos="fade-right">
+                <h2 class="contact-title">Bizimle Iletisime Gecin</h2>
+                <p class="contact-description">
+                    Sorulariniz mi var? Size yardimci olmaktan mutluluk duyariz. Asagidaki formu doldurun veya dogrudan bize ulasin.
+                </p>
+
+                <div class="contact-methods">
+                    <div class="contact-method">
+                        <div class="contact-method-icon">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <div class="contact-method-text">
+                            <h4>E-posta</h4>
+                            <p id="contact-email">destek@takibiesasi.com</p>
+                        </div>
+                    </div>
+
+                    <div class="contact-method">
+                        <div class="contact-method-icon">
+                            <i class="fas fa-phone"></i>
+                        </div>
+                        <div class="contact-method-text">
+                            <h4>Telefon</h4>
+                            <p id="contact-phone">+90 (212) 000 00 00</p>
+                        </div>
+                    </div>
+
+                    <div class="contact-method">
+                        <div class="contact-method-icon">
+                            <i class="fas fa-map-marker-alt"></i>
+                        </div>
+                        <div class="contact-method-text">
+                            <h4>Adres</h4>
+                            <p id="contact-address">Istanbul, Turkiye</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="contact-form-container" data-aos="fade-left">
+                <form id="contact-form">
+                    <div class="form-group">
+                        <label class="form-label">Adiniz Soyadiniz</label>
+                        <input type="text" class="form-input" name="name" placeholder="Adinizi girin" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">E-posta Adresiniz</label>
+                        <input type="email" class="form-input" name="email" placeholder="ornek@email.com" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Mesajiniz</label>
+                        <textarea class="form-input" name="message" placeholder="Mesajinizi yazin..." required></textarea>
+                    </div>
+
+                    <button type="submit" class="form-btn" id="submit-btn">
+                        <i class="fas fa-paper-plane"></i>
+                        Gonder
+                    </button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <div class="footer-logo">
+                        <div class="logo-icon">
+                            <i class="fas fa-balance-scale"></i>
+                        </div>
+                        <span class="logo-text">TakibiEsasi</span>
+                    </div>
+                    <p class="footer-description">
+                        TakibiEsasi, avukatlar ve hukuk burolari icin gelistirilmis profesyonel hukuki takip yazilimidir. Modern arayuzu ve guclu ozellikleri ile is akisinizi kolaylastirir.
+                    </p>
+                    <div class="footer-social">
+                        <a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+                        <a href="#" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+                        <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 class="footer-title">Hizli Linkler</h4>
+                    <ul class="footer-links">
+                        <li><a href="#features"><i class="fas fa-chevron-right"></i> Ozellikler</a></li>
+                        <li><a href="#pricing"><i class="fas fa-chevron-right"></i> Fiyatlandirma</a></li>
+                        <li><a href="#testimonials"><i class="fas fa-chevron-right"></i> Yorumlar</a></li>
+                        <li><a href="#faq"><i class="fas fa-chevron-right"></i> SSS</a></li>
+                        <li><a href="#contact"><i class="fas fa-chevron-right"></i> Iletisim</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="footer-title">Destek</h4>
+                    <ul class="footer-links">
+                        <li><a href="/download.html"><i class="fas fa-chevron-right"></i> Indirme</a></li>
+                        <li><a href="#"><i class="fas fa-chevron-right"></i> Dokumantasyon</a></li>
+                        <li><a href="#"><i class="fas fa-chevron-right"></i> Video Rehberler</a></li>
+                        <li><a href="#contact"><i class="fas fa-chevron-right"></i> Teknik Destek</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="footer-title">Yasal</h4>
+                    <ul class="footer-links">
+                        <li><a href="#"><i class="fas fa-chevron-right"></i> Gizlilik Politikasi</a></li>
+                        <li><a href="#"><i class="fas fa-chevron-right"></i> Kullanim Sartlari</a></li>
+                        <li><a href="#"><i class="fas fa-chevron-right"></i> KVKK</a></li>
+                        <li><a href="#"><i class="fas fa-chevron-right"></i> Cerez Politikasi</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p class="footer-copyright">
+                    &copy; 2024 TakibiEsasi. Tum haklari saklidir.
+                </p>
+                <div class="footer-legal">
+                    <a href="#">Gizlilik</a>
+                    <a href="#">Sartlar</a>
+                    <a href="#">Cerezler</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">
+        <i class="fas fa-check-circle toast-icon"></i>
+        <span id="toast-message">Mesaj gonderildi!</span>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+
+    <script>
+        // API Base URL
+        const API_BASE = '';
+
+        // Initialize AOS
+        AOS.init({
+            duration: 800,
+            easing: 'ease-out-cubic',
+            once: true,
+            offset: 100
+        });
+
+        // Navbar scroll effect
+        const navbar = document.getElementById('navbar');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+
+        // Particles.js
+        if (typeof particlesJS !== 'undefined') {
+            particlesJS('particles-js', {
+                particles: {
+                    number: { value: 80, density: { enable: true, value_area: 800 } },
+                    color: { value: '#6366f1' },
+                    shape: { type: 'circle' },
+                    opacity: { value: 0.3, random: true },
+                    size: { value: 3, random: true },
+                    line_linked: {
+                        enable: true,
+                        distance: 150,
+                        color: '#6366f1',
+                        opacity: 0.2,
+                        width: 1
+                    },
+                    move: {
+                        enable: true,
+                        speed: 2,
+                        direction: 'none',
+                        random: false,
+                        straight: false,
+                        out_mode: 'out',
+                        bounce: false
+                    }
+                },
+                interactivity: {
+                    detect_on: 'canvas',
+                    events: {
+                        onhover: { enable: true, mode: 'grab' },
+                        onclick: { enable: true, mode: 'push' },
+                        resize: true
+                    },
+                    modes: {
+                        grab: { distance: 140, line_linked: { opacity: 0.5 } },
+                        push: { particles_nb: 4 }
+                    }
+                },
+                retina_detect: true
+            });
+        }
+
+        // Typing effect
+        const typedStrings = [
+            'Dava Takibi',
+            'Muvekkil Yonetimi',
+            'Belge Arsivleme',
+            'Hatirlatici Sistemi',
+            'Detayli Raporlar'
+        ];
+
+        let typedIndex = 0;
+        let charIndex = 0;
+        let isDeleting = false;
+        const typedElement = document.getElementById('typed');
+
+        function typeEffect() {
+            const currentString = typedStrings[typedIndex];
+
+            if (isDeleting) {
+                typedElement.textContent = currentString.substring(0, charIndex - 1);
+                charIndex--;
+            } else {
+                typedElement.textContent = currentString.substring(0, charIndex + 1);
+                charIndex++;
+            }
+
+            let typeSpeed = isDeleting ? 50 : 100;
+
+            if (!isDeleting && charIndex === currentString.length) {
+                typeSpeed = 2000;
+                isDeleting = true;
+            } else if (isDeleting && charIndex === 0) {
+                isDeleting = false;
+                typedIndex = (typedIndex + 1) % typedStrings.length;
+                typeSpeed = 500;
+            }
+
+            setTimeout(typeEffect, typeSpeed);
+        }
+
+        typeEffect();
+
+        // Counter animation
+        function animateCounters() {
+            const counters = document.querySelectorAll('.stat-number');
+
+            counters.forEach(counter => {
+                const target = parseInt(counter.getAttribute('data-count'));
+                const duration = 2000;
+                const step = target / (duration / 16);
+                let current = 0;
+
+                const updateCounter = () => {
+                    current += step;
+                    if (current < target) {
+                        counter.textContent = Math.floor(current).toLocaleString();
+                        requestAnimationFrame(updateCounter);
+                    } else {
+                        counter.textContent = target.toLocaleString();
+                    }
+                };
+
+                updateCounter();
+            });
+        }
+
+        // Trigger counter animation when in view
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    animateCounters();
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.5 });
+
+        const statsSection = document.querySelector('.hero-stats');
+        if (statsSection) observer.observe(statsSection);
+
+        // Screenshots Swiper
+        const screenshotsSwiper = new Swiper('.screenshots-slider', {
+            slidesPerView: 1,
+            spaceBetween: 30,
+            centeredSlides: true,
+            loop: true,
+            autoplay: {
+                delay: 5000,
+                disableOnInteraction: false
+            },
+            pagination: {
+                el: '.swiper-pagination',
+                clickable: true
+            },
+            breakpoints: {
+                768: {
+                    slidesPerView: 1.5
+                }
+            }
+        });
+
+        // Testimonials Swiper
+        let testimonialsSwiper;
+
+        function initTestimonialsSwiper() {
+            testimonialsSwiper = new Swiper('.testimonials-slider', {
+                slidesPerView: 1,
+                spaceBetween: 30,
+                loop: true,
+                autoplay: {
+                    delay: 6000,
+                    disableOnInteraction: false
+                },
+                pagination: {
+                    el: '.testimonials-slider .swiper-pagination',
+                    clickable: true
+                },
+                breakpoints: {
+                    768: {
+                        slidesPerView: 2
+                    },
+                    1024: {
+                        slidesPerView: 3
+                    }
+                }
+            });
+        }
+
+        // FAQ Accordion
+        function initFAQ() {
+            document.querySelectorAll('.faq-question').forEach(button => {
+                button.addEventListener('click', () => {
+                    const item = button.parentElement;
+                    const isActive = item.classList.contains('active');
+
+                    // Close all other items
+                    document.querySelectorAll('.faq-item').forEach(i => {
+                        i.classList.remove('active');
+                    });
+
+                    // Toggle current item
+                    if (!isActive) {
+                        item.classList.add('active');
+                    }
+                });
+            });
+        }
+
+        // Toast notification
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toast-message');
+            const toastIcon = toast.querySelector('.toast-icon');
+
+            toast.className = 'toast show ' + type;
+            toastMessage.textContent = message;
+            toastIcon.className = 'fas toast-icon ' + (type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle');
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 4000);
+        }
+
+        // Contact form submission
+        document.getElementById('contact-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const submitBtn = document.getElementById('submit-btn');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<span class="loading"></span> Gonderiliyor...';
+            submitBtn.disabled = true;
+
+            const formData = new FormData(e.target);
+            const data = {
+                name: formData.get('name'),
+                email: formData.get('email'),
+                message: formData.get('message')
+            };
+
+            try {
+                const response = await fetch(API_BASE + '/api/contact', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    showToast('Mesajiniz basariyla gonderildi!', 'success');
+                    e.target.reset();
+                } else {
+                    throw new Error('Gonderim hatasi');
+                }
+            } catch (error) {
+                showToast('Bir hata olustu, lutfen tekrar deneyin.', 'error');
+            } finally {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+
+        // Close announcement banner
+        function closeAnnouncement() {
+            document.getElementById('announcement-banner').style.display = 'none';
+            sessionStorage.setItem('announcementClosed', 'true');
+        }
+
+        // Load site settings
+        async function loadSiteSettings() {
+            try {
+                const response = await fetch(API_BASE + '/api/site/settings');
+                if (response.ok) {
+                    const settings = await response.json();
+
+                    // Apply settings
+                    if (settings.hero_title) {
+                        // Keep the HTML structure
+                    }
+                    if (settings.hero_description) {
+                        document.getElementById('hero-description').textContent = settings.hero_description;
+                    }
+                    if (settings.contact_email) {
+                        document.getElementById('contact-email').textContent = settings.contact_email;
+                    }
+                    if (settings.contact_phone) {
+                        document.getElementById('contact-phone').textContent = settings.contact_phone;
+                    }
+                    if (settings.contact_address) {
+                        document.getElementById('contact-address').textContent = settings.contact_address;
+                    }
+                }
+            } catch (error) {
+                console.error('Settings error:', error);
+            }
+        }
+
+        // Load pricing
+        async function loadPricing() {
+            try {
+                const response = await fetch(API_BASE + '/api/pricing');
+                if (response.ok) {
+                    const plans = await response.json();
+                    const grid = document.getElementById('pricing-grid');
+
+                    if (plans.length > 0) {
+                        grid.innerHTML = plans.map((plan, index) => {
+                            const features = plan.features ? plan.features.split('\n').filter(f => f.trim()) : [];
+                            return `
+                                <div class="pricing-card ${plan.is_popular ? 'popular' : ''}" data-aos="fade-up" data-aos-delay="${(index + 1) * 100}">
+                                    ${plan.is_popular ? '<div class="popular-badge">En Populer</div>' : ''}
+                                    <div class="pricing-name">${plan.name}</div>
+                                    <div class="pricing-price">${plan.price}<span> TL</span></div>
+                                    <div class="pricing-period">/ ${plan.period || 'ay'}</div>
+                                    <ul class="pricing-features">
+                                        ${features.map(f => `<li><i class="fas fa-check"></i> ${f}</li>`).join('')}
+                                    </ul>
+                                    <a href="/download.html" class="btn btn-primary pricing-btn">
+                                        <i class="fas fa-download"></i>
+                                        Satin Al
+                                    </a>
+                                </div>
+                            `;
+                        }).join('');
+
+                        AOS.refresh();
+                    }
+                }
+            } catch (error) {
+                console.error('Pricing error:', error);
+            }
+        }
+
+        // Load testimonials
+        async function loadTestimonials() {
+            try {
+                const response = await fetch(API_BASE + '/api/testimonials');
+                if (response.ok) {
+                    const testimonials = await response.json();
+                    const wrapper = document.getElementById('testimonials-wrapper');
+
+                    if (testimonials.length > 0) {
+                        wrapper.innerHTML = testimonials.map(t => {
+                            const stars = Array(t.rating || 5).fill('<i class="fas fa-star"></i>').join('');
+                            const initial = t.name ? t.name.charAt(0).toUpperCase() : '?';
+                            return `
+                                <div class="swiper-slide">
+                                    <div class="testimonial-card">
+                                        <i class="fas fa-quote-right testimonial-quote"></i>
+                                        <div class="testimonial-stars">${stars}</div>
+                                        <p class="testimonial-content">"${t.content}"</p>
+                                        <div class="testimonial-author">
+                                            <div class="testimonial-avatar">${initial}</div>
+                                            <div>
+                                                <div class="testimonial-name">${t.name}</div>
+                                                <div class="testimonial-title">${t.title || ''}${t.company ? ', ' + t.company : ''}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('');
+
+                        initTestimonialsSwiper();
+                    }
+                }
+            } catch (error) {
+                console.error('Testimonials error:', error);
+                initTestimonialsSwiper();
+            }
+        }
+
+        // Load FAQ
+        async function loadFAQ() {
+            try {
+                const response = await fetch(API_BASE + '/api/faq');
+                if (response.ok) {
+                    const faqs = await response.json();
+                    const list = document.getElementById('faq-list');
+
+                    if (faqs.length > 0) {
+                        list.innerHTML = faqs.map(faq => `
+                            <div class="faq-item">
+                                <button class="faq-question">
+                                    <span>${faq.question}</span>
+                                    <i class="fas fa-chevron-down"></i>
+                                </button>
+                                <div class="faq-answer">
+                                    <div class="faq-answer-content">${faq.answer}</div>
+                                </div>
+                            </div>
+                        `).join('');
+
+                        initFAQ();
+                    }
+                }
+            } catch (error) {
+                console.error('FAQ error:', error);
+            }
+        }
+
+        // Load announcements
+        async function loadAnnouncements() {
+            if (sessionStorage.getItem('announcementClosed')) return;
+
+            try {
+                const response = await fetch(API_BASE + '/api/announcements');
+                if (response.ok) {
+                    const announcements = await response.json();
+
+                    if (announcements.length > 0) {
+                        const latest = announcements[0];
+                        document.getElementById('announcement-text').textContent = latest.title;
+                        document.getElementById('announcement-banner').style.display = 'block';
+                    }
+                }
+            } catch (error) {
+                console.error('Announcements error:', error);
+            }
+        }
+
+        // Mobile menu toggle
+        function toggleMobileMenu() {
+            // Simple mobile menu implementation
+            const navLinks = document.querySelector('.nav-links');
+            navLinks.style.display = navLinks.style.display === 'flex' ? 'none' : 'flex';
+        }
+
+        // Initialize everything
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSiteSettings();
+            loadPricing();
+            loadTestimonials();
+            loadFAQ();
+            loadAnnouncements();
+            initFAQ();
+        });
+
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
