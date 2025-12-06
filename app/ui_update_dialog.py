@@ -85,7 +85,7 @@ class UpdateDialog(QDialog):
 
     def _setup_ui(self):
         self.setWindowTitle("Güncelleme Mevcut")
-        self.setMinimumSize(500, 400)
+        self.resize(500, 400)
         self.setWindowFlags(
             self.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint
         )

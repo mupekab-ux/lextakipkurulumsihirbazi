@@ -52,7 +52,7 @@ class TransferExportDialog(QDialog):
 
     def _setup_ui(self):
         self.setWindowTitle("Bilgisayar Transferi - Dışa Aktar")
-        self.setFixedSize(500, 350)
+        self.resize(500, 350)
         self.setWindowFlags(
             self.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint
         )
@@ -182,7 +182,7 @@ class TransferImportDialog(QDialog):
 
     def _setup_ui(self):
         self.setWindowTitle("Bilgisayar Transferi - İçe Aktar")
-        self.setFixedSize(500, 400)
+        self.resize(500, 400)
         self.setWindowFlags(
             self.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint
         )
@@ -371,7 +371,7 @@ class TransferDialog(QDialog):
 
     def _setup_ui(self):
         self.setWindowTitle("Bilgisayar Transferi")
-        self.setFixedSize(450, 300)
+        self.resize(450, 300)
         self.setWindowFlags(
             self.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint
         )

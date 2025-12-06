@@ -80,7 +80,7 @@ class ActivationDialog(QDialog):
     def _setup_ui(self) -> None:
         """UI bileşenlerini oluşturur."""
         self.setWindowTitle("TakibiEsasi - Lisans Aktivasyonu")
-        self.setFixedSize(500, 400)
+        self.resize(500, 400)
         self.setWindowFlags(
             self.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint
         )
@@ -419,7 +419,7 @@ class LicenseInfoDialog(QDialog):
 
     def _setup_ui(self) -> None:
         self.setWindowTitle("Lisans Bilgileri")
-        self.setFixedSize(400, 300)
+        self.resize(400, 300)
         self.setWindowFlags(
             self.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint
         )

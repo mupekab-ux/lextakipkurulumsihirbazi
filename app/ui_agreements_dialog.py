@@ -169,7 +169,7 @@ class AgreementsDialog(QDialog):
 
     def _setup_ui(self):
         self.setWindowTitle("TakibiEsasi - Kullanım Koşulları")
-        self.setMinimumSize(700, 600)
+        self.resize(700, 600)
         self.setWindowFlags(
             self.windowFlags()
             & ~Qt.WindowType.WindowContextHelpButtonHint
