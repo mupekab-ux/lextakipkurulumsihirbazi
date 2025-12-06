@@ -1460,6 +1460,22 @@ async def admin_panel():
             return f.read()
     return "<h1>Admin panel not found</h1>"
 
+@app.get("/favicon.svg")
+async def favicon():
+    """Serve favicon"""
+    favicon_path = "/var/www/takibiesasi/favicon.svg"
+    if os.path.exists(favicon_path):
+        return FileResponse(favicon_path, media_type="image/svg+xml")
+    raise HTTPException(status_code=404, detail="Favicon not found")
+
+@app.get("/favicon.ico")
+async def favicon_ico():
+    """Serve favicon.ico (redirect to svg)"""
+    favicon_path = "/var/www/takibiesasi/favicon.svg"
+    if os.path.exists(favicon_path):
+        return FileResponse(favicon_path, media_type="image/svg+xml")
+    raise HTTPException(status_code=404, detail="Favicon not found")
+
 # ============ STATIC FILES ============
 
 # Mount download directory for static file serving
