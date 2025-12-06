@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="TakibiEsasi - Avukatlar ve hukuk büroları için profesyonel hukuki takip yazılımı. Dava takibi, müvekkil yönetimi ve tüm hukuki süreçlerinizi tek platformdan yönetin.">
-    <meta name="keywords" content="avukat yazılımı, dava takip, hukuk bürosu, müvekkil yönetimi, hukuki takip">
+    <meta name="description" content="TakibiEsasi - Avukatlar ve hukuk büroları için profesyonel hukuki takip yazılımı. Dava takibi, icra takibi ve tüm hukuki süreçlerinizi tek uygulamadan yönetin.">
+    <meta name="keywords" content="avukat yazılımı, dava takip, icra takip, hukuk bürosu, vekalet yönetimi, hukuki takip">
     <meta property="og:title" content="TakibiEsasi - Hukuki Takip Yazılımı">
-    <meta property="og:description" content="Dava takibi, müvekkil yönetimi ve tüm hukuki süreçlerinizi tek platformdan profesyonelce yönetin.">
+    <meta property="og:description" content="Dava takibi, icra takibi ve tüm hukuki süreçlerinizi tek masaüstü uygulamasından profesyonelce yönetin.">
     <meta property="og:type" content="website">
     <title>TakibiEsasi - Hukuki Takip Yazılımı</title>
 
@@ -57,11 +57,116 @@
 
         body {
             font-family: 'DM Sans', sans-serif;
-            background: linear-gradient(180deg, var(--bg-black) 0%, var(--bg-dark) 50%, var(--bg-black) 100%);
+            background: var(--bg-black);
             color: var(--text-white);
             line-height: 1.6;
             min-height: 100vh;
+            overflow-x: hidden;
         }
+
+        /* ==================== ANIMATED BACKGROUND ==================== */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .bg-gradient {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background:
+                radial-gradient(ellipse 80% 50% at 50% -20%, rgba(251, 191, 36, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse 60% 40% at 90% 80%, rgba(217, 119, 6, 0.1) 0%, transparent 50%),
+                radial-gradient(ellipse 60% 40% at 10% 60%, rgba(245, 158, 11, 0.08) 0%, transparent 50%),
+                linear-gradient(180deg, var(--bg-black) 0%, var(--bg-dark) 50%, var(--bg-black) 100%);
+        }
+
+        .floating-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(60px);
+            animation: float 20s ease-in-out infinite;
+            opacity: 0.4;
+        }
+
+        .orb-1 {
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(251, 191, 36, 0.3) 0%, transparent 70%);
+            top: -100px;
+            right: -100px;
+            animation-delay: 0s;
+        }
+
+        .orb-2 {
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(217, 119, 6, 0.25) 0%, transparent 70%);
+            bottom: 20%;
+            left: -100px;
+            animation-delay: -7s;
+            animation-duration: 25s;
+        }
+
+        .orb-3 {
+            width: 250px;
+            height: 250px;
+            background: radial-gradient(circle, rgba(245, 158, 11, 0.2) 0%, transparent 70%);
+            top: 50%;
+            right: 10%;
+            animation-delay: -14s;
+            animation-duration: 22s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            25% { transform: translate(30px, -30px) scale(1.05); }
+            50% { transform: translate(-20px, 20px) scale(0.95); }
+            75% { transform: translate(20px, 10px) scale(1.02); }
+        }
+
+        /* Grid pattern */
+        .bg-grid {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image:
+                linear-gradient(rgba(251, 191, 36, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(251, 191, 36, 0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+            mask-image: radial-gradient(ellipse 80% 50% at 50% 0%, black 0%, transparent 70%);
+            -webkit-mask-image: radial-gradient(ellipse 80% 50% at 50% 0%, black 0%, transparent 70%);
+        }
+
+        /* Sparkles */
+        .sparkle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: var(--gold-light);
+            border-radius: 50%;
+            animation: sparkle 3s ease-in-out infinite;
+            box-shadow: 0 0 10px var(--gold-light), 0 0 20px var(--gold-medium);
+        }
+
+        @keyframes sparkle {
+            0%, 100% { opacity: 0; transform: scale(0); }
+            50% { opacity: 1; transform: scale(1); }
+        }
+
+        .sparkle:nth-child(1) { top: 15%; left: 20%; animation-delay: 0s; }
+        .sparkle:nth-child(2) { top: 25%; left: 80%; animation-delay: 0.5s; }
+        .sparkle:nth-child(3) { top: 45%; left: 10%; animation-delay: 1s; }
+        .sparkle:nth-child(4) { top: 60%; left: 70%; animation-delay: 1.5s; }
+        .sparkle:nth-child(5) { top: 80%; left: 30%; animation-delay: 2s; }
+        .sparkle:nth-child(6) { top: 35%; left: 50%; animation-delay: 2.5s; }
+        .sparkle:nth-child(7) { top: 70%; left: 85%; animation-delay: 0.3s; }
+        .sparkle:nth-child(8) { top: 10%; left: 60%; animation-delay: 1.2s; }
 
         h1, h2, h3, h4, h5, h6 {
             font-family: 'Sora', sans-serif;
@@ -177,22 +282,63 @@
         .btn-primary {
             background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold-dark) 100%);
             color: var(--bg-black);
-            box-shadow: 0 8px 32px rgba(245, 158, 11, 0.25);
+            box-shadow:
+                0 8px 32px rgba(245, 158, 11, 0.3),
+                0 0 20px rgba(251, 191, 36, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn-primary:hover::before {
+            left: 100%;
         }
 
         .btn-primary:hover {
-            box-shadow: 0 12px 40px rgba(245, 158, 11, 0.4);
-            transform: translateY(-2px);
+            box-shadow:
+                0 16px 50px rgba(245, 158, 11, 0.5),
+                0 0 40px rgba(251, 191, 36, 0.4);
+            transform: translateY(-3px) scale(1.02);
         }
 
         .btn-outline {
             background: transparent;
             color: var(--gold-medium);
             border: 2px solid var(--gold-medium);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-outline::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 0;
+            height: 100%;
+            background: rgba(245, 158, 11, 0.15);
+            transition: width 0.3s ease;
+            z-index: -1;
+        }
+
+        .btn-outline:hover::before {
+            width: 100%;
         }
 
         .btn-outline:hover {
-            background: rgba(245, 158, 11, 0.1);
+            border-color: var(--gold-light);
+            color: var(--gold-light);
+            box-shadow: 0 0 20px rgba(251, 191, 36, 0.2);
         }
 
         .mobile-menu-btn {
@@ -235,6 +381,16 @@
             font-size: 14px;
             color: var(--gold-light);
             margin-bottom: 28px;
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% {
+                box-shadow: 0 0 20px rgba(251, 191, 36, 0.2);
+            }
+            50% {
+                box-shadow: 0 0 30px rgba(251, 191, 36, 0.4);
+            }
         }
 
         .hero h1 {
@@ -249,10 +405,18 @@
         }
 
         .hero h1 span {
-            background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold-dark) 100%);
+            background: linear-gradient(90deg, var(--gold-light), var(--gold-dark), var(--gold-light));
+            background-size: 200% auto;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
+            animation: gradient-shift 3s ease infinite;
+        }
+
+        @keyframes gradient-shift {
+            0% { background-position: 0% center; }
+            50% { background-position: 100% center; }
+            100% { background-position: 0% center; }
         }
 
         .hero p {
@@ -361,7 +525,7 @@
             border: 1px solid rgba(255, 255, 255, 0.06);
             border-radius: 20px;
             padding: 36px;
-            transition: all 0.4s ease;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
             overflow: hidden;
         }
@@ -372,26 +536,46 @@
             top: 0;
             left: 0;
             right: 0;
-            height: 1px;
-            background: linear-gradient(90deg, transparent 0%, rgba(251, 191, 36, 0.4) 50%, transparent 100%);
+            height: 2px;
+            background: linear-gradient(90deg, transparent 0%, var(--gold-light) 50%, transparent 100%);
             opacity: 0;
             transition: opacity 0.4s ease;
         }
 
+        .feature-card::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(251, 191, 36, 0.08) 0%, transparent 50%);
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            pointer-events: none;
+        }
+
         .feature-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
-            border-color: rgba(255, 255, 255, 0.1);
+            transform: translateY(-12px) scale(1.02);
+            box-shadow:
+                0 30px 80px rgba(0, 0, 0, 0.5),
+                0 0 40px rgba(251, 191, 36, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            border-color: rgba(251, 191, 36, 0.3);
         }
 
         .feature-card:hover::before {
             opacity: 1;
         }
 
+        .feature-card:hover::after {
+            opacity: 1;
+        }
+
         .feature-icon {
             width: 64px;
             height: 64px;
-            background: linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(217, 119, 6, 0.15) 100%);
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.2) 0%, rgba(217, 119, 6, 0.15) 100%);
             border-radius: 16px;
             display: flex;
             align-items: center;
@@ -399,6 +583,14 @@
             margin-bottom: 24px;
             font-size: 28px;
             color: var(--gold-light);
+            transition: all 0.4s ease;
+            box-shadow: 0 4px 20px rgba(251, 191, 36, 0.15);
+        }
+
+        .feature-card:hover .feature-icon {
+            transform: scale(1.1) rotate(5deg);
+            box-shadow: 0 8px 30px rgba(251, 191, 36, 0.3);
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.3) 0%, rgba(217, 119, 6, 0.25) 100%);
         }
 
         .feature-card h3 {
@@ -1012,6 +1204,23 @@
     </style>
 </head>
 <body>
+    <!-- Animated Background -->
+    <div class="bg-animation">
+        <div class="bg-gradient"></div>
+        <div class="bg-grid"></div>
+        <div class="floating-orb orb-1"></div>
+        <div class="floating-orb orb-2"></div>
+        <div class="floating-orb orb-3"></div>
+        <div class="sparkle"></div>
+        <div class="sparkle"></div>
+        <div class="sparkle"></div>
+        <div class="sparkle"></div>
+        <div class="sparkle"></div>
+        <div class="sparkle"></div>
+        <div class="sparkle"></div>
+        <div class="sparkle"></div>
+    </div>
+
     <!-- Header -->
     <header id="header">
         <div class="container">
@@ -1096,7 +1305,7 @@
 
                 <h1>Dava ve İcra Takibinde<br><span>Profesyonel Çözüm</span></h1>
 
-                <p>Dava takibi, icra takibi, müvekkil ve vekalet yönetimi - tüm hukuki süreçlerinizi tek masaüstü uygulamasından yönetin. Avukatlar ve hukuk büroları için özel olarak geliştirildi.</p>
+                <p>Dava takibi, icra takibi ve vekalet yönetimi - tüm hukuki süreçlerinizi tek masaüstü uygulamasından yönetin. Avukatlar ve hukuk büroları için özel olarak geliştirildi.</p>
 
                 <div class="hero-buttons">
                     <a href="/download" class="btn btn-primary">
@@ -1157,10 +1366,10 @@
 
                 <div class="feature-card" data-aos="fade-up" data-aos-delay="200">
                     <div class="feature-icon">
-                        <i class="fas fa-users"></i>
+                        <i class="fas fa-chart-pie"></i>
                     </div>
-                    <h3>Müvekkil Yönetimi</h3>
-                    <p>Müvekkillerinizin tüm bilgilerini, iletişim geçmişini ve dosyalarını merkezi bir sistemde saklayın ve yönetin.</p>
+                    <h3>Raporlama ve İstatistikler</h3>
+                    <p>Dava ve icra dosyalarınızın detaylı raporlarını alın. Grafik ve istatistiklerle iş yükünüzü analiz edin.</p>
                 </div>
 
                 <div class="feature-card" data-aos="fade-up" data-aos-delay="300">
@@ -1203,8 +1412,8 @@
                 <button class="tab-btn active" data-tab="dashboard">Ana Panel</button>
                 <button class="tab-btn" data-tab="cases">Davalar</button>
                 <button class="tab-btn" data-tab="icra">İcra Dosyaları</button>
-                <button class="tab-btn" data-tab="clients">Müvekiller</button>
                 <button class="tab-btn" data-tab="vekaletler">Vekaletler</button>
+                <button class="tab-btn" data-tab="takvim">Takvim</button>
             </div>
 
             <div class="screenshot-display" data-aos="fade-up" data-aos-delay="200">
@@ -1274,7 +1483,7 @@
             <div class="testimonials-slider" data-aos="fade-up" data-aos-delay="100">
                 <div class="testimonial-card" id="testimonial-card">
                     <div class="testimonial-quote">"</div>
-                    <p class="testimonial-text">TakibiEsasi ile dava takibim çok kolaylaştı. Artık hiçbir duruşma tarihini kaçırmıyorum. Müvekkil yönetimi de son derece pratik.</p>
+                    <p class="testimonial-text">TakibiEsasi ile dava ve icra takibim çok kolaylaştı. Artık hiçbir duruşma tarihini kaçırmıyorum. Vekalet yönetimi de son derece pratik.</p>
                     <div class="testimonial-author">
                         <div class="testimonial-avatar">MY</div>
                         <div class="testimonial-info">
@@ -1443,7 +1652,7 @@
                         </div>
                         <span class="logo-text">TakibiEsasi</span>
                     </a>
-                    <p>TakibiEsasi, avukatlar ve hukuk büroları için geliştirilmiş profesyonel masaüstü yazılımıdır. Dava takibi, icra takibi, müvekkil ve vekalet yönetimi - tüm ihtiyaçlarınız tek uygulamada.</p>
+                    <p>TakibiEsasi, avukatlar ve hukuk büroları için geliştirilmiş profesyonel masaüstü yazılımıdır. Dava takibi, icra takibi ve vekalet yönetimi - tüm ihtiyaçlarınız tek uygulamada.</p>
                 </div>
 
                 <div class="footer-column">
@@ -1544,8 +1753,8 @@
             dashboard: 'https://placehold.co/1000x600/1A1A24/FBBF24?text=Ana+Panel',
             cases: 'https://placehold.co/1000x600/1A1A24/FBBF24?text=Dava+Listesi',
             icra: 'https://placehold.co/1000x600/1A1A24/FBBF24?text=Icra+Dosyalari',
-            clients: 'https://placehold.co/1000x600/1A1A24/FBBF24?text=Muvekiller',
-            vekaletler: 'https://placehold.co/1000x600/1A1A24/FBBF24?text=Vekaletler'
+            vekaletler: 'https://placehold.co/1000x600/1A1A24/FBBF24?text=Vekaletler',
+            takvim: 'https://placehold.co/1000x600/1A1A24/FBBF24?text=Takvim'
         };
 
         document.querySelectorAll('.tab-btn').forEach(btn => {
