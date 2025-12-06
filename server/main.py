@@ -138,6 +138,44 @@ def init_db():
         )
     """)
 
+    # Features table
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS features (
+            id SERIAL PRIMARY KEY,
+            icon VARCHAR(100) NOT NULL,
+            title VARCHAR(200) NOT NULL,
+            description TEXT NOT NULL,
+            sort_order INTEGER DEFAULT 0,
+            is_active BOOLEAN DEFAULT TRUE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    # Screenshots table
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS screenshots (
+            id SERIAL PRIMARY KEY,
+            title VARCHAR(200),
+            image_url VARCHAR(500) NOT NULL,
+            sort_order INTEGER DEFAULT 0,
+            is_active BOOLEAN DEFAULT TRUE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    # Media/Images table
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS media (
+            id SERIAL PRIMARY KEY,
+            filename VARCHAR(255) NOT NULL,
+            original_name VARCHAR(255) NOT NULL,
+            file_path VARCHAR(500) NOT NULL,
+            file_size INTEGER,
+            mime_type VARCHAR(100),
+            uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
     # Contact messages table
     cur.execute("""
         CREATE TABLE IF NOT EXISTS contact_messages (
@@ -242,6 +280,20 @@ class ContactMessageRequest(BaseModel):
     name: str
     email: str
     message: str
+
+class FeatureRequest(BaseModel):
+    icon: str
+    title: str
+    description: str
+    sort_order: int = 0
+
+class ScreenshotRequest(BaseModel):
+    title: Optional[str] = None
+    image_url: str
+    sort_order: int = 0
+
+class BulkSettingsRequest(BaseModel):
+    settings: dict
 
 # ============ HELPERS ============
 
@@ -1092,6 +1144,311 @@ async def admin_delete_message(message_id: int, authorization: str = Header(None
 
     return {"success": True}
 
+# ============ FEATURES API ============
+
+@app.get("/api/site/features")
+async def get_features():
+    """Get active features (public)"""
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    cur.execute("SELECT * FROM features WHERE is_active = TRUE ORDER BY sort_order")
+    items = [dict(row) for row in cur.fetchall()]
+
+    cur.close()
+    conn.close()
+
+    return items
+
+@app.get("/api/admin/features")
+async def admin_get_features(authorization: str = Header(None)):
+    """Get all features"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    cur.execute("SELECT * FROM features ORDER BY sort_order")
+    items = [dict(row) for row in cur.fetchall()]
+
+    cur.close()
+    conn.close()
+
+    return items
+
+@app.post("/api/admin/features/create")
+async def admin_create_feature(req: FeatureRequest, authorization: str = Header(None)):
+    """Create a feature"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute("""
+        INSERT INTO features (icon, title, description, sort_order)
+        VALUES (%s, %s, %s, %s)
+    """, (req.icon, req.title, req.description, req.sort_order))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return {"success": True}
+
+@app.post("/api/admin/features/update/{feature_id}")
+async def admin_update_feature(feature_id: int, req: FeatureRequest, authorization: str = Header(None)):
+    """Update a feature"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute("""
+        UPDATE features
+        SET icon = %s, title = %s, description = %s, sort_order = %s
+        WHERE id = %s
+    """, (req.icon, req.title, req.description, req.sort_order, feature_id))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return {"success": True}
+
+@app.delete("/api/admin/features/{feature_id}")
+async def admin_delete_feature(feature_id: int, authorization: str = Header(None)):
+    """Delete a feature"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute("DELETE FROM features WHERE id = %s", (feature_id,))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return {"success": True}
+
+# ============ SCREENSHOTS API ============
+
+@app.get("/api/site/screenshots")
+async def get_screenshots():
+    """Get active screenshots (public)"""
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    cur.execute("SELECT * FROM screenshots WHERE is_active = TRUE ORDER BY sort_order")
+    items = [dict(row) for row in cur.fetchall()]
+
+    cur.close()
+    conn.close()
+
+    return items
+
+@app.get("/api/admin/screenshots")
+async def admin_get_screenshots(authorization: str = Header(None)):
+    """Get all screenshots"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    cur.execute("SELECT * FROM screenshots ORDER BY sort_order")
+    items = [dict(row) for row in cur.fetchall()]
+
+    cur.close()
+    conn.close()
+
+    return items
+
+@app.post("/api/admin/screenshots/create")
+async def admin_create_screenshot(req: ScreenshotRequest, authorization: str = Header(None)):
+    """Create a screenshot"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute("""
+        INSERT INTO screenshots (title, image_url, sort_order)
+        VALUES (%s, %s, %s)
+    """, (req.title, req.image_url, req.sort_order))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return {"success": True}
+
+@app.post("/api/admin/screenshots/update/{screenshot_id}")
+async def admin_update_screenshot(screenshot_id: int, req: ScreenshotRequest, authorization: str = Header(None)):
+    """Update a screenshot"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute("""
+        UPDATE screenshots
+        SET title = %s, image_url = %s, sort_order = %s
+        WHERE id = %s
+    """, (req.title, req.image_url, req.sort_order, screenshot_id))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return {"success": True}
+
+@app.delete("/api/admin/screenshots/{screenshot_id}")
+async def admin_delete_screenshot(screenshot_id: int, authorization: str = Header(None)):
+    """Delete a screenshot"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute("DELETE FROM screenshots WHERE id = %s", (screenshot_id,))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return {"success": True}
+
+# ============ BULK SETTINGS API ============
+
+@app.post("/api/admin/settings/bulk")
+async def admin_bulk_settings(req: BulkSettingsRequest, authorization: str = Header(None)):
+    """Update multiple settings at once"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    for key, value in req.settings.items():
+        cur.execute("""
+            INSERT INTO site_settings (setting_key, setting_value, updated_at)
+            VALUES (%s, %s, CURRENT_TIMESTAMP)
+            ON CONFLICT (setting_key)
+            DO UPDATE SET setting_value = %s, updated_at = CURRENT_TIMESTAMP
+        """, (key, value, value))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return {"success": True}
+
+@app.get("/api/admin/settings")
+async def admin_get_settings(authorization: str = Header(None)):
+    """Get all site settings (admin)"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    cur.execute("SELECT setting_key, setting_value FROM site_settings")
+    rows = cur.fetchall()
+
+    settings = {row['setting_key']: row['setting_value'] for row in rows}
+
+    cur.close()
+    conn.close()
+
+    return settings
+
+# ============ MEDIA UPLOAD API ============
+
+MEDIA_DIR = "/var/www/takibiesasi/media"
+os.makedirs(MEDIA_DIR, exist_ok=True)
+
+@app.get("/api/admin/media")
+async def admin_get_media(authorization: str = Header(None)):
+    """Get all uploaded media"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    cur.execute("SELECT * FROM media ORDER BY uploaded_at DESC")
+    items = [dict(row) for row in cur.fetchall()]
+
+    cur.close()
+    conn.close()
+
+    return items
+
+@app.post("/api/admin/media/upload")
+async def admin_upload_media(file: UploadFile = File(...), authorization: str = Header(None)):
+    """Upload a media file (image)"""
+    verify_admin_token(authorization)
+
+    # Validate file type
+    allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml']
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="Sadece resim dosyaları yüklenebilir (jpg, png, gif, webp, svg)")
+
+    # Generate unique filename
+    ext = os.path.splitext(file.filename)[1]
+    unique_name = f"{secrets.token_hex(16)}{ext}"
+    filepath = os.path.join(MEDIA_DIR, unique_name)
+
+    # Save file
+    content = await file.read()
+    with open(filepath, 'wb') as f:
+        f.write(content)
+
+    # Save to database
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute("""
+        INSERT INTO media (filename, original_name, file_path, file_size, mime_type)
+        VALUES (%s, %s, %s, %s, %s)
+        RETURNING id
+    """, (unique_name, file.filename, filepath, len(content), file.content_type))
+
+    media_id = cur.fetchone()[0]
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return {
+        "success": True,
+        "id": media_id,
+        "filename": unique_name,
+        "url": f"https://takibiesasi.com/media/{unique_name}"
+    }
+
+@app.delete("/api/admin/media/{media_id}")
+async def admin_delete_media(media_id: int, authorization: str = Header(None)):
+    """Delete a media file"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    # Get file path
+    cur.execute("SELECT file_path FROM media WHERE id = %s", (media_id,))
+    row = cur.fetchone()
+
+    if row:
+        # Delete file
+        if os.path.exists(row['file_path']):
+            os.remove(row['file_path'])
+
+        # Delete from database
+        cur.execute("DELETE FROM media WHERE id = %s", (media_id,))
+        conn.commit()
+
+    cur.close()
+    conn.close()
+
+    return {"success": True}
+
 # ============ ADMIN PANEL ============
 
 @app.get("/admin", response_class=HTMLResponse)
@@ -1108,3 +1465,7 @@ async def admin_panel():
 # Mount download directory for static file serving
 if os.path.exists(DOWNLOAD_DIR):
     app.mount("/download", StaticFiles(directory=DOWNLOAD_DIR), name="download")
+
+# Mount media directory for image serving
+if os.path.exists(MEDIA_DIR):
+    app.mount("/media", StaticFiles(directory=MEDIA_DIR), name="media")
