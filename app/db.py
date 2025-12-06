@@ -1073,6 +1073,15 @@ def cleanup_orphaned_gorevler(conn: sqlite3.Connection) -> None:
           AND aciklama LIKE '%"source": "auto_completed"%'
     """)
 
+    # IS_TARIHI ve IS_TARIHI_2 görevlerinde de kısa konu olanları temizle
+    # (Kullanıcı dava durumu combo'suna yazarken oluşan ara kayıtlar)
+    cur.execute("""
+        DELETE FROM gorevler
+        WHERE tamamlandi = 1
+          AND gorev_turu IN ('IS_TARIHI', 'IS_TARIHI_2')
+          AND LENGTH(TRIM(konu)) < 3
+    """)
+
     conn.commit()
 
 

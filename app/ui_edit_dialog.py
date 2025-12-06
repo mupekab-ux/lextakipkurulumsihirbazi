@@ -1612,7 +1612,9 @@ class EditDialog(QDialog):
             self.aciklama_edit.setEnabled(True)
 
             # Dava durumu değiştiyse ve eski değer doluydu → tamamlanan görevi kaydet + temizle
-            if old_value and old_value != new_value:
+            # NOT: Kısa değerler (< 3 karakter) için görev oluşturma - bu kullanıcı yazarken
+            # oluşan ara kayıtları önler
+            if old_value and old_value != new_value and len(old_value.strip()) >= 3:
                 # Tamamlanan görevi kaydet
                 old_is_tarihi = self._get_job_date_value("is_tarihi")
                 old_aciklama = self.aciklama_edit.toPlainText().strip()
@@ -1670,7 +1672,9 @@ class EditDialog(QDialog):
             self.aciklama2_edit.setEnabled(True)
 
             # Dava durumu 2 değiştiyse ve eski değer doluydu → tamamlanan görevi kaydet + temizle
-            if old_value and old_value != new_value:
+            # NOT: Kısa değerler (< 3 karakter) için görev oluşturma - bu kullanıcı yazarken
+            # oluşan ara kayıtları önler
+            if old_value and old_value != new_value and len(old_value.strip()) >= 3:
                 # Tamamlanan görevi kaydet
                 old_is_tarihi_2 = self._get_job_date_value("is_tarihi_2")
                 old_aciklama_2 = self.aciklama2_edit.toPlainText().strip()
