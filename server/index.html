@@ -108,15 +108,14 @@
         .logo-icon {
             width: 44px;
             height: 44px;
-            background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold-dark) 100%);
-            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-family: 'Sora', sans-serif;
-            font-weight: 700;
-            font-size: 14px;
-            color: var(--bg-black);
+        }
+
+        .logo-icon svg {
+            width: 44px;
+            height: 44px;
         }
 
         .logo-text {
@@ -1017,7 +1016,36 @@
     <header id="header">
         <div class="container">
             <a href="#" class="logo">
-                <div class="logo-icon">TES</div>
+                <div class="logo-icon">
+                    <svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Hexagon -->
+                        <defs>
+                            <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#FBBF24"/>
+                                <stop offset="100%" style="stop-color:#D97706"/>
+                            </linearGradient>
+                        </defs>
+                        <path d="M30 2L54.5 16V44L30 58L5.5 44V16L30 2Z" fill="url(#goldGradient)"/>
+                        <!-- Scales of Justice -->
+                        <g fill="#0A0A0F">
+                            <!-- Center pole -->
+                            <rect x="28" y="16" width="4" height="26" rx="1"/>
+                            <!-- Top beam -->
+                            <rect x="14" y="18" width="32" height="3" rx="1"/>
+                            <!-- Left scale pan -->
+                            <path d="M14 22L10 34H22L18 22H14Z"/>
+                            <ellipse cx="16" cy="35" rx="7" ry="2"/>
+                            <!-- Right scale pan -->
+                            <path d="M42 22L38 32H50L46 22H42Z"/>
+                            <ellipse cx="44" cy="33" rx="7" ry="2"/>
+                            <!-- Base -->
+                            <path d="M22 42H38L36 44H24L22 42Z"/>
+                            <ellipse cx="30" cy="45" rx="10" ry="2"/>
+                        </g>
+                        <!-- TES text -->
+                        <text x="30" y="52" text-anchor="middle" font-family="Sora, sans-serif" font-size="6" font-weight="700" fill="#0A0A0F">TES</text>
+                    </svg>
+                </div>
                 <span class="logo-text">TakibiEsasi</span>
             </a>
 
@@ -1066,9 +1094,9 @@
                     Yeni Sürüm Yayında
                 </div>
 
-                <h1>Hukuki Süreçlerinizi<br><span>Kolayca Yönetin</span></h1>
+                <h1>Dava ve İcra Takibinde<br><span>Profesyonel Çözüm</span></h1>
 
-                <p>Dava takibi, müvekkil yönetimi ve tüm hukuki süreçlerinizi tek platformdan profesyonelce yönetin. Avukatlar ve hukuk büroları için özel olarak tasarlandı.</p>
+                <p>Dava takibi, icra takibi, müvekkil ve vekalet yönetimi - tüm hukuki süreçlerinizi tek masaüstü uygulamasından yönetin. Avukatlar ve hukuk büroları için özel olarak geliştirildi.</p>
 
                 <div class="hero-buttons">
                     <a href="/download" class="btn btn-primary">
@@ -1116,47 +1144,47 @@
                         <i class="fas fa-gavel"></i>
                     </div>
                     <h3>Dava Takibi</h3>
-                    <p>Tüm davalarınızı tek bir yerden takip edin. Duruşma tarihleri, dilekçeler ve tüm süreç detayları elinizin altında.</p>
+                    <p>Hukuk ve ceza davalarınızı detaylı şekilde takip edin. Esas numarası, mahkeme bilgisi, taraflar ve duruşma süreçleri tek ekranda.</p>
                 </div>
 
                 <div class="feature-card" data-aos="fade-up" data-aos-delay="100">
                     <div class="feature-icon">
-                        <i class="fas fa-users"></i>
+                        <i class="fas fa-file-invoice-dollar"></i>
                     </div>
-                    <h3>Müvekkil Yönetimi</h3>
-                    <p>Müvekkillerinizin bilgilerini, dosyalarını ve iletişim geçmişini tek bir panelde organize edin.</p>
+                    <h3>İcra Takibi</h3>
+                    <p>İcra dosyalarınızı profesyonelce yönetin. Borçlu bilgileri, takip aşamaları ve tahsilat süreçlerini anlık izleyin.</p>
                 </div>
 
                 <div class="feature-card" data-aos="fade-up" data-aos-delay="200">
                     <div class="feature-icon">
-                        <i class="fas fa-bell"></i>
+                        <i class="fas fa-users"></i>
                     </div>
-                    <h3>Hatırlatıcılar</h3>
-                    <p>Önemli tarihleri asla kaçırmayın. Otomatik hatırlatıcılar ile duruşmalardan haberdar olun.</p>
+                    <h3>Müvekkil Yönetimi</h3>
+                    <p>Müvekkillerinizin tüm bilgilerini, iletişim geçmişini ve dosyalarını merkezi bir sistemde saklayın ve yönetin.</p>
                 </div>
 
                 <div class="feature-card" data-aos="fade-up" data-aos-delay="300">
                     <div class="feature-icon">
-                        <i class="fas fa-file-alt"></i>
+                        <i class="fas fa-file-signature"></i>
                     </div>
-                    <h3>Belge Yönetimi</h3>
-                    <p>Tüm belgelerinizi kategorize edin, arayın ve anında erişin. Dijital arşiviniz her zaman yanınızda.</p>
+                    <h3>Vekalet Yönetimi</h3>
+                    <p>Vekaletnamelerinizi dijital ortamda saklayın. Vekalet türü, tarih ve ilişkili davaları kolayca takip edin.</p>
                 </div>
 
                 <div class="feature-card" data-aos="fade-up" data-aos-delay="400">
                     <div class="feature-icon">
-                        <i class="fas fa-chart-bar"></i>
+                        <i class="fas fa-calendar-check"></i>
                     </div>
-                    <h3>Raporlama</h3>
-                    <p>Detaylı raporlar ve analizler ile iş süreçlerinizi takip edin ve optimize edin.</p>
+                    <h3>Takvim ve Hatırlatıcılar</h3>
+                    <p>Duruşma tarihleri, randevular ve önemli süreleri takvimde görün. Otomatik hatırlatıcılar ile hiçbir şeyi kaçırmayın.</p>
                 </div>
 
                 <div class="feature-card" data-aos="fade-up" data-aos-delay="500">
                     <div class="feature-icon">
-                        <i class="fas fa-shield-alt"></i>
+                        <i class="fas fa-sync-alt"></i>
                     </div>
-                    <h3>Güvenli Depolama</h3>
-                    <p>Verileriniz en yüksek güvenlik standartları ile korunur. KVKK uyumlu altyapı.</p>
+                    <h3>Bilgisayar Transferi</h3>
+                    <p>Tüm verilerinizi tek tıkla yeni bilgisayarınıza taşıyın. Davalar, müvekiller ve ayarlarınız güvenle aktarılır.</p>
                 </div>
             </div>
         </div>
@@ -1173,9 +1201,10 @@
 
             <div class="screenshots-tabs" data-aos="fade-up" data-aos-delay="100">
                 <button class="tab-btn active" data-tab="dashboard">Ana Panel</button>
-                <button class="tab-btn" data-tab="cases">Dava Listesi</button>
-                <button class="tab-btn" data-tab="clients">Müvekkillerim</button>
-                <button class="tab-btn" data-tab="calendar">Takvim</button>
+                <button class="tab-btn" data-tab="cases">Davalar</button>
+                <button class="tab-btn" data-tab="icra">İcra Dosyaları</button>
+                <button class="tab-btn" data-tab="clients">Müvekiller</button>
+                <button class="tab-btn" data-tab="vekaletler">Vekaletler</button>
             </div>
 
             <div class="screenshot-display" data-aos="fade-up" data-aos-delay="200">
@@ -1390,10 +1419,31 @@
             <div class="footer-grid">
                 <div class="footer-brand">
                     <a href="#" class="logo">
-                        <div class="logo-icon">TES</div>
+                        <div class="logo-icon">
+                            <svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <defs>
+                                    <linearGradient id="goldGradient2" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" style="stop-color:#FBBF24"/>
+                                        <stop offset="100%" style="stop-color:#D97706"/>
+                                    </linearGradient>
+                                </defs>
+                                <path d="M30 2L54.5 16V44L30 58L5.5 44V16L30 2Z" fill="url(#goldGradient2)"/>
+                                <g fill="#0A0A0F">
+                                    <rect x="28" y="16" width="4" height="26" rx="1"/>
+                                    <rect x="14" y="18" width="32" height="3" rx="1"/>
+                                    <path d="M14 22L10 34H22L18 22H14Z"/>
+                                    <ellipse cx="16" cy="35" rx="7" ry="2"/>
+                                    <path d="M42 22L38 32H50L46 22H42Z"/>
+                                    <ellipse cx="44" cy="33" rx="7" ry="2"/>
+                                    <path d="M22 42H38L36 44H24L22 42Z"/>
+                                    <ellipse cx="30" cy="45" rx="10" ry="2"/>
+                                </g>
+                                <text x="30" y="52" text-anchor="middle" font-family="Sora, sans-serif" font-size="6" font-weight="700" fill="#0A0A0F">TES</text>
+                            </svg>
+                        </div>
                         <span class="logo-text">TakibiEsasi</span>
                     </a>
-                    <p>TakibiEsasi, avukatlar ve hukuk büroları için geliştirilmiş profesyonel hukuki takip yazılımıdır. Dava takibi, müvekkil yönetimi ve tüm hukuki süreçlerinizi tek platformdan yönetin.</p>
+                    <p>TakibiEsasi, avukatlar ve hukuk büroları için geliştirilmiş profesyonel masaüstü yazılımıdır. Dava takibi, icra takibi, müvekkil ve vekalet yönetimi - tüm ihtiyaçlarınız tek uygulamada.</p>
                 </div>
 
                 <div class="footer-column">
@@ -1426,7 +1476,7 @@
             </div>
 
             <div class="footer-bottom">
-                <p>&copy; 2024 TakibiEsasi. Tüm hakları saklıdır.</p>
+                <p>&copy; 2025 TakibiEsasi. Tüm hakları saklıdır.</p>
                 <div class="footer-social">
                     <a href="#"><i class="fab fa-twitter"></i></a>
                     <a href="#"><i class="fab fa-linkedin"></i></a>
@@ -1491,10 +1541,11 @@
 
         // Screenshot tabs
         const screenshots = {
-            dashboard: 'https://placehold.co/1000x600/1A1A24/FBBF24?text=Dashboard+Ekrani',
+            dashboard: 'https://placehold.co/1000x600/1A1A24/FBBF24?text=Ana+Panel',
             cases: 'https://placehold.co/1000x600/1A1A24/FBBF24?text=Dava+Listesi',
-            clients: 'https://placehold.co/1000x600/1A1A24/FBBF24?text=Muvekkillerim',
-            calendar: 'https://placehold.co/1000x600/1A1A24/FBBF24?text=Takvim'
+            icra: 'https://placehold.co/1000x600/1A1A24/FBBF24?text=Icra+Dosyalari',
+            clients: 'https://placehold.co/1000x600/1A1A24/FBBF24?text=Muvekiller',
+            vekaletler: 'https://placehold.co/1000x600/1A1A24/FBBF24?text=Vekaletler'
         };
 
         document.querySelectorAll('.tab-btn').forEach(btn => {
