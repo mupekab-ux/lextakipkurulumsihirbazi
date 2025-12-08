@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="TakibiEsasi 14 gün ücretsiz deneyin. Tüm özelliklere tam erişim, kredi kartı gerekmez.">
+    <meta name="keywords" content="avukat yazılımı demo, dava takip deneme, hukuk bürosu yazılımı ücretsiz">
+    <title>14 Gün Ücretsiz Deneyin - TakibiEsasi</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --gold-light: #FBBF24;
+            --gold-dark: #D97706;
+            --bg-black: #0A0A0F;
+            --bg-card: #12121A;
+            --text-white: #FFFFFF;
+            --text-gray: #9CA3AF;
+            --success: #10B981;
+            --error: #EF4444;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background-color: var(--bg-black);
+            color: var(--text-white);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated Background */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .floating-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            animation: float 25s ease-in-out infinite;
+            opacity: 0.3;
+        }
+
+        .orb-1 {
+            width: 400px;
+            height: 400px;
+            background: linear-gradient(135deg, #FBBF24 0%, #D97706 100%);
+            top: -100px;
+            left: -100px;
+        }
+
+        .orb-2 {
+            width: 300px;
+            height: 300px;
+            background: linear-gradient(135deg, #D97706 0%, #92400E 100%);
+            bottom: -50px;
+            right: -50px;
+            animation-delay: -10s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            25% { transform: translate(50px, -50px) scale(1.1); }
+            50% { transform: translate(-30px, 30px) scale(0.9); }
+            75% { transform: translate(30px, 20px) scale(1.05); }
+        }
+
+        /* Header */
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            padding: 20px 0;
+            background: rgba(10, 10, 15, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(251, 191, 36, 0.1);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text-white);
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+        }
+
+        .logo-icon svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .logo-text {
+            font-family: 'Sora', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: var(--text-gray);
+            text-decoration: none;
+            font-size: 0.95rem;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: var(--gold-light);
+        }
+
+        /* Main Content */
+        main {
+            position: relative;
+            z-index: 1;
+            padding-top: 120px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+        }
+
+        .demo-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 80px;
+            align-items: center;
+        }
+
+        /* Left Side - Info */
+        .demo-info h1 {
+            font-family: 'Sora', sans-serif;
+            font-size: 3rem;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 24px;
+        }
+
+        .demo-info h1 span {
+            background: linear-gradient(135deg, var(--gold-light), var(--gold-dark));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .demo-info p {
+            font-size: 1.2rem;
+            color: var(--text-gray);
+            margin-bottom: 40px;
+            line-height: 1.7;
+        }
+
+        .features-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .features-list li {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.05rem;
+        }
+
+        .features-list li i {
+            color: var(--success);
+            font-size: 1.2rem;
+        }
+
+        /* Right Side - Form */
+        .demo-form-container {
+            background: var(--bg-card);
+            border: 1px solid rgba(251, 191, 36, 0.2);
+            border-radius: 24px;
+            padding: 48px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .demo-form-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--gold-light), var(--gold-dark));
+        }
+
+        .form-header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .form-header .icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+        }
+
+        .form-header h2 {
+            font-family: 'Sora', sans-serif;
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+        }
+
+        .form-header p {
+            color: var(--text-gray);
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 16px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: var(--text-white);
+            font-size: 1rem;
+            font-family: inherit;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--gold-light);
+            background: rgba(251, 191, 36, 0.05);
+        }
+
+        .form-group input::placeholder {
+            color: var(--text-gray);
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, var(--gold-light), var(--gold-dark));
+            border: none;
+            border-radius: 12px;
+            color: #000;
+            font-size: 1.1rem;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(251, 191, 36, 0.3);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .submit-btn .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(0, 0, 0, 0.3);
+            border-top-color: #000;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            display: none;
+        }
+
+        .submit-btn.loading .spinner {
+            display: block;
+        }
+
+        .submit-btn.loading .btn-text {
+            display: none;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .form-note {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 0.9rem;
+            color: var(--text-gray);
+        }
+
+        .form-note i {
+            color: var(--success);
+            margin-right: 6px;
+        }
+
+        .form-links {
+            text-align: center;
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .form-links a {
+            color: var(--gold-light);
+            text-decoration: none;
+            font-size: 0.95rem;
+        }
+
+        .form-links a:hover {
+            text-decoration: underline;
+        }
+
+        /* Success State */
+        .success-message {
+            display: none;
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .success-message.show {
+            display: block;
+        }
+
+        .success-message .icon {
+            font-size: 4rem;
+            color: var(--success);
+            margin-bottom: 20px;
+        }
+
+        .success-message h3 {
+            font-family: 'Sora', sans-serif;
+            font-size: 1.5rem;
+            margin-bottom: 12px;
+        }
+
+        .success-message p {
+            color: var(--text-gray);
+            margin-bottom: 24px;
+        }
+
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 16px 32px;
+            background: linear-gradient(135deg, var(--gold-light), var(--gold-dark));
+            color: #000;
+            text-decoration: none;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            transition: all 0.3s;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(251, 191, 36, 0.3);
+        }
+
+        /* Error Message */
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--error);
+            border-radius: 8px;
+            padding: 12px 16px;
+            color: var(--error);
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        /* Footer */
+        footer {
+            position: relative;
+            z-index: 1;
+            padding: 40px 0;
+            text-align: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: 80px;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 20px;
+        }
+
+        .footer-links a {
+            color: var(--text-gray);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.3s;
+        }
+
+        .footer-links a:hover {
+            color: var(--gold-light);
+        }
+
+        .copyright {
+            color: var(--text-gray);
+            font-size: 0.85rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 968px) {
+            .demo-container {
+                grid-template-columns: 1fr;
+                gap: 50px;
+            }
+
+            .demo-info {
+                text-align: center;
+            }
+
+            .demo-info h1 {
+                font-size: 2.2rem;
+            }
+
+            .features-list {
+                align-items: center;
+            }
+
+            .nav-links {
+                display: none;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .demo-form-container {
+                padding: 32px 24px;
+            }
+
+            .demo-info h1 {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Background Animation -->
+    <div class="bg-animation">
+        <div class="floating-orb orb-1"></div>
+        <div class="floating-orb orb-2"></div>
+    </div>
+
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <a href="/" class="logo">
+                    <div class="logo-icon">
+                        <svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <defs>
+                                <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#FBBF24"/>
+                                    <stop offset="100%" style="stop-color:#D97706"/>
+                                </linearGradient>
+                            </defs>
+                            <path d="M30 2L54.5 16V44L30 58L5.5 44V16L30 2Z" fill="url(#goldGradient)"/>
+                            <g fill="#0A0A0F">
+                                <rect x="28" y="16" width="4" height="26" rx="1"/>
+                                <rect x="14" y="18" width="32" height="3" rx="1"/>
+                                <path d="M14 22L10 34H22L18 22H14Z"/>
+                                <ellipse cx="16" cy="35" rx="7" ry="2"/>
+                                <path d="M42 22L38 32H50L46 22H42Z"/>
+                                <ellipse cx="44" cy="33" rx="7" ry="2"/>
+                                <path d="M22 42H38L36 44H24L22 42Z"/>
+                                <ellipse cx="30" cy="45" rx="10" ry="2"/>
+                            </g>
+                        </svg>
+                    </div>
+                    <span class="logo-text">TakibiEsasi</span>
+                </a>
+                <nav class="nav-links">
+                    <a href="/#ozellikler">Özellikler</a>
+                    <a href="/#fiyatlandirma">Fiyatlandırma</a>
+                    <a href="/#iletisim">İletişim</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        <div class="container">
+            <div class="demo-container">
+                <!-- Left Side - Info -->
+                <div class="demo-info">
+                    <h1>
+                        <span>14 Gün</span> Ücretsiz<br>
+                        Deneyin
+                    </h1>
+                    <p>
+                        TakibiEsasi'nın tüm özelliklerini 14 gün boyunca ücretsiz kullanın.
+                        Kredi kartı gerekmez, demo süresinde girdiğiniz veriler satın aldığınızda korunur.
+                    </p>
+                    <ul class="features-list">
+                        <li>
+                            <i class="fas fa-check-circle"></i>
+                            Tüm özelliklere tam erişim
+                        </li>
+                        <li>
+                            <i class="fas fa-check-circle"></i>
+                            Sınırsız dosya oluşturma
+                        </li>
+                        <li>
+                            <i class="fas fa-check-circle"></i>
+                            Verileriniz güvende ve korunuyor
+                        </li>
+                        <li>
+                            <i class="fas fa-check-circle"></i>
+                            Kredi kartı gerekmez
+                        </li>
+                        <li>
+                            <i class="fas fa-check-circle"></i>
+                            Anında indirme ve kurulum
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Right Side - Form -->
+                <div class="demo-form-container">
+                    <div id="formSection">
+                        <div class="form-header">
+                            <div class="icon">⚖️</div>
+                            <h2>Demo'yu Başlat</h2>
+                            <p>E-posta adresinizi girin ve hemen indirin</p>
+                        </div>
+
+                        <div id="errorMessage" class="error-message"></div>
+
+                        <form id="demoForm">
+                            <div class="form-group">
+                                <label for="email">E-posta Adresi</label>
+                                <input
+                                    type="email"
+                                    id="email"
+                                    name="email"
+                                    placeholder="ornek@email.com"
+                                    required
+                                    autocomplete="email"
+                                >
+                            </div>
+
+                            <button type="submit" class="submit-btn" id="submitBtn">
+                                <span class="spinner"></span>
+                                <span class="btn-text">
+                                    <i class="fas fa-rocket"></i>
+                                    Demo'yu Başlat
+                                </span>
+                            </button>
+                        </form>
+
+                        <p class="form-note">
+                            <i class="fas fa-shield-alt"></i>
+                            E-posta adresiniz güvende, spam göndermiyoruz.
+                        </p>
+
+                        <div class="form-links">
+                            <a href="/kullanim-sartlari">Kullanım Şartları</a> ·
+                            <a href="/gizlilik">Gizlilik Politikası</a>
+                        </div>
+                    </div>
+
+                    <div id="successSection" class="success-message">
+                        <div class="icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <h3>Kayıt Başarılı!</h3>
+                        <p>14 günlük demo süreniz başladı. Hemen indirin ve kullanmaya başlayın.</p>
+                        <a href="/indir" class="download-btn">
+                            <i class="fas fa-download"></i>
+                            İndir
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-links">
+                <a href="/gizlilik">Gizlilik Politikası</a>
+                <a href="/kvkk">KVKK</a>
+                <a href="/kullanim-sartlari">Kullanım Şartları</a>
+            </div>
+            <p class="copyright">
+                &copy; 2025 TakibiEsasi. Tüm hakları saklıdır.
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        const form = document.getElementById('demoForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const errorMessage = document.getElementById('errorMessage');
+        const formSection = document.getElementById('formSection');
+        const successSection = document.getElementById('successSection');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const email = document.getElementById('email').value.trim();
+
+            // Basic validation
+            if (!email) {
+                showError('Lütfen e-posta adresinizi girin.');
+                return;
+            }
+
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                showError('Lütfen geçerli bir e-posta adresi girin.');
+                return;
+            }
+
+            // Show loading state
+            submitBtn.classList.add('loading');
+            submitBtn.disabled = true;
+            hideError();
+
+            try {
+                const response = await fetch('/api/demo/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    // Show success
+                    formSection.style.display = 'none';
+                    successSection.classList.add('show');
+                } else {
+                    showError(data.detail || 'Bir hata oluştu. Lütfen tekrar deneyin.');
+                }
+            } catch (error) {
+                showError('Bağlantı hatası. Lütfen tekrar deneyin.');
+            } finally {
+                submitBtn.classList.remove('loading');
+                submitBtn.disabled = false;
+            }
+        });
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.add('show');
+        }
+
+        function hideError() {
+            errorMessage.classList.remove('show');
+        }
+
+        // Hide error on input
+        document.getElementById('email').addEventListener('input', hideError);
+    </script>
+</body>
+</html>

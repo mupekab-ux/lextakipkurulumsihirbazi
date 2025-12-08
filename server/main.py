@@ -4,7 +4,7 @@ TakibiEsasi License & Admin API
 FastAPI backend for license management and admin panel
 """
 
-from fastapi import FastAPI, HTTPException, Header, UploadFile, File
+from fastapi import FastAPI, HTTPException, Header, UploadFile, File, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -185,6 +185,19 @@ def init_db():
             message TEXT NOT NULL,
             is_read BOOLEAN DEFAULT FALSE,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    # Demo registrations table
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS demo_registrations (
+            id SERIAL PRIMARY KEY,
+            email VARCHAR(200) NOT NULL UNIQUE,
+            registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            ip_address VARCHAR(50),
+            user_agent TEXT,
+            converted_to_license BOOLEAN DEFAULT FALSE,
+            converted_at TIMESTAMP
         )
     """)
 
@@ -1475,6 +1488,151 @@ async def favicon_ico():
     if os.path.exists(favicon_path):
         return FileResponse(favicon_path, media_type="image/svg+xml")
     raise HTTPException(status_code=404, detail="Favicon not found")
+
+# ============ PUBLIC PAGES ============
+
+@app.get("/demo", response_class=HTMLResponse)
+async def demo_page():
+    """Serve demo registration page"""
+    html_path = "/var/www/takibiesasi/demo.html"
+    if os.path.exists(html_path):
+        with open(html_path, 'r', encoding='utf-8') as f:
+            return f.read()
+    return "<h1>Demo page not found</h1>"
+
+@app.get("/gizlilik", response_class=HTMLResponse)
+async def privacy_page():
+    """Serve privacy policy page"""
+    html_path = "/var/www/takibiesasi/gizlilik.html"
+    if os.path.exists(html_path):
+        with open(html_path, 'r', encoding='utf-8') as f:
+            return f.read()
+    return "<h1>Privacy page not found</h1>"
+
+@app.get("/kvkk", response_class=HTMLResponse)
+async def kvkk_page():
+    """Serve KVKK (Turkish data protection) page"""
+    html_path = "/var/www/takibiesasi/kvkk.html"
+    if os.path.exists(html_path):
+        with open(html_path, 'r', encoding='utf-8') as f:
+            return f.read()
+    return "<h1>KVKK page not found</h1>"
+
+@app.get("/kullanim-sartlari", response_class=HTMLResponse)
+async def terms_page():
+    """Serve terms of use page"""
+    html_path = "/var/www/takibiesasi/kullanim-sartlari.html"
+    if os.path.exists(html_path):
+        with open(html_path, 'r', encoding='utf-8') as f:
+            return f.read()
+    return "<h1>Terms page not found</h1>"
+
+@app.get("/indir", response_class=HTMLResponse)
+async def download_page():
+    """Serve download page"""
+    html_path = "/var/www/takibiesasi/download.html"
+    if os.path.exists(html_path):
+        with open(html_path, 'r', encoding='utf-8') as f:
+            return f.read()
+    return "<h1>Download page not found</h1>"
+
+# ============ DEMO REGISTRATION API ============
+
+class DemoRegisterRequest(BaseModel):
+    email: str
+
+@app.post("/api/demo/register")
+async def register_demo(req: DemoRegisterRequest, request: Request):
+    """Register email for demo and return download link"""
+    import re
+
+    # Email validation
+    email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    if not re.match(email_pattern, req.email):
+        raise HTTPException(status_code=400, detail="Geçersiz e-posta adresi")
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    try:
+        # Get client IP
+        client_ip = request.client.host if request.client else None
+        user_agent = request.headers.get("user-agent", "")
+
+        # Try to insert (will fail if email exists)
+        cur.execute("""
+            INSERT INTO demo_registrations (email, ip_address, user_agent)
+            VALUES (%s, %s, %s)
+            ON CONFLICT (email) DO UPDATE SET
+                registered_at = CURRENT_TIMESTAMP,
+                ip_address = EXCLUDED.ip_address
+            RETURNING id, registered_at
+        """, (req.email.lower().strip(), client_ip, user_agent[:500] if user_agent else None))
+
+        result = cur.fetchone()
+        conn.commit()
+
+        return {
+            "success": True,
+            "message": "Demo kaydı başarılı! İndirme bağlantınız hazır.",
+            "download_url": "/indir",
+            "email": req.email.lower().strip(),
+            "registered_at": result[1].isoformat() if result else None
+        }
+
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Kayıt hatası: {str(e)}")
+    finally:
+        cur.close()
+        conn.close()
+
+@app.get("/api/demo/stats")
+async def demo_stats(authorization: str = Header(None)):
+    """Get demo registration stats (admin only)"""
+    if not verify_admin_token(authorization):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    try:
+        # Total registrations
+        cur.execute("SELECT COUNT(*) FROM demo_registrations")
+        total = cur.fetchone()[0]
+
+        # Today's registrations
+        cur.execute("""
+            SELECT COUNT(*) FROM demo_registrations
+            WHERE DATE(registered_at) = CURRENT_DATE
+        """)
+        today = cur.fetchone()[0]
+
+        # This week
+        cur.execute("""
+            SELECT COUNT(*) FROM demo_registrations
+            WHERE registered_at >= CURRENT_DATE - INTERVAL '7 days'
+        """)
+        this_week = cur.fetchone()[0]
+
+        # Converted to license
+        cur.execute("""
+            SELECT COUNT(*) FROM demo_registrations
+            WHERE converted_to_license = TRUE
+        """)
+        converted = cur.fetchone()[0]
+
+        return {
+            "total": total,
+            "today": today,
+            "this_week": this_week,
+            "converted": converted,
+            "conversion_rate": round((converted / total * 100), 1) if total > 0 else 0
+        }
+
+    finally:
+        cur.close()
+        conn.close()
 
 # ============ STATIC FILES ============
 

@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="TakibiEsasi KVKK Aydınlatma Metni - 6698 sayılı Kişisel Verilerin Korunması Kanunu kapsamında bilgilendirme.">
+    <title>KVKK Aydınlatma Metni - TakibiEsasi</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --gold-light: #FBBF24;
+            --gold-dark: #D97706;
+            --bg-black: #0A0A0F;
+            --bg-card: #12121A;
+            --text-white: #FFFFFF;
+            --text-gray: #9CA3AF;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background-color: var(--bg-black);
+            color: var(--text-white);
+            min-height: 100vh;
+            line-height: 1.7;
+        }
+
+        /* Header */
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            padding: 20px 0;
+            background: rgba(10, 10, 15, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(251, 191, 36, 0.1);
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text-white);
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+        }
+
+        .logo-icon svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .logo-text {
+            font-family: 'Sora', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: var(--text-gray);
+            text-decoration: none;
+            font-size: 0.95rem;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: var(--gold-light);
+        }
+
+        /* Main Content */
+        main {
+            padding-top: 120px;
+            padding-bottom: 80px;
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        .page-header h1 {
+            font-family: 'Sora', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, var(--gold-light), var(--gold-dark));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .page-header p {
+            color: var(--text-gray);
+            font-size: 1.1rem;
+        }
+
+        .content-card {
+            background: var(--bg-card);
+            border: 1px solid rgba(251, 191, 36, 0.1);
+            border-radius: 20px;
+            padding: 48px;
+        }
+
+        .content-card h2 {
+            font-family: 'Sora', sans-serif;
+            font-size: 1.4rem;
+            margin-top: 32px;
+            margin-bottom: 16px;
+            color: var(--gold-light);
+        }
+
+        .content-card h2:first-child {
+            margin-top: 0;
+        }
+
+        .content-card h3 {
+            font-family: 'Sora', sans-serif;
+            font-size: 1.1rem;
+            margin-top: 24px;
+            margin-bottom: 12px;
+            color: var(--text-white);
+        }
+
+        .content-card p {
+            color: var(--text-gray);
+            margin-bottom: 16px;
+        }
+
+        .content-card ul {
+            color: var(--text-gray);
+            margin-left: 24px;
+            margin-bottom: 16px;
+        }
+
+        .content-card li {
+            margin-bottom: 8px;
+        }
+
+        .content-card strong {
+            color: var(--text-white);
+        }
+
+        .info-box {
+            background: rgba(251, 191, 36, 0.1);
+            border: 1px solid rgba(251, 191, 36, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 24px 0;
+        }
+
+        .info-box h4 {
+            color: var(--gold-light);
+            margin-bottom: 12px;
+            font-size: 1rem;
+        }
+
+        .info-box p {
+            margin-bottom: 8px;
+        }
+
+        .info-box p:last-child {
+            margin-bottom: 0;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .data-table th {
+            background: rgba(251, 191, 36, 0.1);
+            color: var(--gold-light);
+            font-weight: 600;
+        }
+
+        .data-table td {
+            color: var(--text-gray);
+        }
+
+        .last-updated {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 24px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-gray);
+            font-size: 0.9rem;
+        }
+
+        /* Footer */
+        footer {
+            padding: 40px 0;
+            text-align: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 20px;
+        }
+
+        .footer-links a {
+            color: var(--text-gray);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.3s;
+        }
+
+        .footer-links a:hover {
+            color: var(--gold-light);
+        }
+
+        .copyright {
+            color: var(--text-gray);
+            font-size: 0.85rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .page-header h1 {
+                font-size: 1.8rem;
+            }
+
+            .content-card {
+                padding: 24px;
+            }
+
+            .data-table {
+                font-size: 0.85rem;
+            }
+
+            .data-table th,
+            .data-table td {
+                padding: 8px 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="header-content">
+            <a href="/" class="logo">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#FBBF24"/>
+                                <stop offset="100%" style="stop-color:#D97706"/>
+                            </linearGradient>
+                        </defs>
+                        <path d="M30 2L54.5 16V44L30 58L5.5 44V16L30 2Z" fill="url(#goldGradient)"/>
+                        <g fill="#0A0A0F">
+                            <rect x="28" y="16" width="4" height="26" rx="1"/>
+                            <rect x="14" y="18" width="32" height="3" rx="1"/>
+                            <path d="M14 22L10 34H22L18 22H14Z"/>
+                            <ellipse cx="16" cy="35" rx="7" ry="2"/>
+                            <path d="M42 22L38 32H50L46 22H42Z"/>
+                            <ellipse cx="44" cy="33" rx="7" ry="2"/>
+                            <path d="M22 42H38L36 44H24L22 42Z"/>
+                            <ellipse cx="30" cy="45" rx="10" ry="2"/>
+                        </g>
+                    </svg>
+                </div>
+                <span class="logo-text">TakibiEsasi</span>
+            </a>
+            <nav class="nav-links">
+                <a href="/#ozellikler">Özellikler</a>
+                <a href="/#fiyatlandirma">Fiyatlandırma</a>
+                <a href="/#iletisim">İletişim</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        <div class="container">
+            <div class="page-header">
+                <h1>KVKK Aydınlatma Metni</h1>
+                <p>6698 sayılı Kişisel Verilerin Korunması Kanunu kapsamında bilgilendirme</p>
+            </div>
+
+            <div class="content-card">
+                <h2>1. Veri Sorumlusu</h2>
+                <p>6698 sayılı Kişisel Verilerin Korunması Kanunu ("KVKK") uyarınca, kişisel verileriniz; veri sorumlusu olarak TakibiEsasi tarafından aşağıda açıklanan kapsamda işlenebilecektir.</p>
+
+                <div class="info-box">
+                    <h4>Veri Sorumlusu Bilgileri</h4>
+                    <p><strong>Unvan:</strong> TakibiEsasi Yazılım</p>
+                    <p><strong>E-posta:</strong> destek@takibiesasi.com</p>
+                    <p><strong>Web:</strong> www.takibiesasi.com</p>
+                </div>
+
+                <h2>2. Kişisel Verilerin İşlenme Amaçları</h2>
+                <p>Kişisel verileriniz, KVKK'nın 5. ve 6. maddelerinde belirtilen kişisel veri işleme şartları dahilinde aşağıdaki amaçlarla işlenmektedir:</p>
+                <ul>
+                    <li>Yazılım hizmetlerinin sunulması ve yönetimi</li>
+                    <li>Kullanıcı hesaplarının oluşturulması ve kimlik doğrulama</li>
+                    <li>Lisans yönetimi ve aktivasyon işlemleri</li>
+                    <li>Müşteri destek hizmetlerinin sağlanması</li>
+                    <li>Hizmet kalitesinin iyileştirilmesi</li>
+                    <li>Yasal yükümlülüklerin yerine getirilmesi</li>
+                    <li>Fatura ve ödeme işlemlerinin gerçekleştirilmesi</li>
+                    <li>İletişim faaliyetlerinin yürütülmesi</li>
+                    <li>Güvenlik ve sistem yönetimi</li>
+                </ul>
+
+                <h2>3. İşlenen Kişisel Veri Kategorileri</h2>
+                <table class="data-table">
+                    <tr>
+                        <th>Veri Kategorisi</th>
+                        <th>Açıklama</th>
+                    </tr>
+                    <tr>
+                        <td>Kimlik Bilgileri</td>
+                        <td>Ad, soyad</td>
+                    </tr>
+                    <tr>
+                        <td>İletişim Bilgileri</td>
+                        <td>E-posta adresi, telefon numarası</td>
+                    </tr>
+                    <tr>
+                        <td>Hesap Bilgileri</td>
+                        <td>Kullanıcı adı, şifre (şifrelenmiş)</td>
+                    </tr>
+                    <tr>
+                        <td>İşlem Güvenliği</td>
+                        <td>IP adresi, oturum bilgileri</td>
+                    </tr>
+                    <tr>
+                        <td>Müşteri İşlem</td>
+                        <td>Lisans bilgileri, satın alma geçmişi</td>
+                    </tr>
+                </table>
+
+                <h2>4. Kişisel Verilerin Toplanma Yöntemleri ve Hukuki Sebepleri</h2>
+                <p>Kişisel verileriniz, aşağıdaki yöntemlerle toplanmaktadır:</p>
+                <ul>
+                    <li>Web sitesi üzerinden yapılan kayıt işlemleri</li>
+                    <li>Uygulama içi kullanım verileri</li>
+                    <li>E-posta, telefon ve diğer iletişim kanalları</li>
+                    <li>Çerezler ve benzeri teknolojiler</li>
+                </ul>
+
+                <h3>Hukuki Sebepler (KVKK m.5)</h3>
+                <ul>
+                    <li><strong>Sözleşmenin kurulması veya ifası:</strong> Yazılım lisans sözleşmesinin kurulması ve hizmetlerin sunulması</li>
+                    <li><strong>Hukuki yükümlülük:</strong> Vergi mevzuatı, ticaret mevzuatı gibi yasal yükümlülükler</li>
+                    <li><strong>Meşru menfaat:</strong> Hizmet kalitesinin artırılması, güvenlik</li>
+                    <li><strong>Açık rıza:</strong> Pazarlama iletişimi (tercih edilmesi halinde)</li>
+                </ul>
+
+                <h2>5. Kişisel Verilerin Aktarımı</h2>
+                <p>Kişisel verileriniz, KVKK'nın 8. ve 9. maddeleri kapsamında aşağıdaki taraflara aktarılabilir:</p>
+                <ul>
+                    <li><strong>Hizmet sağlayıcılar:</strong> Hosting, e-posta, ödeme sistemleri (veri işleyen sıfatıyla)</li>
+                    <li><strong>Resmi kurumlar:</strong> Yasal zorunluluklar halinde yetkili kamu kurum ve kuruluşları</li>
+                    <li><strong>Hukuki danışmanlar:</strong> Hukuki süreçlerin yürütülmesi için</li>
+                </ul>
+
+                <h2>6. Kişisel Veri Sahibinin Hakları</h2>
+                <p>KVKK'nın 11. maddesi uyarınca aşağıdaki haklara sahipsiniz:</p>
+                <ul>
+                    <li>Kişisel verilerinizin işlenip işlenmediğini öğrenme</li>
+                    <li>Kişisel verileriniz işlenmişse buna ilişkin bilgi talep etme</li>
+                    <li>Kişisel verilerinizin işlenme amacını ve bunların amacına uygun kullanılıp kullanılmadığını öğrenme</li>
+                    <li>Yurt içinde veya yurt dışında kişisel verilerinizin aktarıldığı üçüncü kişileri bilme</li>
+                    <li>Kişisel verilerinizin eksik veya yanlış işlenmiş olması halinde bunların düzeltilmesini isteme</li>
+                    <li>KVKK'nın 7. maddesinde öngörülen şartlar çerçevesinde kişisel verilerinizin silinmesini veya yok edilmesini isteme</li>
+                    <li>Düzeltme, silme veya yok etme işlemlerinin kişisel verilerinizin aktarıldığı üçüncü kişilere bildirilmesini isteme</li>
+                    <li>İşlenen verilerin münhasıran otomatik sistemler vasıtasıyla analiz edilmesi suretiyle aleyhinize bir sonucun ortaya çıkmasına itiraz etme</li>
+                    <li>Kişisel verilerinizin kanuna aykırı olarak işlenmesi sebebiyle zarara uğramanız halinde zararın giderilmesini talep etme</li>
+                </ul>
+
+                <h2>7. Veri Güvenliği Tedbirleri</h2>
+                <p>KVKK'nın 12. maddesi uyarınca, kişisel verilerinizin güvenliğini sağlamak amacıyla gerekli teknik ve idari tedbirler alınmaktadır:</p>
+                <ul>
+                    <li>Veri şifreleme (SSL/TLS, AES)</li>
+                    <li>Güvenlik duvarı ve saldırı tespit sistemleri</li>
+                    <li>Erişim kontrolleri ve yetkilendirme</li>
+                    <li>Düzenli güvenlik denetimleri</li>
+                    <li>Personel eğitimi ve gizlilik taahhütleri</li>
+                    <li>Veri yedekleme ve felaket kurtarma planları</li>
+                </ul>
+
+                <h2>8. Veri Saklama Süresi</h2>
+                <p>Kişisel verileriniz, işleme amaçlarının gerektirdiği süre boyunca saklanır. Yasal saklama yükümlülükleri aşağıdaki gibidir:</p>
+                <ul>
+                    <li><strong>Ticari defterler ve belgeler:</strong> 10 yıl (Türk Ticaret Kanunu)</li>
+                    <li><strong>Fatura ve ödeme kayıtları:</strong> 5 yıl (Vergi Usul Kanunu)</li>
+                    <li><strong>Kullanıcı hesap bilgileri:</strong> Hesap aktif olduğu sürece + 3 yıl</li>
+                </ul>
+
+                <h2>9. Başvuru Yöntemi</h2>
+                <p>KVKK kapsamındaki haklarınızı kullanmak için aşağıdaki yöntemlerle başvurabilirsiniz:</p>
+                <ul>
+                    <li><strong>E-posta:</strong> destek@takibiesasi.com adresine "KVKK Başvurusu" konulu e-posta</li>
+                    <li><strong>Yazılı başvuru:</strong> Kimlik fotokopisi ile birlikte ıslak imzalı dilekçe</li>
+                </ul>
+                <p>Başvurularınız en geç 30 gün içinde ücretsiz olarak sonuçlandırılacaktır. İşlemin ayrıca bir maliyet gerektirmesi halinde, Kişisel Verileri Koruma Kurulu tarafından belirlenen tarifedeki ücret alınabilir.</p>
+
+                <h2>10. Değişiklikler</h2>
+                <p>Bu aydınlatma metni, yasal düzenlemeler veya veri işleme faaliyetlerimizdeki değişikliklere bağlı olarak güncellenebilir. Güncel metin her zaman web sitemizde yayınlanacaktır.</p>
+
+                <div class="last-updated">
+                    <p>Son güncelleme: Aralık 2025</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-links">
+                <a href="/">Ana Sayfa</a>
+                <a href="/gizlilik">Gizlilik Politikası</a>
+                <a href="/kvkk">KVKK</a>
+                <a href="/kullanim-sartlari">Kullanım Şartları</a>
+            </div>
+            <p class="copyright">
+                &copy; 2025 TakibiEsasi. Tüm hakları saklıdır.
+            </p>
+        </div>
+    </footer>
+</body>
+</html>
