@@ -24,6 +24,7 @@ from PyQt6.QtWidgets import (
     QGroupBox,
     QLabel,
     QSpinBox,
+    QTextBrowser,
 )
 from PyQt6.QtGui import QColor
 try:  # pragma: no cover - runtime import guard
@@ -609,6 +610,63 @@ class SettingsDialog(QDialog):
             p_layout.addStretch()
             perm_tab.setLayout(p_layout)
             self.permission_tab_index = self.tabs.addTab(perm_tab, "Yetki Yönetimi")
+
+        # Yasal belgeler sekmesi
+        legal_tab = QWidget()
+        legal_layout = QVBoxLayout()
+
+        legal_info = QLabel(
+            "Aşağıdaki yasal belgeleri inceleyebilirsiniz. "
+            "Bu belgeler uygulamayı kullanırken kabul ettiğiniz koşulları içerir."
+        )
+        legal_info.setWordWrap(True)
+        legal_info.setStyleSheet("color: #888; margin-bottom: 10px;")
+        legal_layout.addWidget(legal_info)
+
+        self.legal_tabs = QTabWidget()
+
+        # KVKK Tab
+        kvkk_widget = QWidget()
+        kvkk_layout = QVBoxLayout(kvkk_widget)
+        self.kvkk_browser = QTextBrowser()
+        self.kvkk_browser.setOpenExternalLinks(True)
+        self.kvkk_browser.setStyleSheet("QTextBrowser { padding: 10px; }")
+        kvkk_layout.addWidget(self.kvkk_browser)
+        self.legal_tabs.addTab(kvkk_widget, "KVKK Aydınlatma Metni")
+
+        # EULA Tab
+        eula_widget = QWidget()
+        eula_layout = QVBoxLayout(eula_widget)
+        self.eula_browser = QTextBrowser()
+        self.eula_browser.setOpenExternalLinks(True)
+        self.eula_browser.setStyleSheet("QTextBrowser { padding: 10px; }")
+        eula_layout.addWidget(self.eula_browser)
+        self.legal_tabs.addTab(eula_widget, "Kullanım Şartları (EULA)")
+
+        # Mesafeli Satış Tab
+        mesafeli_widget = QWidget()
+        mesafeli_layout = QVBoxLayout(mesafeli_widget)
+        self.mesafeli_browser = QTextBrowser()
+        self.mesafeli_browser.setOpenExternalLinks(True)
+        self.mesafeli_browser.setStyleSheet("QTextBrowser { padding: 10px; }")
+        mesafeli_layout.addWidget(self.mesafeli_browser)
+        self.legal_tabs.addTab(mesafeli_widget, "Mesafeli Satış Sözleşmesi")
+
+        # Ön Bilgilendirme Tab
+        onbilgi_widget = QWidget()
+        onbilgi_layout = QVBoxLayout(onbilgi_widget)
+        self.onbilgi_browser = QTextBrowser()
+        self.onbilgi_browser.setOpenExternalLinks(True)
+        self.onbilgi_browser.setStyleSheet("QTextBrowser { padding: 10px; }")
+        onbilgi_layout.addWidget(self.onbilgi_browser)
+        self.legal_tabs.addTab(onbilgi_widget, "Ön Bilgilendirme Formu")
+
+        legal_layout.addWidget(self.legal_tabs)
+        legal_tab.setLayout(legal_layout)
+        self.tabs.addTab(legal_tab, "Yasal")
+
+        # Yasal belgeleri yükle
+        self._load_legal_documents()
 
         layout = QVBoxLayout()
         layout.addWidget(self.tabs)
@@ -1506,6 +1564,95 @@ class SettingsDialog(QDialog):
             QMessageBox.warning(self, "Hata", "Admin kullanıcısı silinemez.")
             return
         self.load_users()
+
+    def _load_legal_documents(self) -> None:
+        """Yasal belgeleri dosyalardan yükler ve tarayıcılara gösterir."""
+        import sys
+
+        # Uygulama dizinini bul
+        if getattr(sys, 'frozen', False):
+            # PyInstaller ile paketlenmiş
+            base_path = sys._MEIPASS
+        else:
+            # Normal Python çalıştırma
+            base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+        legal_dir = os.path.join(base_path, "legal")
+
+        # Belge dosyaları ve hedef tarayıcılar
+        documents = [
+            ("KVKK_AYDINLATMA_METNI.md", self.kvkk_browser, "KVKK Aydınlatma Metni"),
+            ("EULA_TR.md", self.eula_browser, "Kullanım Şartları"),
+            ("MESAFELI_SATIS_SOZLESMESI.md", self.mesafeli_browser, "Mesafeli Satış Sözleşmesi"),
+            ("ON_BILGILENDIRME_FORMU.md", self.onbilgi_browser, "Ön Bilgilendirme Formu"),
+        ]
+
+        html_style = """
+        <style>
+            body { font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; padding: 10px; }
+            h1 { color: #333; font-size: 18px; border-bottom: 2px solid #FBBF24; padding-bottom: 8px; }
+            h2 { color: #444; font-size: 16px; margin-top: 20px; }
+            h3 { color: #555; font-size: 14px; margin-top: 16px; }
+            p { margin: 10px 0; }
+            ul, ol { margin: 10px 0 10px 20px; }
+            li { margin: 5px 0; }
+            strong { color: #333; }
+            a { color: #FBBF24; }
+        </style>
+        """
+
+        for filename, browser, title in documents:
+            filepath = os.path.join(legal_dir, filename)
+            try:
+                if os.path.exists(filepath):
+                    with open(filepath, "r", encoding="utf-8") as f:
+                        content = f.read()
+                    # Basit markdown dönüşümü
+                    html_content = self._markdown_to_html(content)
+                    browser.setHtml(f"{html_style}<body>{html_content}</body>")
+                else:
+                    browser.setHtml(
+                        f"{html_style}<body><p style='color: #888;'>"
+                        f"{title} belgesi bulunamadı.</p></body>"
+                    )
+            except Exception as e:
+                browser.setHtml(
+                    f"{html_style}<body><p style='color: red;'>"
+                    f"Belge yüklenirken hata: {e}</p></body>"
+                )
+
+    def _markdown_to_html(self, text: str) -> str:
+        """Basit markdown'ı HTML'e çevirir."""
+        import re
+
+        # Başlıklar
+        text = re.sub(r'^### (.+)$', r'<h3>\1</h3>', text, flags=re.MULTILINE)
+        text = re.sub(r'^## (.+)$', r'<h2>\1</h2>', text, flags=re.MULTILINE)
+        text = re.sub(r'^# (.+)$', r'<h1>\1</h1>', text, flags=re.MULTILINE)
+
+        # Kalın ve italik
+        text = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', text)
+        text = re.sub(r'\*(.+?)\*', r'<em>\1</em>', text)
+
+        # Linkler
+        text = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', r'<a href="\2">\1</a>', text)
+
+        # Liste öğeleri
+        text = re.sub(r'^- (.+)$', r'<li>\1</li>', text, flags=re.MULTILINE)
+        text = re.sub(r'^(\d+)\. (.+)$', r'<li>\2</li>', text, flags=re.MULTILINE)
+
+        # Paragraflar
+        paragraphs = text.split('\n\n')
+        result = []
+        for p in paragraphs:
+            p = p.strip()
+            if p:
+                # Zaten HTML etiketi ile başlamıyorsa paragraf yap
+                if not p.startswith('<'):
+                    p = f'<p>{p}</p>'
+                result.append(p)
+
+        return '\n'.join(result)
 
     def _show_license_info(self) -> None:
         """Lisans bilgileri diyaloğunu gösterir."""

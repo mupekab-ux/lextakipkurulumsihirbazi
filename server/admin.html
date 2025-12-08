@@ -149,6 +149,7 @@
                     <div class="nav-section-title">Genel</div>
                     <div class="nav-item active" data-page="dashboard"><i class="fas fa-home"></i> Dashboard</div>
                     <div class="nav-item" data-page="licenses"><i class="fas fa-key"></i> Lisanslar</div>
+                    <div class="nav-item" data-page="demo"><i class="fas fa-rocket"></i> Demo Kayıtları</div>
                     <div class="nav-item" data-page="messages"><i class="fas fa-envelope"></i> Mesajlar</div>
                 </div>
                 <div class="nav-section">
@@ -186,6 +187,8 @@
                     <div class="stat-card"><div class="icon success"><i class="fas fa-check-circle"></i></div><div class="value" id="statActive">0</div><div class="label">Aktif Lisans</div></div>
                     <div class="stat-card"><div class="icon info"><i class="fas fa-calendar-day"></i></div><div class="value" id="statToday">0</div><div class="label">Bugun Aktivasyon</div></div>
                     <div class="stat-card"><div class="icon warning"><i class="fas fa-code-branch"></i></div><div class="value" id="statVersion">-</div><div class="label">Guncel Surum</div></div>
+                    <div class="stat-card"><div class="icon info"><i class="fas fa-rocket"></i></div><div class="value" id="statDemoTotal">0</div><div class="label">Demo Kayit</div></div>
+                    <div class="stat-card"><div class="icon success"><i class="fas fa-exchange-alt"></i></div><div class="value" id="statDemoConverted">0%</div><div class="label">Donusum Orani</div></div>
                 </div>
                 <div class="card">
                     <div class="card-header"><h3 class="card-title">Son Aktivasyonlar</h3></div>
@@ -209,6 +212,26 @@
             <section class="page-section" id="page-messages">
                 <div class="page-header"><h1>Mesajlar</h1></div>
                 <div class="card"><div class="items-list" id="messagesList"></div></div>
+            </section>
+
+            <!-- Demo Registrations -->
+            <section class="page-section" id="page-demo">
+                <div class="page-header"><h1>Demo Kayıtları</h1></div>
+                <div class="stats-grid" style="margin-bottom: 24px;">
+                    <div class="stat-card"><div class="icon info"><i class="fas fa-users"></i></div><div class="value" id="demoStatTotal">0</div><div class="label">Toplam Kayit</div></div>
+                    <div class="stat-card"><div class="icon primary"><i class="fas fa-calendar-day"></i></div><div class="value" id="demoStatToday">0</div><div class="label">Bugun</div></div>
+                    <div class="stat-card"><div class="icon warning"><i class="fas fa-calendar-week"></i></div><div class="value" id="demoStatWeek">0</div><div class="label">Bu Hafta</div></div>
+                    <div class="stat-card"><div class="icon success"><i class="fas fa-check-double"></i></div><div class="value" id="demoStatConvert">0</div><div class="label">Donusen</div></div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h3 class="card-title">Son Demo Kayitlari</h3></div>
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>E-posta</th><th>IP</th><th>Tarih</th><th>Indirme</th><th>Durum</th><th>Islemler</th></tr></thead>
+                            <tbody id="demoTable"></tbody>
+                        </table>
+                    </div>
+                </div>
             </section>
 
             <!-- Site Settings -->
@@ -503,7 +526,7 @@
         });
 
         function loadPageData(page) {
-            const loaders = { dashboard: loadDashboard, licenses: loadLicenses, messages: loadMessages, features: loadFeatures, screenshots: loadScreenshots, pricing: loadPricing, testimonials: loadTestimonials, faq: loadFaq, announcements: loadAnnouncements, media: loadMedia, releases: loadReleases, files: loadFiles };
+            const loaders = { dashboard: loadDashboard, licenses: loadLicenses, demo: loadDemo, messages: loadMessages, features: loadFeatures, screenshots: loadScreenshots, pricing: loadPricing, testimonials: loadTestimonials, faq: loadFaq, announcements: loadAnnouncements, media: loadMedia, releases: loadReleases, files: loadFiles };
             if (loaders[page]) loaders[page]();
         }
 
@@ -517,6 +540,60 @@
             document.getElementById('statToday').textContent = data.today_activations || 0;
             document.getElementById('statVersion').textContent = data.current_version || '-';
             document.getElementById('recentActivations').innerHTML = (data.recent_activations || []).map(r => `<tr><td><code>${r.license_key}</code></td><td><small>${r.machine_id ? r.machine_id.substring(0, 20) + '...' : '-'}</small></td><td>${r.activated_at ? new Date(r.activated_at).toLocaleDateString('tr-TR') : '-'}</td><td><span class="badge ${r.is_active ? 'badge-success' : 'badge-danger'}">${r.is_active ? 'Aktif' : 'Pasif'}</span></td></tr>`).join('');
+
+            // Demo stats
+            try {
+                const demoStats = await api('/demo/stats');
+                document.getElementById('statDemoTotal').textContent = demoStats.total || 0;
+                document.getElementById('statDemoConverted').textContent = (demoStats.conversion_rate || 0) + '%';
+            } catch (e) { console.log('Demo stats not available'); }
+        }
+
+        async function loadDemo() {
+            // Load demo stats
+            try {
+                const stats = await api('/demo/stats');
+                document.getElementById('demoStatTotal').textContent = stats.total || 0;
+                document.getElementById('demoStatToday').textContent = stats.today || 0;
+                document.getElementById('demoStatWeek').textContent = stats.this_week || 0;
+                document.getElementById('demoStatConvert').textContent = stats.converted || 0;
+            } catch (e) { console.log('Demo stats error:', e); }
+
+            // Load demo registrations
+            try {
+                const registrations = await api('/admin/demo-registrations');
+                document.getElementById('demoTable').innerHTML = (registrations || []).length === 0
+                    ? '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Henuz demo kaydi yok</td></tr>'
+                    : registrations.map(r => `
+                        <tr>
+                            <td><strong>${r.email}</strong></td>
+                            <td><small>${r.ip_address || '-'}</small></td>
+                            <td>${r.registered_at ? new Date(r.registered_at).toLocaleString('tr-TR') : '-'}</td>
+                            <td>${r.download_count || 0}</td>
+                            <td><span class="badge ${r.converted ? 'badge-success' : 'badge-info'}">${r.converted ? 'Donustu' : 'Demo'}</span></td>
+                            <td>
+                                ${!r.converted ? `<button class="btn btn-sm btn-secondary" onclick="convertDemo(${r.id})" title="Lisansa donustur"><i class="fas fa-exchange-alt"></i></button>` : ''}
+                                <button class="btn btn-sm btn-danger" onclick="deleteDemo(${r.id})"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>
+                    `).join('');
+            } catch (e) { console.log('Demo registrations error:', e); }
+        }
+
+        async function convertDemo(id) {
+            if (confirm('Bu demo kaydini lisansa donusmus olarak isaretlemek istiyor musunuz?')) {
+                await api(`/admin/demo-registrations/${id}/convert`, { method: 'POST' });
+                showToast('Demo kaydi guncellendi');
+                loadDemo();
+            }
+        }
+
+        async function deleteDemo(id) {
+            if (confirm('Bu demo kaydini silmek istiyor musunuz?')) {
+                await api(`/admin/demo-registrations/${id}`, { method: 'DELETE' });
+                showToast('Demo kaydi silindi');
+                loadDemo();
+            }
         }
 
         async function loadLicenses() {

@@ -1634,6 +1634,89 @@ async def demo_stats(authorization: str = Header(None)):
         cur.close()
         conn.close()
 
+
+@app.get("/api/admin/demo-registrations")
+async def list_demo_registrations(authorization: str = Header(None)):
+    """List all demo registrations (admin only)"""
+    if not verify_admin_token(authorization):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    try:
+        cur.execute("""
+            SELECT id, email, ip_address, user_agent, registered_at,
+                   download_count, converted_to_license
+            FROM demo_registrations
+            ORDER BY registered_at DESC
+            LIMIT 100
+        """)
+        rows = cur.fetchall()
+
+        registrations = []
+        for row in rows:
+            registrations.append({
+                "id": row[0],
+                "email": row[1],
+                "ip_address": row[2],
+                "user_agent": row[3][:50] + "..." if row[3] and len(row[3]) > 50 else row[3],
+                "registered_at": row[4].isoformat() if row[4] else None,
+                "download_count": row[5],
+                "converted": row[6]
+            })
+
+        return registrations
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.post("/api/admin/demo-registrations/{reg_id}/convert")
+async def mark_demo_converted(reg_id: int, authorization: str = Header(None)):
+    """Mark a demo registration as converted to license"""
+    if not verify_admin_token(authorization):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    try:
+        cur.execute("""
+            UPDATE demo_registrations
+            SET converted_to_license = TRUE
+            WHERE id = %s
+        """, (reg_id,))
+        conn.commit()
+
+        return {"success": True, "message": "Demo kaydı lisansa dönüştürüldü olarak işaretlendi"}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.delete("/api/admin/demo-registrations/{reg_id}")
+async def delete_demo_registration(reg_id: int, authorization: str = Header(None)):
+    """Delete a demo registration"""
+    if not verify_admin_token(authorization):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    try:
+        cur.execute("DELETE FROM demo_registrations WHERE id = %s", (reg_id,))
+        conn.commit()
+
+        return {"success": True, "message": "Demo kaydı silindi"}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
 # ============ STATIC FILES ============
 
 # Mount download directory for static file serving
