@@ -665,6 +665,64 @@
             to { transform: rotate(360deg); }
         }
 
+        /* Demo Badge */
+        .demo-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: linear-gradient(135deg, #FBBF24 0%, #D97706 100%);
+            padding: 0.75rem 1.5rem;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #000;
+            margin-bottom: 1.5rem;
+            animation: pulse-demo 2s infinite;
+        }
+
+        @keyframes pulse-demo {
+            0%, 100% { box-shadow: 0 0 20px rgba(251, 191, 36, 0.4); }
+            50% { box-shadow: 0 0 30px rgba(251, 191, 36, 0.7); }
+        }
+
+        /* Demo Info Box */
+        .demo-info {
+            background: rgba(251, 191, 36, 0.1);
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            border-radius: 16px;
+            padding: 1.5rem 2rem;
+            margin-top: 2rem;
+            text-align: left;
+        }
+
+        .demo-info h4 {
+            color: #FBBF24;
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .demo-info ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .demo-info li {
+            padding: 0.5rem 0;
+            color: var(--gray-light);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .demo-info li i {
+            color: #22C55E;
+            font-size: 0.9rem;
+        }
+
         /* No Release Available */
         .no-release {
             text-align: center;
@@ -782,6 +840,10 @@
             </p>
 
             <div class="download-card" data-aos="fade-up" data-aos-delay="300" id="download-card">
+                <div class="demo-badge" id="demo-badge" style="display: none;">
+                    <i class="fas fa-rocket"></i> 14 GÜN ÜCRETSİZ DEMO
+                </div>
+
                 <div class="version-badge" id="version-badge">
                     <i class="fas fa-code-branch"></i>
                     <span id="version-text">Yukleniyor...</span>
@@ -832,6 +894,17 @@
                         <i class="fas fa-box-open"></i>
                     </div>
                     <p class="no-release-text">Henuz yayinlanmis bir surum bulunmuyor. Lutfen daha sonra tekrar kontrol edin.</p>
+                </div>
+
+                <div class="demo-info" id="demo-info" style="display: none;">
+                    <h4><i class="fas fa-info-circle"></i> Demo Sürümü Hakkında</h4>
+                    <ul>
+                        <li><i class="fas fa-check"></i> 14 gün boyunca tüm özellikler aktif</li>
+                        <li><i class="fas fa-check"></i> Sınırsız dosya oluşturma</li>
+                        <li><i class="fas fa-check"></i> Excel/Word çıktılarında "DEMO" filigranı</li>
+                        <li><i class="fas fa-check"></i> Süre dolduğunda verileriniz korunur</li>
+                        <li><i class="fas fa-check"></i> Lisans alarak tam sürüme geçebilirsiniz</li>
+                    </ul>
                 </div>
             </div>
 
@@ -1150,8 +1223,28 @@
             navLinks.style.display = navLinks.style.display === 'flex' ? 'none' : 'flex';
         }
 
+        // Check for demo mode
+        function checkDemoMode() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const isDemo = urlParams.get('demo') === 'true';
+
+            if (isDemo) {
+                document.getElementById('demo-badge').style.display = 'inline-flex';
+                document.getElementById('demo-info').style.display = 'block';
+                document.querySelector('.download-title').innerHTML = '<span>TakibiEsasi</span> Demo İndir';
+                document.querySelector('.download-description').textContent =
+                    '14 gün boyunca tüm özellikleri ücretsiz kullanın. Kredi kartı gerekmez!';
+
+                const downloadBtn = document.getElementById('download-btn');
+                if (downloadBtn) {
+                    downloadBtn.innerHTML = '<i class="fab fa-windows"></i> Demo Sürümünü İndir';
+                }
+            }
+        }
+
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
+            checkDemoMode();
             loadLatestRelease();
         });
     </script>

@@ -345,6 +345,60 @@
             box-shadow: 0 0 20px rgba(251, 191, 36, 0.2);
         }
 
+        .btn-demo {
+            background: transparent;
+            border: 2px solid var(--gold-light);
+            color: var(--gold-light);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-demo::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 0;
+            height: 100%;
+            background: rgba(251, 191, 36, 0.15);
+            transition: width 0.3s ease;
+            z-index: -1;
+        }
+
+        .btn-demo:hover::before {
+            width: 100%;
+        }
+
+        .btn-demo:hover {
+            box-shadow: 0 0 25px rgba(251, 191, 36, 0.3);
+            transform: translateY(-3px);
+        }
+
+        .nav-demo {
+            color: var(--gold-light) !important;
+            font-weight: 600;
+        }
+
+        .hero-note {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            flex-wrap: wrap;
+            margin-top: 25px;
+            font-size: 14px;
+            color: var(--text-gray);
+        }
+
+        .hero-note span {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .hero-note i {
+            color: #22C55E;
+        }
+
         .mobile-menu-btn {
             display: none;
             background: none;
@@ -1266,6 +1320,7 @@
                 <a href="#features">Özellikler</a>
                 <a href="#screenshots">Ekran Görüntüleri</a>
                 <a href="#pricing">Fiyatlandırma</a>
+                <a href="/demo" class="nav-demo">Demo</a>
                 <a href="#faq">SSS</a>
                 <a href="#contact">İletişim</a>
             </nav>
@@ -1291,10 +1346,11 @@
         <a href="#features" class="mobile-nav-link">Özellikler</a>
         <a href="#screenshots" class="mobile-nav-link">Ekran Görüntüleri</a>
         <a href="#pricing" class="mobile-nav-link">Fiyatlandırma</a>
+        <a href="/demo" class="mobile-nav-link" style="color: #FBBF24;">14 Gün Demo</a>
         <a href="#faq" class="mobile-nav-link">SSS</a>
         <a href="#contact" class="mobile-nav-link">İletişim</a>
         <a href="/download" class="btn btn-primary">
-            <i class="fas fa-download"></i> Hemen İndir
+            <i class="fas fa-download"></i> Satın Al
         </a>
     </div>
 
@@ -1312,13 +1368,18 @@
                 <p>Dava takibi, icra takibi ve vekalet yönetimi - tüm hukuki süreçlerinizi tek masaüstü uygulamasından yönetin. Avukatlar ve hukuk büroları için özel olarak geliştirildi.</p>
 
                 <div class="hero-buttons">
-                    <a href="/download" class="btn btn-primary">
-                        <i class="fas fa-download"></i> Hemen İndirin
+                    <a href="/demo" class="btn btn-demo">
+                        <i class="fas fa-rocket"></i> 14 Gün Ücretsiz Dene
                     </a>
-                    <a href="#features" class="btn btn-outline">
-                        Keşfet <i class="fas fa-arrow-right"></i>
+                    <a href="/download" class="btn btn-primary">
+                        <i class="fas fa-download"></i> Satın Al
                     </a>
                 </div>
+                <p class="hero-note">
+                    <span><i class="fas fa-check"></i> Kredi kartı gerekmez</span>
+                    <span><i class="fas fa-check"></i> Tüm özellikler aktif</span>
+                    <span><i class="fas fa-check"></i> Anında kullanım</span>
+                </p>
             </div>
 
             <div class="hero-image" data-aos="fade-up" data-aos-delay="200">
