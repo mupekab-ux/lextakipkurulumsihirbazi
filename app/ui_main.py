@@ -272,6 +272,15 @@ try:  # pragma: no cover - runtime import guard
 except ModuleNotFoundError:  # pragma: no cover
     from workers import ChangeDetectorWorker
 
+try:  # pragma: no cover - runtime import guard
+    from app.demo_manager import get_demo_manager
+    from app.ui_demo_dialog import DemoStatusWidget
+    from app.db import get_database_path
+except ModuleNotFoundError:  # pragma: no cover
+    from demo_manager import get_demo_manager
+    from ui_demo_dialog import DemoStatusWidget
+    from db import get_database_path
+
 ALERT_CATEGORY_META: dict[str, dict[str, str]] = {
     "hearing": {"icon": "⚖️", "accent": "#ffb300", "label": "Duruşma"},
     "notice": {"icon": "✉️", "accent": "#26c6da", "label": "Tebligat"},
@@ -5414,6 +5423,10 @@ class MainWindow(QMainWindow):
         main_layout = QVBoxLayout()
         central_widget.setLayout(main_layout)
 
+        # Demo banner'ı ekle (eğer demo modundaysa)
+        self.demo_banner = None
+        self._setup_demo_banner(main_layout)
+
         self._dosyalar_header_configured = False
 
         self.dosyalar_tab = DosyalarTab(
@@ -7215,6 +7228,43 @@ class MainWindow(QMainWindow):
         if role == "admin":
             return True
         return bool(self.permissions.get("can_view_finance", False))
+
+    def _setup_demo_banner(self, main_layout: QVBoxLayout) -> None:
+        """Demo modundaysa banner göster."""
+        try:
+            db_path = get_database_path()
+            demo_manager = get_demo_manager(db_path)
+            status = demo_manager.get_demo_status()
+
+            if status["status"] == "demo_active":
+                days_remaining = status.get("days_remaining", 0)
+                self.demo_banner = DemoStatusWidget(days_remaining)
+                self.demo_banner.license_clicked.connect(self._on_demo_license_clicked)
+                main_layout.addWidget(self.demo_banner)
+
+        except Exception as e:
+            print(f"Demo banner hatası: {e}")
+
+    def _on_demo_license_clicked(self) -> None:
+        """Demo banner'daki lisans butonuna tıklandı."""
+        try:
+            from app.ui_activation_dialog import ActivationDialog
+        except ModuleNotFoundError:
+            from ui_activation_dialog import ActivationDialog
+
+        dialog = ActivationDialog(self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            # Lisans aktifleştirildi, banner'ı kaldır
+            if self.demo_banner:
+                self.demo_banner.setParent(None)
+                self.demo_banner.deleteLater()
+                self.demo_banner = None
+                QMessageBox.information(
+                    self,
+                    "Lisans Aktif",
+                    "Lisansınız başarıyla aktifleştirildi!\n"
+                    "Tüm özelliklere sınırsız erişiminiz var."
+                )
 
     def _update_assignment_checkbox_state(self) -> None:
         self.dosyalar_tab.only_own_records = self.only_own_records

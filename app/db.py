@@ -17,6 +17,11 @@ os.makedirs(DOCS_DIR, exist_ok=True)
 DB_PATH = os.path.join(DOCS_DIR, "data.db")
 
 
+def get_database_path() -> str:
+    """Veritabanı dosya yolunu döndür."""
+    return DB_PATH
+
+
 def timed_query(conn, sql, params=()):
     import time
 

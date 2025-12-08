@@ -20,6 +20,21 @@ except ImportError:
     Workbook = None
     Document = None
 
+
+def _is_demo_mode() -> bool:
+    """Demo modunda mı kontrol et."""
+    try:
+        from demo_manager import get_demo_manager
+        from db import get_database_path
+        db_path = get_database_path()
+        demo_manager = get_demo_manager(db_path)
+        return demo_manager.is_demo_mode() and not demo_manager.is_licensed()
+    except Exception:
+        return False
+
+
+DEMO_WATERMARK_TEXT = "DEMO SÜRÜM - takibiesasi.com"
+
 __all__ = [
     "EXPORT_FIELDS",
     "EXPORT_HEADERS",
@@ -253,6 +268,18 @@ def export_dosyalar_to_xlsx(path: str, rows: List[Dict[str, Any]]) -> None:
     ws.page_setup.fitToWidth = 1
     ws.page_setup.fitToHeight = 0
 
+    # Demo modunda watermark ekle
+    if _is_demo_mode():
+        ws.oddFooter.center.text = DEMO_WATERMARK_TEXT
+        ws.oddFooter.center.size = 10
+        # İlk hücreye yorum ekle
+        from openpyxl.comments import Comment
+        comment = Comment(
+            f"Bu belge TakibiEsasi Demo sürümü ile oluşturulmuştur.\n{DEMO_WATERMARK_TEXT}",
+            "TakibiEsasi"
+        )
+        ws.cell(row=1, column=1).comment = comment
+
     wb.save(path)
 
 
@@ -382,6 +409,17 @@ def export_dosyalar_to_docx(path: str, rows: List[Dict[str, Any]]) -> None:
     footer_run.font.size = Pt(9)
     footer_run.font.name = "Calibri"
     footer_run.italic = True
+
+    # Demo modunda watermark ekle
+    if _is_demo_mode():
+        for section in doc.sections:
+            footer_obj = section.footer
+            footer_para = footer_obj.paragraphs[0] if footer_obj.paragraphs else footer_obj.add_paragraph()
+            footer_para.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+            watermark_run = footer_para.add_run(DEMO_WATERMARK_TEXT)
+            watermark_run.font.size = Pt(9)
+            watermark_run.font.color.rgb = RGBColor(128, 128, 128)
+            watermark_run.italic = True
 
     doc.save(path)
 
