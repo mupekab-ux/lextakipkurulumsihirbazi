@@ -20,6 +20,7 @@ from PyQt6.QtCore import (
 from PyQt6.QtGui import (
     QColor,
     QFont,
+    QIcon,
     QPalette,
     QBrush,
     QKeySequence,
@@ -280,6 +281,20 @@ except ModuleNotFoundError:  # pragma: no cover
     from demo_manager import get_demo_manager
     from ui_demo_dialog import DemoStatusWidget
     from db import get_database_path
+
+
+def _resource_path(relative_path: str) -> str:
+    """
+    PyInstaller ile paketlendiğinde dosya yollarını düzgün çözer.
+    """
+    import sys
+    import os
+    if getattr(sys, 'frozen', False):
+        base_path = sys._MEIPASS
+    else:
+        base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base_path, relative_path)
+
 
 ALERT_CATEGORY_META: dict[str, dict[str, str]] = {
     "hearing": {"icon": "⚖️", "accent": "#ffb300", "label": "Duruşma"},
@@ -5369,6 +5384,13 @@ class GorevlerTab(QWidget):
 class MainWindow(QMainWindow):
     def __init__(self, current_user):
         super().__init__()
+
+        # Pencere ikonunu ayarla
+        import os
+        icon_path = _resource_path("assets/icon.png")
+        if os.path.exists(icon_path):
+            self.setWindowIcon(QIcon(icon_path))
+
         self.current_user = current_user
         self.current_user_id = self.current_user.get("id")
         load_status_palette()

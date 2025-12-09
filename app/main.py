@@ -1,7 +1,23 @@
 # -*- coding: utf-8 -*-
+import os
 import sys
 from PyQt6.QtWidgets import QApplication, QInputDialog, QLineEdit, QMessageBox, QDialog
 from PyQt6.QtCore import QSettings
+from PyQt6.QtGui import QIcon
+
+
+def resource_path(relative_path: str) -> str:
+    """
+    PyInstaller ile paketlendiğinde dosya yollarını düzgün çözer.
+    Geliştirme ortamında normal yolu döndürür.
+    """
+    if getattr(sys, 'frozen', False):
+        # PyInstaller ile paketlenmiş
+        base_path = sys._MEIPASS
+    else:
+        # Normal Python çalıştırma - app klasörünün bir üst dizini
+        base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base_path, relative_path)
 
 try:  # pragma: no cover - runtime import guard
     from app.db import initialize_database, auto_backup_on_startup, get_database_path
@@ -164,6 +180,11 @@ def main():
 
     app = QApplication(sys.argv)
     load_theme_from_settings_and_apply()
+
+    # Uygulama ikonunu ayarla
+    icon_path = resource_path("assets/icon.png")
+    if os.path.exists(icon_path):
+        app.setWindowIcon(QIcon(icon_path))
 
     # Sözleşme kontrolü - kabul edilmemişse uygulama açılmaz
     if not check_agreements_on_startup():
