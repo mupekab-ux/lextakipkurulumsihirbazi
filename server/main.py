@@ -1590,8 +1590,7 @@ async def register_demo(req: DemoRegisterRequest, request: Request):
 @app.get("/api/demo/stats")
 async def demo_stats(authorization: str = Header(None)):
     """Get demo registration stats (admin only)"""
-    if not verify_admin_token(authorization):
-        raise HTTPException(status_code=401, detail="Unauthorized")
+    verify_admin_token(authorization)
 
     conn = get_db()
     cur = conn.cursor()
@@ -1638,8 +1637,7 @@ async def demo_stats(authorization: str = Header(None)):
 @app.get("/api/admin/demo-registrations")
 async def list_demo_registrations(authorization: str = Header(None)):
     """List all demo registrations (admin only)"""
-    if not verify_admin_token(authorization):
-        raise HTTPException(status_code=401, detail="Unauthorized")
+    verify_admin_token(authorization)
 
     conn = get_db()
     cur = conn.cursor()
@@ -1676,8 +1674,7 @@ async def list_demo_registrations(authorization: str = Header(None)):
 @app.post("/api/admin/demo-registrations/{reg_id}/convert")
 async def mark_demo_converted(reg_id: int, authorization: str = Header(None)):
     """Mark a demo registration as converted to license"""
-    if not verify_admin_token(authorization):
-        raise HTTPException(status_code=401, detail="Unauthorized")
+    verify_admin_token(authorization)
 
     conn = get_db()
     cur = conn.cursor()
@@ -1700,8 +1697,7 @@ async def mark_demo_converted(reg_id: int, authorization: str = Header(None)):
 @app.delete("/api/admin/demo-registrations/{reg_id}")
 async def delete_demo_registration(reg_id: int, authorization: str = Header(None)):
     """Delete a demo registration"""
-    if not verify_admin_token(authorization):
-        raise HTTPException(status_code=401, detail="Unauthorized")
+    verify_admin_token(authorization)
 
     conn = get_db()
     cur = conn.cursor()
