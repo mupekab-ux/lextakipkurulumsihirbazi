@@ -27,6 +27,8 @@ datas = [
     (os.path.join(ROOT_DIR, 'app', 'themes'), 'themes'),
     # Yasal belgeler
     (os.path.join(ROOT_DIR, 'legal'), 'legal'),
+    # Assets (ikonlar, görseller)
+    (os.path.join(ROOT_DIR, 'assets'), 'assets'),
     # Versiyon dosyası
     (os.path.join(ROOT_DIR, 'version.txt'), '.'),
 ]
