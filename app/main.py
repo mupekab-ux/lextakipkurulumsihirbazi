@@ -86,6 +86,23 @@ def check_demo_on_startup() -> bool:
         bool: Uygulama devam edebilir mi?
     """
     try:
+        # Önce mevcut lisans sistemini kontrol et (license.py)
+        # Bu, demo sisteminden bağımsız olarak çalışan eski lisans sistemi
+        try:
+            from app.license import is_activated, get_license_info
+        except ModuleNotFoundError:
+            from license import is_activated, get_license_info
+
+        if is_activated():
+            # Mevcut lisans geçerli - demo kontrolüne gerek yok
+            # Demo manager'ı da güncelle (senkronizasyon)
+            license_info = get_license_info()
+            if license_info:
+                db_path = get_database_path()
+                demo_manager = get_demo_manager(db_path)
+                demo_manager.activate_license(license_info.get("license_key", ""))
+            return True
+
         db_path = get_database_path()
         demo_manager = get_demo_manager(db_path)
         status = demo_manager.get_demo_status()

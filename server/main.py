@@ -489,20 +489,30 @@ async def check_update(req: UpdateCheckRequest):
     release = get_current_release()
 
     def parse_version(v):
-        return tuple(map(int, v.split('.')))
+        """Parse version string to tuple. Handles formats like '1.0.0', '1.0', '1'"""
+        if not v:
+            return (0, 0, 0)
+        parts = v.strip().split('.')
+        # Pad with zeros if needed
+        while len(parts) < 3:
+            parts.append('0')
+        return tuple(int(p) for p in parts[:3])
 
+    has_update = False
     try:
         current = parse_version(req.current_version)
         latest = parse_version(release['version'])
         has_update = latest > current
-    except:
+    except Exception as e:
+        print(f"Version comparison error: {e}, current={req.current_version}, latest={release['version']}")
         has_update = False
 
     return {
         "has_update": has_update,
+        "current_version": req.current_version,
         "latest_version": release['version'],
-        "download_url": release['download_url'],
-        "release_notes": release['release_notes'],
+        "download_url": release.get('download_url', ''),
+        "release_notes": release.get('release_notes', ''),
         "is_critical": release.get('is_critical', False)
     }
 
