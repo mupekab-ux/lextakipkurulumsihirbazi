@@ -349,10 +349,13 @@ class VerifyEmailRequest(BaseModel):
 # ============ ORDER/PAYMENT MODELS ============
 
 class CreateOrderRequest(BaseModel):
-    product_type: str  # individual, office_server, office_user
+    product_type: str  # individual, office_server, office_user, license (demo)
+    product_name: Optional[str] = None  # Plan name from frontend
     quantity: int = 1
-    billing_name: str
-    billing_email: str
+    unit_price_cents: Optional[int] = None  # Price from frontend for demo
+    payment_method: Optional[str] = None  # card, bank
+    billing_name: Optional[str] = None  # Auto-fill from user if not provided
+    billing_email: Optional[str] = None  # Auto-fill from user if not provided
     billing_phone: Optional[str] = None
     billing_address: Optional[str] = None
     billing_tax_number: Optional[str] = None
@@ -360,12 +363,12 @@ class CreateOrderRequest(BaseModel):
     customer_notes: Optional[str] = None
 
 class MockPaymentRequest(BaseModel):
-    order_id: int
-    card_number: str  # Mock - sadece son 4 hane saklanacak
-    card_holder: str
-    expiry_month: str
-    expiry_year: str
-    cvv: str
+    transaction_id: Optional[str] = None  # Demo mode transaction ID
+    card_number: Optional[str] = None  # Mock - sadece son 4 hane saklanacak
+    card_holder: Optional[str] = None
+    expiry_month: Optional[str] = None
+    expiry_year: Optional[str] = None
+    cvv: Optional[str] = None
     installment_count: int = 1
 
 class OrderStatusUpdateRequest(BaseModel):
@@ -2696,22 +2699,37 @@ async def create_order(req: CreateOrderRequest, authorization: str = Header(None
     """Create a new order"""
     user_id = verify_user_token(authorization)
 
-    # Validate product type
-    if req.product_type not in PRODUCT_PRICES:
-        return {"success": False, "error": "Geçersiz ürün tipi"}
-
-    product = PRODUCT_PRICES[req.product_type]
-
     conn = get_db()
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
     try:
+        # Get user info for auto-fill billing
+        cur.execute("SELECT email, full_name, phone FROM users WHERE id = %s", (user_id,))
+        user = cur.fetchone()
+
+        # Determine product info
+        if req.product_type in PRODUCT_PRICES:
+            # Standard product
+            product = PRODUCT_PRICES[req.product_type]
+            product_name = product["name"]
+            unit_price = product["price_cents"]
+        elif req.product_type == 'license' and req.product_name and req.unit_price_cents:
+            # Custom/demo product from frontend
+            product_name = f"TakibiEsasi {req.product_name} Lisansı"
+            unit_price = req.unit_price_cents
+        else:
+            return {"success": False, "error": "Geçersiz ürün tipi veya eksik bilgi"}
+
         # Calculate prices
-        unit_price = product["price_cents"]
         subtotal = unit_price * req.quantity
         tax_rate = 20  # KDV %20
         tax_cents = int(subtotal * tax_rate / 100)
         total = subtotal + tax_cents
+
+        # Auto-fill billing info from user if not provided
+        billing_name = req.billing_name or (user['full_name'] if user else None)
+        billing_email = req.billing_email or (user['email'] if user else None)
+        billing_phone = req.billing_phone or (user['phone'] if user else None)
 
         # Generate order number
         cur.execute("SELECT generate_order_number()")
@@ -2734,9 +2752,9 @@ async def create_order(req: CreateOrderRequest, authorization: str = Header(None
             )
             RETURNING id, order_number, total_price_cents, created_at
         """, (
-            user_id, order_number, req.product_type, product["name"], req.quantity,
+            user_id, order_number, req.product_type, product_name, req.quantity,
             unit_price, subtotal, tax_rate, tax_cents, total,
-            req.billing_name, req.billing_email, req.billing_phone, req.billing_address,
+            billing_name, billing_email, billing_phone, req.billing_address,
             req.billing_tax_number, req.billing_tax_office, req.customer_notes
         ))
 
@@ -2749,7 +2767,7 @@ async def create_order(req: CreateOrderRequest, authorization: str = Header(None
             "order": {
                 "id": order['id'],
                 "order_number": order['order_number'],
-                "product_name": product["name"],
+                "product_name": product_name,
                 "quantity": req.quantity,
                 "subtotal": subtotal / 100,  # TL cinsinden
                 "tax": tax_cents / 100,
@@ -2876,12 +2894,21 @@ async def mock_payment(order_id: int, req: MockPaymentRequest, authorization: st
         if order['payment_status'] == 'cancelled':
             return {"success": False, "error": "Bu sipariş iptal edilmiş"}
 
-        # Mock payment validation (gerçek sistemde ödeme gateway'i kullanılır)
-        if len(req.card_number) < 16:
-            return {"success": False, "error": "Geçersiz kart numarası"}
-
-        # Generate mock transaction ID
-        transaction_id = f"TXN-{secrets.token_hex(8).upper()}"
+        # Demo mode - accept transaction_id directly or generate one
+        if req.transaction_id:
+            # Demo mode with frontend-provided transaction ID
+            transaction_id = req.transaction_id
+            card_last4 = "DEMO"
+            card_holder = "Demo User"
+        elif req.card_number:
+            # Card payment mode
+            if len(req.card_number.replace(" ", "")) < 16:
+                return {"success": False, "error": "Geçersiz kart numarası"}
+            transaction_id = f"TXN-{secrets.token_hex(8).upper()}"
+            card_last4 = req.card_number.replace(" ", "")[-4:]
+            card_holder = req.card_holder or "Unknown"
+        else:
+            return {"success": False, "error": "Ödeme bilgisi gerekli"}
 
         # Update order with payment info
         cur.execute("""
@@ -2898,8 +2925,8 @@ async def mock_payment(order_id: int, req: MockPaymentRequest, authorization: st
             RETURNING id, order_number
         """, (
             req.installment_count,
-            req.card_number[-4:],
-            req.card_holder,
+            card_last4,
+            card_holder,
             transaction_id,
             order_id
         ))
