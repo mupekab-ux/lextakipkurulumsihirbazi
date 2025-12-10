@@ -204,6 +204,122 @@ def init_db():
         )
     """)
 
+    # Users table
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            email VARCHAR(200) UNIQUE NOT NULL,
+            password_hash VARCHAR(255) NOT NULL,
+            full_name VARCHAR(200),
+            phone VARCHAR(50),
+            company_name VARCHAR(200),
+            tax_number VARCHAR(50),
+            email_verified BOOLEAN DEFAULT FALSE,
+            email_verified_at TIMESTAMP,
+            email_verification_token VARCHAR(255),
+            password_reset_token VARCHAR(255),
+            password_reset_expires TIMESTAMP,
+            role VARCHAR(50) DEFAULT 'user',
+            kvkk_accepted BOOLEAN DEFAULT FALSE,
+            marketing_accepted BOOLEAN DEFAULT FALSE,
+            last_login_at TIMESTAMP,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    # Orders table
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS orders (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER REFERENCES users(id),
+            order_number VARCHAR(50) UNIQUE NOT NULL,
+            product_type VARCHAR(50),
+            product_name VARCHAR(200),
+            quantity INTEGER DEFAULT 1,
+            unit_price_cents INTEGER,
+            subtotal_cents INTEGER,
+            tax_rate INTEGER DEFAULT 20,
+            tax_cents INTEGER,
+            total_price_cents INTEGER,
+            billing_name VARCHAR(200),
+            billing_email VARCHAR(200),
+            billing_phone VARCHAR(50),
+            billing_address TEXT,
+            billing_tax_number VARCHAR(50),
+            billing_tax_office VARCHAR(100),
+            customer_notes TEXT,
+            payment_status VARCHAR(50) DEFAULT 'pending',
+            payment_method VARCHAR(50),
+            installment_count INTEGER DEFAULT 1,
+            mock_card_last4 VARCHAR(10),
+            mock_card_holder VARCHAR(200),
+            mock_transaction_id VARCHAR(100),
+            paid_at TIMESTAMP,
+            cancelled_at TIMESTAMP,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    # Invoices table
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS invoices (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER REFERENCES users(id),
+            order_id INTEGER REFERENCES orders(id),
+            invoice_number VARCHAR(50) UNIQUE NOT NULL,
+            buyer_name VARCHAR(200),
+            buyer_email VARCHAR(200),
+            buyer_address TEXT,
+            buyer_tax_number VARCHAR(50),
+            buyer_tax_office VARCHAR(100),
+            subtotal_cents INTEGER,
+            tax_cents INTEGER,
+            total_cents INTEGER,
+            status VARCHAR(50) DEFAULT 'issued',
+            invoice_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    # Downloads table
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS downloads (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER REFERENCES users(id),
+            version VARCHAR(50),
+            file_name VARCHAR(255),
+            file_size_bytes BIGINT,
+            ip_address VARCHAR(50),
+            user_agent TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    # Add missing columns to licenses table (for existing databases)
+    try:
+        cur.execute("ALTER TABLE licenses ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id)")
+        cur.execute("ALTER TABLE licenses ADD COLUMN IF NOT EXISTS order_id INTEGER REFERENCES orders(id)")
+        cur.execute("ALTER TABLE licenses ADD COLUMN IF NOT EXISTS purchase_price_cents INTEGER")
+        cur.execute("ALTER TABLE licenses ADD COLUMN IF NOT EXISTS purchase_date TIMESTAMP")
+        cur.execute("ALTER TABLE licenses ADD COLUMN IF NOT EXISTS source VARCHAR(50) DEFAULT 'manual'")
+    except:
+        pass  # Columns might already exist
+
+    # Create generate_order_number function
+    cur.execute("""
+        CREATE OR REPLACE FUNCTION generate_order_number()
+        RETURNS VARCHAR AS $$
+        DECLARE
+            order_num VARCHAR;
+        BEGIN
+            order_num := 'ORD-' || TO_CHAR(NOW(), 'YYYYMMDD') || '-' || LPAD(FLOOR(RANDOM() * 10000)::TEXT, 4, '0');
+            RETURN order_num;
+        END;
+        $$ LANGUAGE plpgsql;
+    """)
+
     conn.commit()
     cur.close()
     conn.close()
