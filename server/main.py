@@ -476,8 +476,8 @@ def create_user_token(user_id: int, email: str) -> str:
         algorithm="HS256"
     )
 
-def verify_user_token(authorization: str = Header(None)) -> dict:
-    """Verify user JWT token and return payload"""
+def verify_user_token(authorization: str = Header(None)) -> int:
+    """Verify user JWT token and return user_id"""
     if not authorization or not authorization.startswith('Bearer '):
         raise HTTPException(status_code=401, detail="Giriş yapmanız gerekiyor")
 
@@ -486,7 +486,7 @@ def verify_user_token(authorization: str = Header(None)) -> dict:
         payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
         if payload.get("type") != "user":
             raise HTTPException(status_code=401, detail="Geçersiz token türü")
-        return payload
+        return payload.get("user_id")
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Oturum süresi doldu")
     except:
