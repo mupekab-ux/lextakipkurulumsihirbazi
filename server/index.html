@@ -1553,7 +1553,7 @@
                         <li><i class="fas fa-check"></i> Tüm Özellikler</li>
                         <li><i class="fas fa-check"></i> Öncelikli Destek</li>
                     </ul>
-                    <a href="/kayit" class="btn btn-primary">Ücretsiz Dene</a>
+                    <a href="/satin-al" class="btn btn-primary">Satın Al</a>
                 </div>
 
                 <div class="pricing-card coming-soon" data-aos="fade-up" data-aos-delay="200">
@@ -1920,9 +1920,14 @@
                             const cardClass = isComingSoon ? 'coming-soon' : (plan.is_popular ? 'popular' : '');
                             const badge = isComingSoon ? '<span class="coming-soon-badge">Yakında</span>' : (plan.is_popular ? '<span class="pricing-badge">Önerilen</span>' : '');
                             const priceDisplay = isComingSoon ? '<div class="price" style="font-size: 32px;">Çok Yakında</div>' : `<div class="price">₺${plan.price}<span>/${plan.period || 'ay'}</span></div>`;
-                            const buttonHtml = isComingSoon
-                                ? '<button class="btn btn-outline" disabled style="opacity: 0.6; cursor: not-allowed;">Yakında</button>'
-                                : `<a href="/kayit" class="btn ${plan.is_popular ? 'btn-primary' : 'btn-outline'}">Ücretsiz Dene</a>`;
+                            let buttonHtml;
+                            if (isComingSoon) {
+                                buttonHtml = '<button class="btn btn-outline" disabled style="opacity: 0.6; cursor: not-allowed;">Yakında</button>';
+                            } else if (plan.is_popular) {
+                                buttonHtml = `<a href="/satin-al" class="btn btn-primary">Satın Al</a>`;
+                            } else {
+                                buttonHtml = `<a href="/kayit" class="btn btn-outline">Ücretsiz Dene</a>`;
+                            }
 
                             return `
                                 <div class="pricing-card ${cardClass}" data-aos="fade-up" data-aos-delay="${index * 100}">
