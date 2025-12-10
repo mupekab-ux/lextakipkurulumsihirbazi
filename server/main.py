@@ -297,30 +297,43 @@ def init_db():
         )
     """)
 
+    # Commit base tables first
+    conn.commit()
+
     # Add missing columns to licenses table (for existing databases)
-    try:
-        cur.execute("ALTER TABLE licenses ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id)")
-        cur.execute("ALTER TABLE licenses ADD COLUMN IF NOT EXISTS order_id INTEGER REFERENCES orders(id)")
-        cur.execute("ALTER TABLE licenses ADD COLUMN IF NOT EXISTS purchase_price_cents INTEGER")
-        cur.execute("ALTER TABLE licenses ADD COLUMN IF NOT EXISTS purchase_date TIMESTAMP")
-        cur.execute("ALTER TABLE licenses ADD COLUMN IF NOT EXISTS source VARCHAR(50) DEFAULT 'manual'")
-    except:
-        pass  # Columns might already exist
+    # Each ALTER in its own transaction to avoid blocking on errors
+    alter_statements = [
+        "ALTER TABLE licenses ADD COLUMN IF NOT EXISTS user_id INTEGER",
+        "ALTER TABLE licenses ADD COLUMN IF NOT EXISTS order_id INTEGER",
+        "ALTER TABLE licenses ADD COLUMN IF NOT EXISTS purchase_price_cents INTEGER",
+        "ALTER TABLE licenses ADD COLUMN IF NOT EXISTS purchase_date TIMESTAMP",
+        "ALTER TABLE licenses ADD COLUMN IF NOT EXISTS source VARCHAR(50) DEFAULT 'manual'"
+    ]
+
+    for stmt in alter_statements:
+        try:
+            cur.execute(stmt)
+            conn.commit()
+        except Exception as e:
+            conn.rollback()  # Rollback failed transaction and continue
 
     # Create generate_order_number function
-    cur.execute("""
-        CREATE OR REPLACE FUNCTION generate_order_number()
-        RETURNS VARCHAR AS $$
-        DECLARE
-            order_num VARCHAR;
-        BEGIN
-            order_num := 'ORD-' || TO_CHAR(NOW(), 'YYYYMMDD') || '-' || LPAD(FLOOR(RANDOM() * 10000)::TEXT, 4, '0');
-            RETURN order_num;
-        END;
-        $$ LANGUAGE plpgsql;
-    """)
+    try:
+        cur.execute("""
+            CREATE OR REPLACE FUNCTION generate_order_number()
+            RETURNS VARCHAR AS $$
+            DECLARE
+                order_num VARCHAR;
+            BEGIN
+                order_num := 'ORD-' || TO_CHAR(NOW(), 'YYYYMMDD') || '-' || LPAD(FLOOR(RANDOM() * 10000)::TEXT, 4, '0');
+                RETURN order_num;
+            END;
+            $$ LANGUAGE plpgsql;
+        """)
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
 
-    conn.commit()
     cur.close()
     conn.close()
 
