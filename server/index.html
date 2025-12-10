@@ -1916,15 +1916,22 @@
                     if (plans && plans.length > 0) {
                         document.getElementById('pricing-grid').innerHTML = plans.map((plan, index) => {
                             const features = plan.features ? plan.features.split('\n').filter(f => f.trim()) : [];
+                            const isComingSoon = plan.period === 'Yakında' || plan.price === 0;
+                            const cardClass = isComingSoon ? 'coming-soon' : (plan.is_popular ? 'popular' : '');
+                            const badge = isComingSoon ? '<span class="coming-soon-badge">Yakında</span>' : (plan.is_popular ? '<span class="pricing-badge">Önerilen</span>' : '');
+                            const priceDisplay = isComingSoon ? '<div class="price" style="font-size: 32px;">Çok Yakında</div>' : `<div class="price">₺${plan.price}<span>/${plan.period || 'ay'}</span></div>`;
+                            const buttonHref = isComingSoon ? '#contact' : '/download';
+                            const buttonText = isComingSoon ? 'Bilgi Alın' : 'Başla';
+
                             return `
-                                <div class="pricing-card ${plan.is_popular ? 'popular' : ''}" data-aos="fade-up" data-aos-delay="${index * 100}">
-                                    ${plan.is_popular ? '<span class="pricing-badge">Önerilen</span>' : ''}
+                                <div class="pricing-card ${cardClass}" data-aos="fade-up" data-aos-delay="${index * 100}">
+                                    ${badge}
                                     <h3>${plan.name}</h3>
-                                    <div class="price">₺${plan.price}<span>/${plan.period || 'ay'}</span></div>
+                                    ${priceDisplay}
                                     <ul class="pricing-features">
                                         ${features.map(f => `<li><i class="fas fa-check"></i> ${f}</li>`).join('')}
                                     </ul>
-                                    <a href="/download" class="btn ${plan.is_popular ? 'btn-primary' : 'btn-outline'}">Başla</a>
+                                    <a href="${buttonHref}" class="btn ${plan.is_popular ? 'btn-primary' : 'btn-outline'}">${buttonText}</a>
                                 </div>
                             `;
                         }).join('');
