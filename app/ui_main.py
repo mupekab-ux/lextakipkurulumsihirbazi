@@ -2241,6 +2241,7 @@ class DosyalarTab(QWidget):
     attachments_requested = pyqtSignal()
     vekalet_requested = pyqtSignal()
     settings_requested = pyqtSignal()
+    about_requested = pyqtSignal()
     row_double_clicked = pyqtSignal(QModelIndex)
     filters_changed = pyqtSignal()
     clear_filters_requested = pyqtSignal()
@@ -2458,6 +2459,10 @@ class DosyalarTab(QWidget):
         self.settings_button = QPushButton("Ayarlar")
         self.settings_button.clicked.connect(self.settings_requested.emit)
         button_layout.addWidget(self.settings_button)
+
+        self.about_button = QPushButton("Hakkinda")
+        self.about_button.clicked.connect(self.about_requested.emit)
+        button_layout.addWidget(self.about_button)
 
         self.export_excel_button = QPushButton("Excel'e Aktar")
         self.export_excel_button.clicked.connect(self._on_export_excel_clicked)
@@ -5919,6 +5924,7 @@ class MainWindow(QMainWindow):
         tab.attachments_requested.connect(self.manage_attachments)
         tab.vekalet_requested.connect(self.open_vekalet_dialog)
         tab.settings_requested.connect(self.open_settings)
+        tab.about_requested.connect(self.open_about)
         tab.row_double_clicked.connect(self.edit_row)
         tab.clear_filters_requested.connect(self.clear_all_filters)
         tab.refresh_requested.connect(self._refresh_dosyalar_table)
@@ -7735,5 +7741,14 @@ class MainWindow(QMainWindow):
             if self.finance_user_filter_combo is not None:
                 self.populate_finance_user_filter()
             self.refresh_table()
+
+    def open_about(self):
+        """Hakkinda penceresini acar"""
+        try:
+            from app.ui_about import AboutDialog
+        except ModuleNotFoundError:
+            from ui_about import AboutDialog
+        dialog = AboutDialog(self)
+        dialog.exec()
 
 # END OF PATCH

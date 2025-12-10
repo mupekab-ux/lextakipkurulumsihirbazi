@@ -77,6 +77,11 @@ try:  # pragma: no cover - runtime import guard
 except ModuleNotFoundError:  # pragma: no cover
     from ui_demo_dialog import DemoRegistrationDialog, DemoExpiredDialog
 
+try:  # pragma: no cover - runtime import guard
+    from app.ui_splash import SplashScreen
+except ModuleNotFoundError:  # pragma: no cover
+    from ui_splash import SplashScreen
+
 
 def check_demo_on_startup() -> bool:
     """
@@ -203,7 +208,13 @@ def main():
     if os.path.exists(icon_path):
         app.setWindowIcon(QIcon(icon_path))
 
+    # Splash Screen göster
+    splash = SplashScreen()
+    splash.show()
+    app.processEvents()
+
     # Sözleşme kontrolü - kabul edilmemişse uygulama açılmaz
+    splash.close()  # Splash'i kapat, dialoglar gösterilecek
     if not check_agreements_on_startup():
         return
 
