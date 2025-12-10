@@ -503,6 +503,93 @@
             background: rgba(239, 68, 68, 0.1);
             color: #ef4444;
         }
+
+        /* License Items */
+        .license-item {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        .license-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .license-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .license-key {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            color: #f59e0b;
+            background: rgba(245, 158, 11, 0.1);
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .license-key:hover {
+            background: rgba(245, 158, 11, 0.2);
+        }
+
+        .license-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .license-details {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .license-detail {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .license-detail .label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .license-detail .value {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .license-detail .value.warning {
+            color: #f97316;
+        }
+
+        .license-detail .value.success {
+            color: #22c55e;
+        }
+
+        .no-licenses {
+            text-align: center;
+            padding: 40px 20px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .no-licenses i {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.3;
+        }
+
+        .no-licenses p {
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
     </style>
 </head>
 <body>
@@ -590,6 +677,22 @@
                         <p style="margin-top: 16px; font-size: 13px; color: rgba(255,255,255,0.4);">
                             Windows 10/11 64-bit gereklidir
                         </p>
+                    </div>
+                </div>
+
+                <!-- Licenses Card -->
+                <div class="card" style="margin-bottom: 24px;">
+                    <div class="card-header">
+                        <h3><i class="fas fa-key"></i> Lisanslarım</h3>
+                        <a href="/satin-al" class="btn btn-secondary" style="padding: 8px 16px; font-size: 13px;">
+                            <i class="fas fa-plus"></i>
+                            Yeni Lisans
+                        </a>
+                    </div>
+                    <div class="card-body" id="licensesContainer">
+                        <div class="loading" style="text-align: center; padding: 40px;">
+                            <i class="fas fa-spinner fa-spin" style="font-size: 24px; color: #f59e0b;"></i>
+                        </div>
                     </div>
                 </div>
 
@@ -722,7 +825,7 @@
 
             try {
                 // Paralel istekler
-                const [profileRes, demoRes, downloadsRes, ordersRes] = await Promise.all([
+                const [profileRes, demoRes, downloadsRes, ordersRes, licensesRes] = await Promise.all([
                     fetch(API_BASE + '/api/auth/profile', {
                         headers: { 'Authorization': `Bearer ${token}` }
                     }),
@@ -733,6 +836,9 @@
                         headers: { 'Authorization': `Bearer ${token}` }
                     }),
                     fetch(API_BASE + '/api/orders/my', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    }),
+                    fetch(API_BASE + '/api/licenses/my', {
                         headers: { 'Authorization': `Bearer ${token}` }
                     })
                 ]);
@@ -764,12 +870,80 @@
                     document.getElementById('orderCount').textContent = ordersData.orders?.length || 0;
                 }
 
+                // Lisanslar
+                if (licensesRes.ok) {
+                    const licensesData = await licensesRes.json();
+                    displayLicenses(licensesData.licenses || []);
+                }
+
                 // Aktivite listesini güncelle
                 updateActivityList();
 
             } catch (err) {
                 console.error('Dashboard data load error:', err);
             }
+        }
+
+        // Lisansları göster
+        function displayLicenses(licenses) {
+            const container = document.getElementById('licensesContainer');
+
+            if (!licenses || licenses.length === 0) {
+                container.innerHTML = `
+                    <div class="no-licenses">
+                        <i class="fas fa-key"></i>
+                        <p>Henüz lisansınız bulunmuyor</p>
+                        <a href="/satin-al" class="btn btn-primary">
+                            <i class="fas fa-shopping-cart"></i> Lisans Satın Al
+                        </a>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = licenses.map(license => `
+                <div class="license-item">
+                    <div class="license-header">
+                        <span class="license-key" onclick="copyLicenseKey('${license.license_key}')" title="Kopyalamak için tıklayın">
+                            <i class="fas fa-copy"></i> ${license.license_key_masked}
+                        </span>
+                        <div class="license-status">
+                            <span class="badge ${license.is_active ? 'badge-active' : 'badge-expired'}">
+                                ${license.is_active ? 'Aktif' : 'Devre Dışı'}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="license-details">
+                        <div class="license-detail">
+                            <span class="label">Bilgisayar</span>
+                            <span class="value">${license.machine_name || license.machine_id || 'Henüz aktive edilmedi'}</span>
+                        </div>
+                        <div class="license-detail">
+                            <span class="label">Transfer Hakkı</span>
+                            <span class="value ${license.transfers_remaining === 0 ? 'warning' : 'success'}">
+                                ${license.transfers_remaining}/2 kalan
+                            </span>
+                        </div>
+                        <div class="license-detail">
+                            <span class="label">Aktifleştirilme</span>
+                            <span class="value">${license.activated_at ? formatDate(license.activated_at) : 'Aktive edilmedi'}</span>
+                        </div>
+                        <div class="license-detail">
+                            <span class="label">Son Kontrol</span>
+                            <span class="value">${license.last_check ? formatDate(license.last_check) : '-'}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Lisans anahtarını kopyala
+        function copyLicenseKey(key) {
+            navigator.clipboard.writeText(key).then(() => {
+                alert('Lisans anahtarı kopyalandı!');
+            }).catch(() => {
+                prompt('Lisans anahtarını kopyalayın:', key);
+            });
         }
 
         // Demo durumunu güncelle

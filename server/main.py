@@ -1739,6 +1739,15 @@ async def account_page():
             return f.read()
     return "<h1>Account page not found</h1>"
 
+@app.get("/satin-al", response_class=HTMLResponse)
+async def purchase_page():
+    """Serve purchase/pricing page"""
+    html_path = "/var/www/takibiesasi/satin-al.html"
+    if os.path.exists(html_path):
+        with open(html_path, 'r', encoding='utf-8') as f:
+            return f.read()
+    return "<h1>Purchase page not found</h1>"
+
 # ============ DEMO REGISTRATION API ============
 
 class DemoRegisterRequest(BaseModel):
@@ -2535,6 +2544,60 @@ async def get_user_orders(authorization: str = Header(None)):
             })
 
         return {"success": True, "orders": orders, "total": len(orders)}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.get("/api/licenses/my")
+async def get_user_licenses(authorization: str = Header(None)):
+    """Get logged-in user's licenses"""
+    user_id = verify_user_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        # Get user email first
+        cur.execute("SELECT email FROM users WHERE id = %s", (user_id,))
+        user = cur.fetchone()
+        if not user:
+            return {"success": False, "error": "Kullanıcı bulunamadı"}
+
+        # Get licenses by user email
+        cur.execute("""
+            SELECT id, license_key, customer_name, email, is_active,
+                   machine_id, machine_name, transfer_count, activated_at,
+                   last_check, created_at, expires_at
+            FROM licenses
+            WHERE email = %s OR user_id = %s
+            ORDER BY created_at DESC
+        """, (user['email'], user_id))
+
+        licenses = []
+        for row in cur.fetchall():
+            # Mask license key for security (show only first 4 and last 4 chars)
+            license_key = row['license_key']
+            masked_key = license_key[:4] + '-****-****-' + license_key[-4:] if license_key and len(license_key) > 8 else license_key
+
+            licenses.append({
+                "id": row['id'],
+                "license_key": license_key,
+                "license_key_masked": masked_key,
+                "customer_name": row['customer_name'],
+                "is_active": row['is_active'],
+                "machine_id": row['machine_id'][:20] + '...' if row['machine_id'] and len(row['machine_id']) > 20 else row['machine_id'],
+                "machine_name": row['machine_name'],
+                "transfer_count": row['transfer_count'] or 0,
+                "transfers_remaining": 2 - (row['transfer_count'] or 0),
+                "activated_at": row['activated_at'].isoformat() if row['activated_at'] else None,
+                "last_check": row['last_check'].isoformat() if row['last_check'] else None,
+                "created_at": row['created_at'].isoformat() if row['created_at'] else None,
+                "expires_at": row['expires_at'].isoformat() if row['expires_at'] else None
+            })
+
+        return {"success": True, "licenses": licenses, "total": len(licenses)}
 
     finally:
         cur.close()

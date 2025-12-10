@@ -1073,6 +1073,33 @@
         // API Base URL
         const API_BASE = '';
 
+        // ============ LOGIN CHECK ============
+        // Sayfa yüklendiğinde giriş kontrolü yap
+        (function() {
+            const token = localStorage.getItem('userToken');
+            const userData = localStorage.getItem('userData');
+
+            if (!token || !userData) {
+                // Giriş yapmamış, giriş sayfasına yönlendir
+                window.location.href = '/giris?redirect=/download';
+                return;
+            }
+
+            // Token geçerliliğini kontrol et
+            fetch(API_BASE + '/api/auth/profile', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            }).then(res => {
+                if (!res.ok) {
+                    // Token geçersiz
+                    localStorage.removeItem('userToken');
+                    localStorage.removeItem('userData');
+                    window.location.href = '/giris?redirect=/download';
+                }
+            }).catch(() => {
+                // Hata durumunda yine de devam et
+            });
+        })();
+
         // Initialize AOS
         AOS.init({
             duration: 800,

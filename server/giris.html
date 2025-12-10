@@ -342,8 +342,12 @@
                     successAlert.textContent = 'Giriş başarılı! Yönlendiriliyorsunuz...';
                     successAlert.style.display = 'block';
 
+                    // Redirect parametresi varsa oraya git, yoksa hesabım'a
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const redirectUrl = urlParams.get('redirect') || '/hesabim';
+
                     setTimeout(() => {
-                        window.location.href = '/hesabim';
+                        window.location.href = redirectUrl;
                     }, 1000);
                 } else {
                     errorAlert.textContent = data.error || 'Giriş başarısız';
