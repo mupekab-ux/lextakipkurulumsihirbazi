@@ -2194,8 +2194,7 @@ async def reset_password(req: ResetPasswordRequest):
 @app.get("/api/user/profile")
 async def get_user_profile(authorization: str = Header(None)):
     """Get current user profile"""
-    payload = verify_user_token(authorization)
-    user_id = payload.get("user_id")
+    user_id = verify_user_token(authorization)
 
     conn = get_db()
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
@@ -2236,8 +2235,7 @@ async def get_user_profile(authorization: str = Header(None)):
 @app.put("/api/user/profile")
 async def update_user_profile(req: UserProfileUpdateRequest, authorization: str = Header(None)):
     """Update user profile"""
-    payload = verify_user_token(authorization)
-    user_id = payload.get("user_id")
+    user_id = verify_user_token(authorization)
 
     conn = get_db()
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
@@ -2293,8 +2291,7 @@ async def update_user_profile(req: UserProfileUpdateRequest, authorization: str 
 @app.post("/api/user/change-password")
 async def change_password(req: PasswordChangeRequest, authorization: str = Header(None)):
     """Change user password"""
-    payload = verify_user_token(authorization)
-    user_id = payload.get("user_id")
+    user_id = verify_user_token(authorization)
 
     # Validate new password
     is_valid, error_msg = validate_password(req.new_password)
@@ -2697,8 +2694,7 @@ PRODUCT_PRICES = {
 @app.post("/api/orders/create")
 async def create_order(req: CreateOrderRequest, authorization: str = Header(None)):
     """Create a new order"""
-    payload = verify_user_token(authorization)
-    user_id = payload.get("user_id")
+    user_id = verify_user_token(authorization)
 
     # Validate product type
     if req.product_type not in PRODUCT_PRICES:
@@ -2774,8 +2770,7 @@ async def create_order(req: CreateOrderRequest, authorization: str = Header(None
 @app.get("/api/orders/my-orders")
 async def get_my_orders(authorization: str = Header(None)):
     """Get current user's orders"""
-    payload = verify_user_token(authorization)
-    user_id = payload.get("user_id")
+    user_id = verify_user_token(authorization)
 
     conn = get_db()
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
@@ -2813,8 +2808,7 @@ async def get_my_orders(authorization: str = Header(None)):
 @app.get("/api/orders/{order_id}")
 async def get_order_detail(order_id: int, authorization: str = Header(None)):
     """Get order details"""
-    payload = verify_user_token(authorization)
-    user_id = payload.get("user_id")
+    user_id = verify_user_token(authorization)
 
     conn = get_db()
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
@@ -2860,8 +2854,7 @@ async def get_order_detail(order_id: int, authorization: str = Header(None)):
 @app.post("/api/orders/{order_id}/pay")
 async def mock_payment(order_id: int, req: MockPaymentRequest, authorization: str = Header(None)):
     """Process mock payment for an order"""
-    payload = verify_user_token(authorization)
-    user_id = payload.get("user_id")
+    user_id = verify_user_token(authorization)
 
     conn = get_db()
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
@@ -2954,8 +2947,7 @@ async def mock_payment(order_id: int, req: MockPaymentRequest, authorization: st
 @app.post("/api/orders/{order_id}/cancel")
 async def cancel_order(order_id: int, authorization: str = Header(None)):
     """Cancel a pending order"""
-    payload = verify_user_token(authorization)
-    user_id = payload.get("user_id")
+    user_id = verify_user_token(authorization)
 
     conn = get_db()
     cur = conn.cursor()
@@ -3214,8 +3206,7 @@ async def create_invoice(req: CreateInvoiceRequest, authorization: str = Header(
 @app.get("/api/invoices/my-invoices")
 async def get_my_invoices(authorization: str = Header(None)):
     """Get current user's invoices"""
-    payload = verify_user_token(authorization)
-    user_id = payload.get("user_id")
+    user_id = verify_user_token(authorization)
 
     conn = get_db()
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
@@ -3268,8 +3259,7 @@ async def admin_get_invoices(authorization: str = Header(None)):
 @app.post("/api/downloads/track")
 async def track_download(req: DownloadTrackRequest, request: Request, authorization: str = Header(None)):
     """Track a download"""
-    payload = verify_user_token(authorization)
-    user_id = payload.get("user_id")
+    user_id = verify_user_token(authorization)
 
     conn = get_db()
     cur = conn.cursor()
