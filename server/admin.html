@@ -149,6 +149,7 @@
                     <div class="nav-section-title">Genel</div>
                     <div class="nav-item active" data-page="dashboard"><i class="fas fa-home"></i> Dashboard</div>
                     <div class="nav-item" data-page="licenses"><i class="fas fa-key"></i> Lisanslar</div>
+                    <div class="nav-item" data-page="users"><i class="fas fa-users"></i> Kullanıcılar</div>
                     <div class="nav-item" data-page="demo"><i class="fas fa-rocket"></i> Demo Kayıtları</div>
                     <div class="nav-item" data-page="messages"><i class="fas fa-envelope"></i> Mesajlar</div>
                 </div>
@@ -204,6 +205,26 @@
                 <div class="card">
                     <div class="table-container">
                         <table><thead><tr><th>Lisans Anahtari</th><th>Musteri</th><th>Kullanici</th><th>Makine ID</th><th>Transfer</th><th>Durum</th><th>Islemler</th></tr></thead><tbody id="licensesTable"></tbody></table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Users -->
+            <section class="page-section" id="page-users">
+                <div class="page-header"><h1>Kullanıcılar</h1></div>
+                <div class="stats-grid" style="margin-bottom: 24px;">
+                    <div class="stat-card"><div class="icon info"><i class="fas fa-users"></i></div><div class="value" id="userStatTotal">0</div><div class="label">Toplam Kullanıcı</div></div>
+                    <div class="stat-card"><div class="icon success"><i class="fas fa-user-check"></i></div><div class="value" id="userStatVerified">0</div><div class="label">Doğrulanmış</div></div>
+                    <div class="stat-card"><div class="icon primary"><i class="fas fa-calendar-day"></i></div><div class="value" id="userStatToday">0</div><div class="label">Bugün Kayıt</div></div>
+                    <div class="stat-card"><div class="icon warning"><i class="fas fa-shopping-cart"></i></div><div class="value" id="userStatWithOrders">0</div><div class="label">Sipariş Veren</div></div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h3 class="card-title">Tüm Kullanıcılar</h3></div>
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>ID</th><th>E-posta</th><th>Ad Soyad</th><th>Telefon</th><th>E-posta Doğrulama</th><th>Kayıt Tarihi</th><th>Son Giriş</th><th>İşlemler</th></tr></thead>
+                            <tbody id="usersTable"></tbody>
+                        </table>
                     </div>
                 </div>
             </section>
@@ -526,7 +547,7 @@
         });
 
         function loadPageData(page) {
-            const loaders = { dashboard: loadDashboard, licenses: loadLicenses, demo: loadDemo, messages: loadMessages, features: loadFeatures, screenshots: loadScreenshots, pricing: loadPricing, testimonials: loadTestimonials, faq: loadFaq, announcements: loadAnnouncements, media: loadMedia, releases: loadReleases, files: loadFiles };
+            const loaders = { dashboard: loadDashboard, licenses: loadLicenses, users: loadUsers, demo: loadDemo, messages: loadMessages, features: loadFeatures, screenshots: loadScreenshots, pricing: loadPricing, testimonials: loadTestimonials, faq: loadFaq, announcements: loadAnnouncements, media: loadMedia, releases: loadReleases, files: loadFiles };
             if (loaders[page]) loaders[page]();
         }
 
@@ -547,6 +568,39 @@
                 document.getElementById('statDemoTotal').textContent = demoStats.total || 0;
                 document.getElementById('statDemoConverted').textContent = (demoStats.conversion_rate || 0) + '%';
             } catch (e) { console.log('Demo stats not available'); }
+        }
+
+        async function loadUsers() {
+            try {
+                const data = await api('/admin/users');
+                if (data.success) {
+                    document.getElementById('userStatTotal').textContent = data.stats?.total || data.users?.length || 0;
+                    document.getElementById('userStatVerified').textContent = data.stats?.verified || 0;
+                    document.getElementById('userStatToday').textContent = data.stats?.today || 0;
+                    document.getElementById('userStatWithOrders').textContent = data.stats?.with_orders || 0;
+
+                    document.getElementById('usersTable').innerHTML = (data.users || []).length === 0
+                        ? '<tr><td colspan="8" style="text-align: center; color: var(--text-muted);">Henüz kullanıcı yok</td></tr>'
+                        : data.users.map(u => `
+                            <tr>
+                                <td>${u.id}</td>
+                                <td>${u.email}</td>
+                                <td>${u.full_name || '-'}</td>
+                                <td>${u.phone || '-'}</td>
+                                <td><span class="badge ${u.email_verified ? 'badge-success' : 'badge-warning'}">${u.email_verified ? 'Doğrulandı' : 'Bekliyor'}</span></td>
+                                <td>${u.created_at ? new Date(u.created_at).toLocaleDateString('tr-TR') : '-'}</td>
+                                <td>${u.last_login_at ? new Date(u.last_login_at).toLocaleDateString('tr-TR') : '-'}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-secondary" onclick="viewUserDetails(${u.id})"><i class="fas fa-eye"></i></button>
+                                </td>
+                            </tr>
+                        `).join('');
+                }
+            } catch (e) { console.log('Users load error:', e); }
+        }
+
+        async function viewUserDetails(userId) {
+            showToast('Kullanıcı detayları yakında...', 'info');
         }
 
         async function loadDemo() {

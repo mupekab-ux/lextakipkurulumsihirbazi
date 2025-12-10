@@ -871,6 +871,68 @@ async def admin_licenses(authorization: str = Header(None)):
 
     return {"licenses": licenses}
 
+
+@app.get("/api/admin/users")
+async def admin_list_users(authorization: str = Header(None)):
+    """List all users (admin only)"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        # Get users
+        cur.execute("""
+            SELECT id, email, full_name, phone, company_name,
+                   email_verified, role, created_at, last_login_at
+            FROM users
+            ORDER BY created_at DESC
+            LIMIT 100
+        """)
+
+        users = []
+        for row in cur.fetchall():
+            users.append({
+                "id": row['id'],
+                "email": row['email'],
+                "full_name": row['full_name'],
+                "phone": row['phone'],
+                "company_name": row['company_name'],
+                "email_verified": row['email_verified'],
+                "role": row['role'],
+                "created_at": row['created_at'].isoformat() if row['created_at'] else None,
+                "last_login_at": row['last_login_at'].isoformat() if row['last_login_at'] else None
+            })
+
+        # Get stats
+        cur.execute("SELECT COUNT(*) FROM users")
+        total = cur.fetchone()[0]
+
+        cur.execute("SELECT COUNT(*) FROM users WHERE email_verified = TRUE")
+        verified = cur.fetchone()[0]
+
+        cur.execute("SELECT COUNT(*) FROM users WHERE DATE(created_at) = CURRENT_DATE")
+        today = cur.fetchone()[0]
+
+        cur.execute("SELECT COUNT(DISTINCT user_id) FROM orders WHERE payment_status = 'completed'")
+        with_orders = cur.fetchone()[0]
+
+        return {
+            "success": True,
+            "users": users,
+            "stats": {
+                "total": total,
+                "verified": verified,
+                "today": today,
+                "with_orders": with_orders
+            }
+        }
+
+    finally:
+        cur.close()
+        conn.close()
+
+
 @app.post("/api/admin/license/create")
 async def admin_create_license(req: CreateLicenseRequest, authorization: str = Header(None)):
     """Create a new license"""
