@@ -1978,6 +1978,183 @@ async def demo_stats(authorization: str = Header(None)):
         conn.close()
 
 
+@app.get("/api/demo/status")
+async def get_demo_status(authorization: str = Header(None)):
+    """Get demo status for logged-in user"""
+    user_id = verify_user_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        # Get user email
+        cur.execute("SELECT email FROM users WHERE id = %s", (user_id,))
+        user = cur.fetchone()
+
+        if not user:
+            return {"success": False, "is_demo": False}
+
+        # Check if user has demo registration
+        cur.execute("""
+            SELECT registered_at, converted_to_license
+            FROM demo_registrations
+            WHERE email = %s
+        """, (user['email'],))
+        demo = cur.fetchone()
+
+        if demo:
+            # Calculate demo expiry (14 days from registration)
+            from datetime import timedelta
+            expiry_date = demo['registered_at'] + timedelta(days=14)
+            is_expired = datetime.now() > expiry_date
+            days_left = max(0, (expiry_date - datetime.now()).days)
+
+            return {
+                "success": True,
+                "is_demo": True,
+                "registered_at": demo['registered_at'].isoformat(),
+                "expiry_date": expiry_date.isoformat(),
+                "is_expired": is_expired,
+                "days_left": days_left,
+                "converted_to_license": demo['converted_to_license']
+            }
+        else:
+            return {"success": True, "is_demo": False}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.get("/api/licenses/my")
+async def get_my_licenses(authorization: str = Header(None)):
+    """Get logged-in user's licenses"""
+    user_id = verify_user_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        # Get user email first
+        cur.execute("SELECT email FROM users WHERE id = %s", (user_id,))
+        user = cur.fetchone()
+
+        if not user:
+            return {"success": True, "licenses": []}
+
+        # Get licenses by user_id or email
+        cur.execute("""
+            SELECT id, license_key, machine_id, user_name, is_active,
+                   transfer_count, customer_name, email, created_at,
+                   activated_at, purchase_date, source
+            FROM licenses
+            WHERE user_id = %s OR email = %s
+            ORDER BY created_at DESC
+        """, (user_id, user['email']))
+
+        licenses = []
+        for row in cur.fetchall():
+            # Mask license key for display
+            key = row['license_key']
+            masked_key = key[:8] + "****" + key[-4:] if len(key) > 12 else key
+
+            licenses.append({
+                "id": row['id'],
+                "license_key": key,
+                "masked_key": masked_key,
+                "machine_id": row['machine_id'],
+                "machine_name": row['user_name'],
+                "is_active": row['is_active'],
+                "transfer_count": row['transfer_count'],
+                "transfers_remaining": max(0, 2 - (row['transfer_count'] or 0)),
+                "customer_name": row['customer_name'],
+                "email": row['email'],
+                "created_at": row['created_at'].isoformat() if row['created_at'] else None,
+                "activated_at": row['activated_at'].isoformat() if row['activated_at'] else None,
+                "purchase_date": row['purchase_date'].isoformat() if row['purchase_date'] else None,
+                "source": row['source'] or 'manual'
+            })
+
+        return {"success": True, "licenses": licenses}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.get("/api/downloads/my")
+async def get_my_downloads(authorization: str = Header(None)):
+    """Get logged-in user's download history"""
+    user_id = verify_user_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        cur.execute("""
+            SELECT id, version, file_name, file_size_bytes, created_at
+            FROM downloads
+            WHERE user_id = %s
+            ORDER BY created_at DESC
+            LIMIT 20
+        """, (user_id,))
+
+        downloads = []
+        for row in cur.fetchall():
+            downloads.append({
+                "id": row['id'],
+                "version": row['version'],
+                "file_name": row['file_name'],
+                "file_size": row['file_size_bytes'],
+                "downloaded_at": row['created_at'].isoformat() if row['created_at'] else None
+            })
+
+        return {"success": True, "downloads": downloads}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.get("/api/orders/my")
+async def get_my_orders_simple(authorization: str = Header(None)):
+    """Get logged-in user's orders (simple endpoint)"""
+    user_id = verify_user_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        cur.execute("""
+            SELECT id, order_number, product_type, product_name, quantity,
+                   total_price_cents, payment_status, created_at, paid_at
+            FROM orders
+            WHERE user_id = %s
+            ORDER BY created_at DESC
+            LIMIT 20
+        """, (user_id,))
+
+        orders = []
+        for row in cur.fetchall():
+            orders.append({
+                "id": row['id'],
+                "order_number": row['order_number'],
+                "product_type": row['product_type'],
+                "product_name": row['product_name'],
+                "quantity": row['quantity'],
+                "total": row['total_price_cents'] / 100 if row['total_price_cents'] else 0,
+                "status": row['payment_status'],
+                "created_at": row['created_at'].isoformat() if row['created_at'] else None,
+                "paid_at": row['paid_at'].isoformat() if row['paid_at'] else None
+            })
+
+        return {"success": True, "orders": orders}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
 @app.get("/api/admin/demo-registrations")
 async def list_demo_registrations(authorization: str = Header(None)):
     """List all demo registrations (admin only)"""
