@@ -346,6 +346,56 @@ class ResetPasswordRequest(BaseModel):
 class VerifyEmailRequest(BaseModel):
     token: str
 
+# ============ ORDER/PAYMENT MODELS ============
+
+class CreateOrderRequest(BaseModel):
+    product_type: str  # individual, office_server, office_user
+    quantity: int = 1
+    billing_name: str
+    billing_email: str
+    billing_phone: Optional[str] = None
+    billing_address: Optional[str] = None
+    billing_tax_number: Optional[str] = None
+    billing_tax_office: Optional[str] = None
+    customer_notes: Optional[str] = None
+
+class MockPaymentRequest(BaseModel):
+    order_id: int
+    card_number: str  # Mock - sadece son 4 hane saklanacak
+    card_holder: str
+    expiry_month: str
+    expiry_year: str
+    cvv: str
+    installment_count: int = 1
+
+class OrderStatusUpdateRequest(BaseModel):
+    status: str  # pending, processing, completed, failed, refunded, cancelled
+
+# ============ INVOICE MODELS ============
+
+class CreateInvoiceRequest(BaseModel):
+    order_id: int
+
+# ============ DOWNLOAD TRACKING MODELS ============
+
+class DownloadTrackRequest(BaseModel):
+    version: str
+    file_name: str
+    file_size_bytes: Optional[int] = None
+
+# ============ DEMO HEARTBEAT MODELS ============
+
+class DemoHeartbeatRequest(BaseModel):
+    machine_id: str
+    machine_name: Optional[str] = None
+    os_info: Optional[str] = None
+    usage_minutes: int = 0
+
+class DemoExtendRequest(BaseModel):
+    demo_id: int
+    days: int = 7
+    notes: Optional[str] = None
+
 # ============ HELPERS ============
 
 def generate_license_key():
@@ -2348,6 +2398,770 @@ async def admin_toggle_user(user_id: int, authorization: str = Header(None)):
 
         status = "aktif" if result[0] else "devre dışı"
         return {"success": True, "message": f"Kullanıcı {status} yapıldı", "is_active": result[0]}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+# ============ ORDER/PAYMENT API ============
+
+# Ürün fiyatları (kuruş cinsinden)
+PRODUCT_PRICES = {
+    "individual": {
+        "name": "TakibiEsasi Bireysel Lisans",
+        "price_cents": 599000,  # 5990 TL
+        "period": "Ömür Boyu"
+    },
+    "office_server": {
+        "name": "TakibiEsasi Büro Sunucu Lisansı",
+        "price_cents": 1499000,  # 14990 TL
+        "period": "Ömür Boyu"
+    },
+    "office_user": {
+        "name": "TakibiEsasi Büro Kullanıcı Lisansı",
+        "price_cents": 299000,  # 2990 TL
+        "period": "Ömür Boyu"
+    }
+}
+
+@app.post("/api/orders/create")
+async def create_order(req: CreateOrderRequest, authorization: str = Header(None)):
+    """Create a new order"""
+    payload = verify_user_token(authorization)
+    user_id = payload.get("user_id")
+
+    # Validate product type
+    if req.product_type not in PRODUCT_PRICES:
+        return {"success": False, "error": "Geçersiz ürün tipi"}
+
+    product = PRODUCT_PRICES[req.product_type]
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        # Calculate prices
+        unit_price = product["price_cents"]
+        subtotal = unit_price * req.quantity
+        tax_rate = 20  # KDV %20
+        tax_cents = int(subtotal * tax_rate / 100)
+        total = subtotal + tax_cents
+
+        # Generate order number
+        cur.execute("SELECT generate_order_number()")
+        order_number = cur.fetchone()[0]
+
+        # Create order
+        cur.execute("""
+            INSERT INTO orders (
+                user_id, order_number, product_type, product_name, quantity,
+                unit_price_cents, subtotal_cents, tax_rate, tax_cents, total_price_cents,
+                billing_name, billing_email, billing_phone, billing_address,
+                billing_tax_number, billing_tax_office, customer_notes,
+                payment_status
+            ) VALUES (
+                %s, %s, %s, %s, %s,
+                %s, %s, %s, %s, %s,
+                %s, %s, %s, %s,
+                %s, %s, %s,
+                'pending'
+            )
+            RETURNING id, order_number, total_price_cents, created_at
+        """, (
+            user_id, order_number, req.product_type, product["name"], req.quantity,
+            unit_price, subtotal, tax_rate, tax_cents, total,
+            req.billing_name, req.billing_email, req.billing_phone, req.billing_address,
+            req.billing_tax_number, req.billing_tax_office, req.customer_notes
+        ))
+
+        order = cur.fetchone()
+        conn.commit()
+
+        return {
+            "success": True,
+            "message": "Sipariş oluşturuldu",
+            "order": {
+                "id": order['id'],
+                "order_number": order['order_number'],
+                "product_name": product["name"],
+                "quantity": req.quantity,
+                "subtotal": subtotal / 100,  # TL cinsinden
+                "tax": tax_cents / 100,
+                "total": total / 100,
+                "created_at": order['created_at'].isoformat() if order['created_at'] else None
+            }
+        }
+
+    except Exception as e:
+        conn.rollback()
+        return {"success": False, "error": f"Sipariş oluşturulamadı: {str(e)}"}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.get("/api/orders/my-orders")
+async def get_my_orders(authorization: str = Header(None)):
+    """Get current user's orders"""
+    payload = verify_user_token(authorization)
+    user_id = payload.get("user_id")
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        cur.execute("""
+            SELECT id, order_number, product_type, product_name, quantity,
+                   total_price_cents, payment_status, created_at, paid_at
+            FROM orders
+            WHERE user_id = %s
+            ORDER BY created_at DESC
+        """, (user_id,))
+
+        orders = []
+        for row in cur.fetchall():
+            orders.append({
+                "id": row['id'],
+                "order_number": row['order_number'],
+                "product_type": row['product_type'],
+                "product_name": row['product_name'],
+                "quantity": row['quantity'],
+                "total": row['total_price_cents'] / 100,
+                "status": row['payment_status'],
+                "created_at": row['created_at'].isoformat() if row['created_at'] else None,
+                "paid_at": row['paid_at'].isoformat() if row['paid_at'] else None
+            })
+
+        return {"success": True, "orders": orders}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.get("/api/orders/{order_id}")
+async def get_order_detail(order_id: int, authorization: str = Header(None)):
+    """Get order details"""
+    payload = verify_user_token(authorization)
+    user_id = payload.get("user_id")
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        cur.execute("""
+            SELECT * FROM orders WHERE id = %s AND user_id = %s
+        """, (order_id, user_id))
+
+        order = cur.fetchone()
+
+        if not order:
+            return {"success": False, "error": "Sipariş bulunamadı"}
+
+        return {
+            "success": True,
+            "order": {
+                "id": order['id'],
+                "order_number": order['order_number'],
+                "product_type": order['product_type'],
+                "product_name": order['product_name'],
+                "quantity": order['quantity'],
+                "unit_price": order['unit_price_cents'] / 100,
+                "subtotal": order['subtotal_cents'] / 100,
+                "tax_rate": order['tax_rate'],
+                "tax": order['tax_cents'] / 100,
+                "total": order['total_price_cents'] / 100,
+                "status": order['payment_status'],
+                "billing_name": order['billing_name'],
+                "billing_email": order['billing_email'],
+                "billing_phone": order['billing_phone'],
+                "billing_address": order['billing_address'],
+                "created_at": order['created_at'].isoformat() if order['created_at'] else None,
+                "paid_at": order['paid_at'].isoformat() if order['paid_at'] else None
+            }
+        }
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.post("/api/orders/{order_id}/pay")
+async def mock_payment(order_id: int, req: MockPaymentRequest, authorization: str = Header(None)):
+    """Process mock payment for an order"""
+    payload = verify_user_token(authorization)
+    user_id = payload.get("user_id")
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        # Get order
+        cur.execute("""
+            SELECT * FROM orders WHERE id = %s AND user_id = %s
+        """, (order_id, user_id))
+
+        order = cur.fetchone()
+
+        if not order:
+            return {"success": False, "error": "Sipariş bulunamadı"}
+
+        if order['payment_status'] == 'completed':
+            return {"success": False, "error": "Bu sipariş zaten ödenmiş"}
+
+        if order['payment_status'] == 'cancelled':
+            return {"success": False, "error": "Bu sipariş iptal edilmiş"}
+
+        # Mock payment validation (gerçek sistemde ödeme gateway'i kullanılır)
+        if len(req.card_number) < 16:
+            return {"success": False, "error": "Geçersiz kart numarası"}
+
+        # Generate mock transaction ID
+        transaction_id = f"TXN-{secrets.token_hex(8).upper()}"
+
+        # Update order with payment info
+        cur.execute("""
+            UPDATE orders SET
+                payment_status = 'completed',
+                payment_method = 'credit_card',
+                installment_count = %s,
+                mock_card_last4 = %s,
+                mock_card_holder = %s,
+                mock_transaction_id = %s,
+                paid_at = CURRENT_TIMESTAMP,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = %s
+            RETURNING id, order_number
+        """, (
+            req.installment_count,
+            req.card_number[-4:],
+            req.card_holder,
+            transaction_id,
+            order_id
+        ))
+
+        updated_order = cur.fetchone()
+
+        # Create license for the user
+        license_key = generate_license_key()
+        cur.execute("""
+            INSERT INTO licenses (
+                license_key, customer_name, email, is_active,
+                user_id, order_id, purchase_price_cents, purchase_date, source
+            ) VALUES (
+                %s, %s, %s, TRUE,
+                %s, %s, %s, CURRENT_TIMESTAMP, 'purchase'
+            )
+            RETURNING license_key
+        """, (
+            license_key, order['billing_name'], order['billing_email'],
+            user_id, order_id, order['total_price_cents']
+        ))
+
+        new_license = cur.fetchone()
+        conn.commit()
+
+        # TODO: Send purchase confirmation email
+
+        return {
+            "success": True,
+            "message": "Ödeme başarılı! Lisans anahtarınız oluşturuldu.",
+            "transaction_id": transaction_id,
+            "license_key": new_license['license_key'],
+            "order_number": updated_order['order_number']
+        }
+
+    except Exception as e:
+        conn.rollback()
+        return {"success": False, "error": f"Ödeme işlemi başarısız: {str(e)}"}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.post("/api/orders/{order_id}/cancel")
+async def cancel_order(order_id: int, authorization: str = Header(None)):
+    """Cancel a pending order"""
+    payload = verify_user_token(authorization)
+    user_id = payload.get("user_id")
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    try:
+        cur.execute("""
+            UPDATE orders SET
+                payment_status = 'cancelled',
+                cancelled_at = CURRENT_TIMESTAMP,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = %s AND user_id = %s AND payment_status = 'pending'
+            RETURNING id
+        """, (order_id, user_id))
+
+        result = cur.fetchone()
+
+        if not result:
+            return {"success": False, "error": "Sipariş bulunamadı veya iptal edilemez"}
+
+        conn.commit()
+        return {"success": True, "message": "Sipariş iptal edildi"}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+# ============ ADMIN ORDER MANAGEMENT ============
+
+@app.get("/api/admin/orders")
+async def admin_get_orders(authorization: str = Header(None)):
+    """Get all orders (admin only)"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        cur.execute("""
+            SELECT o.*, u.email as user_email, u.full_name as user_name
+            FROM orders o
+            LEFT JOIN users u ON o.user_id = u.id
+            ORDER BY o.created_at DESC
+        """)
+
+        orders = []
+        for row in cur.fetchall():
+            orders.append({
+                "id": row['id'],
+                "order_number": row['order_number'],
+                "user_email": row['user_email'],
+                "user_name": row['user_name'],
+                "product_name": row['product_name'],
+                "quantity": row['quantity'],
+                "total": row['total_price_cents'] / 100,
+                "status": row['payment_status'],
+                "created_at": row['created_at'].isoformat() if row['created_at'] else None,
+                "paid_at": row['paid_at'].isoformat() if row['paid_at'] else None
+            })
+
+        return {"success": True, "orders": orders, "total": len(orders)}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.get("/api/admin/orders/{order_id}")
+async def admin_get_order_detail(order_id: int, authorization: str = Header(None)):
+    """Get order details (admin only)"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        cur.execute("""
+            SELECT o.*, u.email as user_email, u.full_name as user_name
+            FROM orders o
+            LEFT JOIN users u ON o.user_id = u.id
+            WHERE o.id = %s
+        """, (order_id,))
+
+        order = cur.fetchone()
+
+        if not order:
+            return {"success": False, "error": "Sipariş bulunamadı"}
+
+        return {
+            "success": True,
+            "order": dict(order)
+        }
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.post("/api/admin/orders/{order_id}/status")
+async def admin_update_order_status(order_id: int, req: OrderStatusUpdateRequest, authorization: str = Header(None)):
+    """Update order status (admin only)"""
+    verify_admin_token(authorization)
+
+    valid_statuses = ['pending', 'processing', 'completed', 'failed', 'refunded', 'cancelled']
+    if req.status not in valid_statuses:
+        return {"success": False, "error": "Geçersiz durum"}
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    try:
+        update_fields = ["payment_status = %s", "updated_at = CURRENT_TIMESTAMP"]
+        values = [req.status]
+
+        if req.status == 'completed':
+            update_fields.append("paid_at = CURRENT_TIMESTAMP")
+        elif req.status == 'cancelled':
+            update_fields.append("cancelled_at = CURRENT_TIMESTAMP")
+        elif req.status == 'refunded':
+            update_fields.append("refunded_at = CURRENT_TIMESTAMP")
+
+        values.append(order_id)
+
+        cur.execute(f"""
+            UPDATE orders SET {', '.join(update_fields)}
+            WHERE id = %s
+            RETURNING id
+        """, values)
+
+        result = cur.fetchone()
+
+        if not result:
+            return {"success": False, "error": "Sipariş bulunamadı"}
+
+        conn.commit()
+        return {"success": True, "message": f"Sipariş durumu '{req.status}' olarak güncellendi"}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.get("/api/admin/orders/stats")
+async def admin_order_stats(authorization: str = Header(None)):
+    """Get order statistics (admin only)"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        # Total orders
+        cur.execute("SELECT COUNT(*) as count FROM orders")
+        total_orders = cur.fetchone()['count']
+
+        # Completed orders
+        cur.execute("SELECT COUNT(*) as count FROM orders WHERE payment_status = 'completed'")
+        completed_orders = cur.fetchone()['count']
+
+        # Total revenue
+        cur.execute("SELECT COALESCE(SUM(total_price_cents), 0) as total FROM orders WHERE payment_status = 'completed'")
+        total_revenue = cur.fetchone()['total'] / 100
+
+        # Today's orders
+        cur.execute("SELECT COUNT(*) as count FROM orders WHERE DATE(created_at) = CURRENT_DATE")
+        today_orders = cur.fetchone()['count']
+
+        # Today's revenue
+        cur.execute("""
+            SELECT COALESCE(SUM(total_price_cents), 0) as total
+            FROM orders
+            WHERE DATE(paid_at) = CURRENT_DATE AND payment_status = 'completed'
+        """)
+        today_revenue = cur.fetchone()['total'] / 100
+
+        # Pending orders
+        cur.execute("SELECT COUNT(*) as count FROM orders WHERE payment_status = 'pending'")
+        pending_orders = cur.fetchone()['count']
+
+        return {
+            "success": True,
+            "stats": {
+                "total_orders": total_orders,
+                "completed_orders": completed_orders,
+                "pending_orders": pending_orders,
+                "total_revenue": total_revenue,
+                "today_orders": today_orders,
+                "today_revenue": today_revenue
+            }
+        }
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+# ============ INVOICE API ============
+
+@app.post("/api/invoices/create")
+async def create_invoice(req: CreateInvoiceRequest, authorization: str = Header(None)):
+    """Create invoice for a completed order (admin only)"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        cur.execute("SELECT * FROM orders WHERE id = %s", (req.order_id,))
+        order = cur.fetchone()
+
+        if not order:
+            return {"success": False, "error": "Sipariş bulunamadı"}
+
+        if order['payment_status'] != 'completed':
+            return {"success": False, "error": "Sadece tamamlanmış siparişler için fatura oluşturulabilir"}
+
+        cur.execute("SELECT id FROM invoices WHERE order_id = %s", (req.order_id,))
+        if cur.fetchone():
+            return {"success": False, "error": "Bu sipariş için zaten fatura oluşturulmuş"}
+
+        cur.execute("SELECT generate_invoice_number()")
+        invoice_number = cur.fetchone()[0]
+
+        buyer_type = 'corporate' if order['billing_tax_number'] else 'individual'
+
+        cur.execute("""
+            INSERT INTO invoices (
+                order_id, user_id, invoice_number, invoice_date,
+                buyer_type, buyer_name, buyer_email, buyer_phone,
+                buyer_address, buyer_tax_number, buyer_tax_office,
+                subtotal_cents, tax_rate, tax_cents, total_cents,
+                status, issued_at
+            ) VALUES (
+                %s, %s, %s, CURRENT_DATE, %s, %s, %s, %s, %s, %s, %s,
+                %s, %s, %s, %s, 'issued', CURRENT_TIMESTAMP
+            )
+            RETURNING id, invoice_number
+        """, (
+            order['id'], order['user_id'], invoice_number, buyer_type,
+            order['billing_name'], order['billing_email'], order['billing_phone'],
+            order['billing_address'], order['billing_tax_number'], order['billing_tax_office'],
+            order['subtotal_cents'], order['tax_rate'], order['tax_cents'], order['total_price_cents']
+        ))
+
+        invoice = cur.fetchone()
+        cur.execute("UPDATE orders SET invoice_id = %s WHERE id = %s", (invoice['id'], order['id']))
+        conn.commit()
+
+        return {"success": True, "invoice": {"id": invoice['id'], "invoice_number": invoice['invoice_number']}}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.get("/api/invoices/my-invoices")
+async def get_my_invoices(authorization: str = Header(None)):
+    """Get current user's invoices"""
+    payload = verify_user_token(authorization)
+    user_id = payload.get("user_id")
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        cur.execute("""
+            SELECT i.*, o.order_number, o.product_name FROM invoices i
+            JOIN orders o ON i.order_id = o.id WHERE i.user_id = %s ORDER BY i.created_at DESC
+        """, (user_id,))
+
+        invoices = [{"id": r['id'], "invoice_number": r['invoice_number'], "order_number": r['order_number'],
+                     "product_name": r['product_name'], "total": r['total_cents'] / 100, "status": r['status'],
+                     "invoice_date": r['invoice_date'].isoformat() if r['invoice_date'] else None} for r in cur.fetchall()]
+
+        return {"success": True, "invoices": invoices}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.get("/api/admin/invoices")
+async def admin_get_invoices(authorization: str = Header(None)):
+    """Get all invoices (admin only)"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        cur.execute("""
+            SELECT i.*, o.order_number, u.email as user_email FROM invoices i
+            JOIN orders o ON i.order_id = o.id LEFT JOIN users u ON i.user_id = u.id ORDER BY i.created_at DESC
+        """)
+
+        invoices = [{"id": r['id'], "invoice_number": r['invoice_number'], "order_number": r['order_number'],
+                     "user_email": r['user_email'], "buyer_name": r['buyer_name'], "total": r['total_cents'] / 100,
+                     "status": r['status'], "invoice_date": r['invoice_date'].isoformat() if r['invoice_date'] else None}
+                    for r in cur.fetchall()]
+
+        return {"success": True, "invoices": invoices, "total": len(invoices)}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+# ============ DOWNLOAD TRACKING API ============
+
+@app.post("/api/downloads/track")
+async def track_download(req: DownloadTrackRequest, request: Request, authorization: str = Header(None)):
+    """Track a download"""
+    payload = verify_user_token(authorization)
+    user_id = payload.get("user_id")
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    try:
+        client_ip = request.client.host if request.client else None
+        user_agent = request.headers.get("user-agent", "")
+
+        cur.execute("""
+            INSERT INTO downloads (user_id, version, file_name, file_size_bytes, ip_address, user_agent)
+            VALUES (%s, %s, %s, %s, %s, %s) RETURNING id
+        """, (user_id, req.version, req.file_name, req.file_size_bytes, client_ip, user_agent))
+
+        download_id = cur.fetchone()[0]
+        conn.commit()
+
+        return {"success": True, "download_id": download_id}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.get("/api/admin/downloads/stats")
+async def admin_download_stats(authorization: str = Header(None)):
+    """Get download statistics (admin only)"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        cur.execute("SELECT COUNT(*) as count FROM downloads")
+        total = cur.fetchone()['count']
+
+        cur.execute("SELECT COUNT(*) as count FROM downloads WHERE DATE(downloaded_at) = CURRENT_DATE")
+        today = cur.fetchone()['count']
+
+        cur.execute("SELECT version, COUNT(*) as count FROM downloads GROUP BY version ORDER BY count DESC LIMIT 10")
+        by_version = [{"version": r['version'], "count": r['count']} for r in cur.fetchall()]
+
+        return {"success": True, "stats": {"total_downloads": total, "today_downloads": today, "by_version": by_version}}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+# ============ DEMO HEARTBEAT API ============
+
+@app.post("/api/demo/heartbeat")
+async def demo_heartbeat(req: DemoHeartbeatRequest, request: Request):
+    """Record demo usage heartbeat"""
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        cur.execute("SELECT id, status, demo_end_date FROM demo_sessions WHERE machine_id = %s", (req.machine_id,))
+        session = cur.fetchone()
+
+        if not session:
+            demo_end = datetime.utcnow() + timedelta(days=14)
+            cur.execute("""
+                INSERT INTO demo_sessions (machine_id, machine_name, os_info, demo_start_date, demo_end_date, last_heartbeat, total_usage_minutes)
+                VALUES (%s, %s, %s, CURRENT_TIMESTAMP, %s, CURRENT_TIMESTAMP, %s) RETURNING id, demo_end_date, status
+            """, (req.machine_id, req.machine_name, req.os_info, demo_end, req.usage_minutes))
+            conn.commit()
+            return {"success": True, "status": "active", "days_remaining": 14, "message": "Demo başlatıldı"}
+
+        cur.execute("""
+            UPDATE demo_sessions SET last_heartbeat = CURRENT_TIMESTAMP, total_usage_minutes = total_usage_minutes + %s,
+            launch_count = launch_count + 1, machine_name = COALESCE(%s, machine_name), os_info = COALESCE(%s, os_info)
+            WHERE id = %s
+        """, (req.usage_minutes, req.machine_name, req.os_info, session['id']))
+        conn.commit()
+
+        days_remaining = max(0, (session['demo_end_date'] - datetime.utcnow()).days) if session['demo_end_date'] else 0
+        status = session['status']
+
+        if days_remaining <= 0 and status == 'active':
+            cur.execute("UPDATE demo_sessions SET status = 'expired' WHERE id = %s", (session['id'],))
+            conn.commit()
+            status = 'expired'
+
+        return {"success": True, "status": status, "days_remaining": days_remaining}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.get("/api/demo/status/{machine_id}")
+async def get_demo_status(machine_id: str):
+    """Get demo status for a machine"""
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        cur.execute("SELECT * FROM demo_sessions WHERE machine_id = %s", (machine_id,))
+        session = cur.fetchone()
+
+        if not session:
+            return {"success": True, "status": "no_demo", "can_start": True}
+
+        days_remaining = max(0, (session['demo_end_date'] - datetime.utcnow()).days) if session['demo_end_date'] else 0
+
+        return {"success": True, "status": session['status'], "days_remaining": days_remaining,
+                "total_usage_minutes": session['total_usage_minutes'], "launch_count": session['launch_count']}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.get("/api/admin/demo-sessions")
+async def admin_get_demo_sessions(authorization: str = Header(None)):
+    """Get all demo sessions (admin only)"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        cur.execute("""
+            SELECT ds.*, u.email as user_email FROM demo_sessions ds
+            LEFT JOIN users u ON ds.user_id = u.id ORDER BY ds.created_at DESC
+        """)
+
+        sessions = []
+        for r in cur.fetchall():
+            days_remaining = max(0, (r['demo_end_date'] - datetime.utcnow()).days) if r['demo_end_date'] else 0
+            sessions.append({"id": r['id'], "machine_id": r['machine_id'][:20] + "..." if r['machine_id'] and len(r['machine_id']) > 20 else r['machine_id'],
+                             "machine_name": r['machine_name'], "user_email": r['user_email'], "status": r['status'],
+                             "days_remaining": days_remaining, "total_usage_minutes": r['total_usage_minutes'], "launch_count": r['launch_count']})
+
+        return {"success": True, "sessions": sessions, "total": len(sessions)}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.post("/api/admin/demo-sessions/{demo_id}/extend")
+async def admin_extend_demo(demo_id: int, req: DemoExtendRequest, authorization: str = Header(None)):
+    """Extend a demo session (admin only)"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    try:
+        cur.execute("""
+            UPDATE demo_sessions SET demo_end_date = demo_end_date + INTERVAL '%s days', status = 'extended',
+            extension_count = extension_count + 1, updated_at = CURRENT_TIMESTAMP WHERE id = %s RETURNING id
+        """, (req.days, demo_id))
+
+        if not cur.fetchone():
+            return {"success": False, "error": "Demo oturumu bulunamadı"}
+
+        conn.commit()
+        return {"success": True, "message": f"Demo {req.days} gün uzatıldı"}
 
     finally:
         cur.close()
