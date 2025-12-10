@@ -18,6 +18,9 @@ import hashlib
 import json
 import os
 import jwt
+import bcrypt
+import re
+import uuid
 
 app = FastAPI(title="TakibiEsasi API", version="1.0.0")
 
@@ -308,6 +311,41 @@ class ScreenshotRequest(BaseModel):
 class BulkSettingsRequest(BaseModel):
     settings: dict
 
+# ============ USER AUTH MODELS ============
+
+class UserRegisterRequest(BaseModel):
+    email: str
+    password: str
+    full_name: str
+    phone: Optional[str] = None
+    company_name: Optional[str] = None
+    kvkk_accepted: bool = False
+    marketing_accepted: bool = False
+
+class UserLoginRequest(BaseModel):
+    email: str
+    password: str
+
+class UserProfileUpdateRequest(BaseModel):
+    full_name: Optional[str] = None
+    phone: Optional[str] = None
+    company_name: Optional[str] = None
+    tax_number: Optional[str] = None
+
+class PasswordChangeRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
+class VerifyEmailRequest(BaseModel):
+    token: str
+
 # ============ HELPERS ============
 
 def generate_license_key():
@@ -364,6 +402,64 @@ def save_release(release_data):
     history.insert(0, release_data)
     with open(RELEASES_HISTORY_FILE, 'w') as f:
         json.dump(history, f, indent=2)
+
+# ============ USER AUTH HELPERS ============
+
+def hash_password(password: str) -> str:
+    """Hash password with bcrypt"""
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+def verify_password(password: str, hashed: str) -> bool:
+    """Verify password against hash"""
+    return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
+
+def create_user_token(user_id: int, email: str) -> str:
+    """Create JWT token for user"""
+    return jwt.encode(
+        {
+            "user_id": user_id,
+            "email": email,
+            "type": "user",
+            "exp": datetime.utcnow() + timedelta(days=7)
+        },
+        JWT_SECRET,
+        algorithm="HS256"
+    )
+
+def verify_user_token(authorization: str = Header(None)) -> dict:
+    """Verify user JWT token and return payload"""
+    if not authorization or not authorization.startswith('Bearer '):
+        raise HTTPException(status_code=401, detail="Giriş yapmanız gerekiyor")
+
+    token = authorization.replace('Bearer ', '')
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+        if payload.get("type") != "user":
+            raise HTTPException(status_code=401, detail="Geçersiz token türü")
+        return payload
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Oturum süresi doldu")
+    except:
+        raise HTTPException(status_code=401, detail="Geçersiz token")
+
+def validate_email(email: str) -> bool:
+    """Validate email format"""
+    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    return bool(re.match(pattern, email))
+
+def validate_password(password: str) -> tuple:
+    """Validate password strength"""
+    if len(password) < 8:
+        return False, "Şifre en az 8 karakter olmalı"
+    if not re.search(r'[A-Za-z]', password):
+        return False, "Şifre en az bir harf içermeli"
+    if not re.search(r'[0-9]', password):
+        return False, "Şifre en az bir rakam içermeli"
+    return True, ""
+
+def generate_token() -> str:
+    """Generate random token for email verification/password reset"""
+    return str(uuid.uuid4())
 
 # ============ PUBLIC API ============
 
@@ -1735,6 +1831,523 @@ async def delete_demo_registration(reg_id: int, authorization: str = Header(None
         conn.commit()
 
         return {"success": True, "message": "Demo kaydı silindi"}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+# ============ USER AUTH API ============
+
+@app.post("/api/auth/register")
+async def user_register(req: UserRegisterRequest, request: Request):
+    """Register new user"""
+    # Validate email
+    if not validate_email(req.email):
+        return {"success": False, "error": "Geçersiz e-posta adresi"}
+
+    # Validate password
+    is_valid, error_msg = validate_password(req.password)
+    if not is_valid:
+        return {"success": False, "error": error_msg}
+
+    # Check KVKK acceptance
+    if not req.kvkk_accepted:
+        return {"success": False, "error": "KVKK onayı gereklidir"}
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        # Check if email exists
+        cur.execute("SELECT id FROM users WHERE email = %s", (req.email.lower(),))
+        if cur.fetchone():
+            return {"success": False, "error": "Bu e-posta adresi zaten kayıtlı"}
+
+        # Hash password
+        password_hash = hash_password(req.password)
+
+        # Generate verification token
+        verification_token = generate_token()
+
+        # Get IP address
+        client_ip = request.client.host if request.client else None
+
+        # Insert user
+        cur.execute("""
+            INSERT INTO users (
+                email, password_hash, full_name, phone, company_name,
+                kvkk_accepted, kvkk_accepted_at, kvkk_ip_address,
+                marketing_accepted, marketing_accepted_at,
+                email_verification_token, email_verification_sent_at
+            ) VALUES (
+                %s, %s, %s, %s, %s,
+                TRUE, CURRENT_TIMESTAMP, %s,
+                %s, CASE WHEN %s THEN CURRENT_TIMESTAMP ELSE NULL END,
+                %s, CURRENT_TIMESTAMP
+            )
+            RETURNING id, email, full_name
+        """, (
+            req.email.lower(), password_hash, req.full_name, req.phone, req.company_name,
+            client_ip,
+            req.marketing_accepted, req.marketing_accepted,
+            verification_token
+        ))
+
+        user = cur.fetchone()
+        conn.commit()
+
+        # TODO: Send verification email here
+
+        return {
+            "success": True,
+            "message": "Kayıt başarılı! Lütfen e-posta adresinizi doğrulayın.",
+            "user": {
+                "id": user['id'],
+                "email": user['email'],
+                "full_name": user['full_name']
+            }
+        }
+
+    except Exception as e:
+        conn.rollback()
+        return {"success": False, "error": f"Kayıt sırasında bir hata oluştu: {str(e)}"}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.post("/api/auth/login")
+async def user_login(req: UserLoginRequest, request: Request):
+    """User login"""
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        # Find user
+        cur.execute("""
+            SELECT id, email, password_hash, full_name, is_active, email_verified, role
+            FROM users WHERE email = %s
+        """, (req.email.lower(),))
+
+        user = cur.fetchone()
+
+        if not user:
+            return {"success": False, "error": "E-posta veya şifre hatalı"}
+
+        # Verify password
+        if not verify_password(req.password, user['password_hash']):
+            return {"success": False, "error": "E-posta veya şifre hatalı"}
+
+        # Check if active
+        if not user['is_active']:
+            return {"success": False, "error": "Hesabınız devre dışı bırakılmış"}
+
+        # Get client IP
+        client_ip = request.client.host if request.client else None
+
+        # Update last login
+        cur.execute("""
+            UPDATE users SET last_login_at = CURRENT_TIMESTAMP, last_login_ip = %s
+            WHERE id = %s
+        """, (client_ip, user['id']))
+        conn.commit()
+
+        # Create token
+        token = create_user_token(user['id'], user['email'])
+
+        return {
+            "success": True,
+            "token": token,
+            "user": {
+                "id": user['id'],
+                "email": user['email'],
+                "full_name": user['full_name'],
+                "email_verified": user['email_verified'],
+                "role": user['role']
+            }
+        }
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.post("/api/auth/logout")
+async def user_logout(authorization: str = Header(None)):
+    """User logout - invalidate session"""
+    try:
+        payload = verify_user_token(authorization)
+        # In a more robust implementation, we'd add the token to a blacklist
+        # or delete the session from user_sessions table
+        return {"success": True, "message": "Çıkış yapıldı"}
+    except:
+        return {"success": True, "message": "Çıkış yapıldı"}
+
+
+@app.post("/api/auth/verify-email")
+async def verify_email(req: VerifyEmailRequest):
+    """Verify user email with token"""
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        # Find user with token
+        cur.execute("""
+            SELECT id, email FROM users
+            WHERE email_verification_token = %s AND email_verified = FALSE
+        """, (req.token,))
+
+        user = cur.fetchone()
+
+        if not user:
+            return {"success": False, "error": "Geçersiz veya süresi dolmuş doğrulama bağlantısı"}
+
+        # Mark as verified
+        cur.execute("""
+            UPDATE users SET
+                email_verified = TRUE,
+                email_verified_at = CURRENT_TIMESTAMP,
+                email_verification_token = NULL
+            WHERE id = %s
+        """, (user['id'],))
+        conn.commit()
+
+        return {"success": True, "message": "E-posta adresiniz doğrulandı!"}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.post("/api/auth/forgot-password")
+async def forgot_password(req: ForgotPasswordRequest):
+    """Request password reset"""
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        # Find user
+        cur.execute("SELECT id, email, full_name FROM users WHERE email = %s", (req.email.lower(),))
+        user = cur.fetchone()
+
+        # Always return success to prevent email enumeration
+        if not user:
+            return {"success": True, "message": "Eğer bu e-posta kayıtlıysa, şifre sıfırlama bağlantısı gönderildi."}
+
+        # Generate reset token
+        reset_token = generate_token()
+        expires_at = datetime.utcnow() + timedelta(hours=1)
+
+        # Save token
+        cur.execute("""
+            UPDATE users SET
+                password_reset_token = %s,
+                password_reset_expires_at = %s
+            WHERE id = %s
+        """, (reset_token, expires_at, user['id']))
+        conn.commit()
+
+        # TODO: Send password reset email here
+
+        return {"success": True, "message": "Eğer bu e-posta kayıtlıysa, şifre sıfırlama bağlantısı gönderildi."}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.post("/api/auth/reset-password")
+async def reset_password(req: ResetPasswordRequest):
+    """Reset password with token"""
+    # Validate new password
+    is_valid, error_msg = validate_password(req.new_password)
+    if not is_valid:
+        return {"success": False, "error": error_msg}
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        # Find user with valid token
+        cur.execute("""
+            SELECT id FROM users
+            WHERE password_reset_token = %s
+            AND password_reset_expires_at > CURRENT_TIMESTAMP
+        """, (req.token,))
+
+        user = cur.fetchone()
+
+        if not user:
+            return {"success": False, "error": "Geçersiz veya süresi dolmuş şifre sıfırlama bağlantısı"}
+
+        # Hash new password
+        password_hash = hash_password(req.new_password)
+
+        # Update password and clear token
+        cur.execute("""
+            UPDATE users SET
+                password_hash = %s,
+                password_reset_token = NULL,
+                password_reset_expires_at = NULL,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = %s
+        """, (password_hash, user['id']))
+        conn.commit()
+
+        return {"success": True, "message": "Şifreniz başarıyla değiştirildi!"}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.get("/api/user/profile")
+async def get_user_profile(authorization: str = Header(None)):
+    """Get current user profile"""
+    payload = verify_user_token(authorization)
+    user_id = payload.get("user_id")
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        cur.execute("""
+            SELECT id, email, full_name, phone, company_name, tax_number,
+                   email_verified, role, created_at, last_login_at
+            FROM users WHERE id = %s
+        """, (user_id,))
+
+        user = cur.fetchone()
+
+        if not user:
+            raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
+
+        return {
+            "success": True,
+            "user": {
+                "id": user['id'],
+                "email": user['email'],
+                "full_name": user['full_name'],
+                "phone": user['phone'],
+                "company_name": user['company_name'],
+                "tax_number": user['tax_number'],
+                "email_verified": user['email_verified'],
+                "role": user['role'],
+                "created_at": user['created_at'].isoformat() if user['created_at'] else None,
+                "last_login_at": user['last_login_at'].isoformat() if user['last_login_at'] else None
+            }
+        }
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.put("/api/user/profile")
+async def update_user_profile(req: UserProfileUpdateRequest, authorization: str = Header(None)):
+    """Update user profile"""
+    payload = verify_user_token(authorization)
+    user_id = payload.get("user_id")
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        # Build update query dynamically
+        updates = []
+        values = []
+
+        if req.full_name is not None:
+            updates.append("full_name = %s")
+            values.append(req.full_name)
+        if req.phone is not None:
+            updates.append("phone = %s")
+            values.append(req.phone)
+        if req.company_name is not None:
+            updates.append("company_name = %s")
+            values.append(req.company_name)
+        if req.tax_number is not None:
+            updates.append("tax_number = %s")
+            values.append(req.tax_number)
+
+        if not updates:
+            return {"success": False, "error": "Güncellenecek alan belirtilmedi"}
+
+        updates.append("updated_at = CURRENT_TIMESTAMP")
+        values.append(user_id)
+
+        query = f"UPDATE users SET {', '.join(updates)} WHERE id = %s RETURNING id, email, full_name, phone, company_name, tax_number"
+
+        cur.execute(query, values)
+        user = cur.fetchone()
+        conn.commit()
+
+        return {
+            "success": True,
+            "message": "Profil güncellendi",
+            "user": {
+                "id": user['id'],
+                "email": user['email'],
+                "full_name": user['full_name'],
+                "phone": user['phone'],
+                "company_name": user['company_name'],
+                "tax_number": user['tax_number']
+            }
+        }
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.post("/api/user/change-password")
+async def change_password(req: PasswordChangeRequest, authorization: str = Header(None)):
+    """Change user password"""
+    payload = verify_user_token(authorization)
+    user_id = payload.get("user_id")
+
+    # Validate new password
+    is_valid, error_msg = validate_password(req.new_password)
+    if not is_valid:
+        return {"success": False, "error": error_msg}
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        # Get current password hash
+        cur.execute("SELECT password_hash FROM users WHERE id = %s", (user_id,))
+        user = cur.fetchone()
+
+        if not user:
+            return {"success": False, "error": "Kullanıcı bulunamadı"}
+
+        # Verify current password
+        if not verify_password(req.current_password, user['password_hash']):
+            return {"success": False, "error": "Mevcut şifre hatalı"}
+
+        # Hash new password
+        new_hash = hash_password(req.new_password)
+
+        # Update password
+        cur.execute("""
+            UPDATE users SET password_hash = %s, updated_at = CURRENT_TIMESTAMP
+            WHERE id = %s
+        """, (new_hash, user_id))
+        conn.commit()
+
+        return {"success": True, "message": "Şifreniz başarıyla değiştirildi"}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.post("/api/auth/resend-verification")
+async def resend_verification(req: ForgotPasswordRequest):
+    """Resend email verification"""
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        # Find user
+        cur.execute("""
+            SELECT id, email, email_verified FROM users WHERE email = %s
+        """, (req.email.lower(),))
+
+        user = cur.fetchone()
+
+        if not user:
+            return {"success": True, "message": "Eğer bu e-posta kayıtlıysa, doğrulama bağlantısı gönderildi."}
+
+        if user['email_verified']:
+            return {"success": False, "error": "E-posta adresi zaten doğrulanmış"}
+
+        # Generate new token
+        verification_token = generate_token()
+
+        cur.execute("""
+            UPDATE users SET
+                email_verification_token = %s,
+                email_verification_sent_at = CURRENT_TIMESTAMP
+            WHERE id = %s
+        """, (verification_token, user['id']))
+        conn.commit()
+
+        # TODO: Send verification email here
+
+        return {"success": True, "message": "Doğrulama e-postası gönderildi"}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+# ============ ADMIN USER MANAGEMENT ============
+
+@app.get("/api/admin/users")
+async def admin_get_users(authorization: str = Header(None)):
+    """Get all users (admin only)"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        cur.execute("""
+            SELECT id, email, full_name, phone, company_name,
+                   email_verified, is_active, role, created_at, last_login_at
+            FROM users
+            ORDER BY created_at DESC
+        """)
+
+        users = []
+        for row in cur.fetchall():
+            users.append({
+                "id": row['id'],
+                "email": row['email'],
+                "full_name": row['full_name'],
+                "phone": row['phone'],
+                "company_name": row['company_name'],
+                "email_verified": row['email_verified'],
+                "is_active": row['is_active'],
+                "role": row['role'],
+                "created_at": row['created_at'].isoformat() if row['created_at'] else None,
+                "last_login_at": row['last_login_at'].isoformat() if row['last_login_at'] else None
+            })
+
+        return {"success": True, "users": users, "total": len(users)}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.post("/api/admin/users/{user_id}/toggle")
+async def admin_toggle_user(user_id: int, authorization: str = Header(None)):
+    """Toggle user active status (admin only)"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    try:
+        cur.execute("""
+            UPDATE users SET is_active = NOT is_active, updated_at = CURRENT_TIMESTAMP
+            WHERE id = %s
+            RETURNING is_active
+        """, (user_id,))
+
+        result = cur.fetchone()
+        if not result:
+            return {"success": False, "error": "Kullanıcı bulunamadı"}
+
+        conn.commit()
+
+        status = "aktif" if result[0] else "devre dışı"
+        return {"success": True, "message": f"Kullanıcı {status} yapıldı", "is_active": result[0]}
 
     finally:
         cur.close()
