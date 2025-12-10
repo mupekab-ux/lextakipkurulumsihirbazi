@@ -1360,7 +1360,7 @@
             </nav>
 
             <div class="header-buttons">
-                <a href="/admin" class="btn btn-ghost">Giriş</a>
+                <a href="/giris" class="btn btn-ghost">Giriş</a>
                 <a href="/download" class="btn btn-primary">
                     <i class="fas fa-download"></i> İndir
                 </a>
@@ -1920,8 +1920,9 @@
                             const cardClass = isComingSoon ? 'coming-soon' : (plan.is_popular ? 'popular' : '');
                             const badge = isComingSoon ? '<span class="coming-soon-badge">Yakında</span>' : (plan.is_popular ? '<span class="pricing-badge">Önerilen</span>' : '');
                             const priceDisplay = isComingSoon ? '<div class="price" style="font-size: 32px;">Çok Yakında</div>' : `<div class="price">₺${plan.price}<span>/${plan.period || 'ay'}</span></div>`;
-                            const buttonHref = isComingSoon ? '#contact' : '/download';
-                            const buttonText = isComingSoon ? 'Bilgi Alın' : 'Başla';
+                            const buttonHtml = isComingSoon
+                                ? '<button class="btn btn-outline" disabled style="opacity: 0.6; cursor: not-allowed;">Yakında</button>'
+                                : `<a href="/download" class="btn ${plan.is_popular ? 'btn-primary' : 'btn-outline'}">Başla</a>`;
 
                             return `
                                 <div class="pricing-card ${cardClass}" data-aos="fade-up" data-aos-delay="${index * 100}">
@@ -1931,7 +1932,7 @@
                                     <ul class="pricing-features">
                                         ${features.map(f => `<li><i class="fas fa-check"></i> ${f}</li>`).join('')}
                                     </ul>
-                                    <a href="${buttonHref}" class="btn ${plan.is_popular ? 'btn-primary' : 'btn-outline'}">${buttonText}</a>
+                                    ${buttonHtml}
                                 </div>
                             `;
                         }).join('');

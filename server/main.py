@@ -1710,6 +1710,35 @@ async def changelog_page():
             return f.read()
     return "<h1>Changelog page not found</h1>"
 
+# ============ USER AUTH PAGES ============
+
+@app.get("/giris", response_class=HTMLResponse)
+async def login_page():
+    """Serve user login page"""
+    html_path = "/var/www/takibiesasi/giris.html"
+    if os.path.exists(html_path):
+        with open(html_path, 'r', encoding='utf-8') as f:
+            return f.read()
+    return "<h1>Login page not found</h1>"
+
+@app.get("/kayit", response_class=HTMLResponse)
+async def register_page():
+    """Serve user registration page"""
+    html_path = "/var/www/takibiesasi/kayit.html"
+    if os.path.exists(html_path):
+        with open(html_path, 'r', encoding='utf-8') as f:
+            return f.read()
+    return "<h1>Registration page not found</h1>"
+
+@app.get("/hesabim", response_class=HTMLResponse)
+async def account_page():
+    """Serve user account/dashboard page"""
+    html_path = "/var/www/takibiesasi/hesabim.html"
+    if os.path.exists(html_path):
+        with open(html_path, 'r', encoding='utf-8') as f:
+            return f.read()
+    return "<h1>Account page not found</h1>"
+
 # ============ DEMO REGISTRATION API ============
 
 class DemoRegisterRequest(BaseModel):

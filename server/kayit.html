@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kayıt Ol - TakibiEsasi</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0a0a0f 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .register-container {
+            width: 100%;
+            max-width: 480px;
+        }
+
+        .register-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .register-header a {
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .register-header .logo {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .register-header .logo i {
+            color: #0a0a0f;
+            font-size: 24px;
+        }
+
+        .register-header h1 {
+            color: #fff;
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .register-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 40px;
+            backdrop-filter: blur(10px);
+        }
+
+        .register-card h2 {
+            color: #fff;
+            font-size: 22px;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        .register-card > p {
+            color: rgba(255, 255, 255, 0.6);
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 16px;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .form-group label .required {
+            color: #ef4444;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 14px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: #fff;
+            font-size: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #f59e0b;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .form-group input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .form-group small {
+            display: block;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 12px;
+            margin-top: 6px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .checkbox-group input {
+            width: 18px;
+            height: 18px;
+            accent-color: #f59e0b;
+            margin-top: 2px;
+            flex-shrink: 0;
+        }
+
+        .checkbox-group label {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 13px;
+            line-height: 1.5;
+            cursor: pointer;
+        }
+
+        .checkbox-group label a {
+            color: #f59e0b;
+            text-decoration: none;
+        }
+
+        .checkbox-group label a:hover {
+            color: #fbbf24;
+            text-decoration: underline;
+        }
+
+        .btn-register {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            border: none;
+            border-radius: 10px;
+            color: #0a0a0f;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 24px;
+        }
+
+        .btn-register:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(245, 158, 11, 0.3);
+        }
+
+        .btn-register:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 24px 0;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 13px;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .divider span {
+            padding: 0 16px;
+        }
+
+        .login-link {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+        }
+
+        .login-link a {
+            color: #f59e0b;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .login-link a:hover {
+            color: #fbbf24;
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .alert-error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #ef4444;
+        }
+
+        .alert-success {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: #22c55e;
+        }
+
+        .back-home {
+            text-align: center;
+            margin-top: 24px;
+        }
+
+        .back-home a {
+            color: rgba(255, 255, 255, 0.5);
+            text-decoration: none;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: color 0.3s;
+        }
+
+        .back-home a:hover {
+            color: #fff;
+        }
+
+        .password-strength {
+            margin-top: 8px;
+        }
+
+        .password-strength .bar {
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .password-strength .bar-fill {
+            height: 100%;
+            width: 0;
+            transition: all 0.3s ease;
+        }
+
+        .password-strength .text {
+            font-size: 12px;
+            margin-top: 4px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        @media (max-width: 480px) {
+            .form-row {
+                flex-direction: column;
+                gap: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="register-container">
+        <div class="register-header">
+            <a href="/">
+                <div class="logo">
+                    <i class="fas fa-balance-scale"></i>
+                </div>
+                <h1>TakibiEsasi</h1>
+            </a>
+        </div>
+
+        <div class="register-card">
+            <h2>Hesap Oluştur</h2>
+            <p>Hemen ücretsiz kayıt olun ve 14 gün deneme başlatın</p>
+
+            <div class="alert alert-error" id="errorAlert"></div>
+            <div class="alert alert-success" id="successAlert"></div>
+
+            <form id="registerForm">
+                <div class="form-group">
+                    <label for="fullName">Ad Soyad <span class="required">*</span></label>
+                    <input type="text" id="fullName" name="fullName" placeholder="Adınız Soyadınız" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">E-posta Adresi <span class="required">*</span></label>
+                    <input type="email" id="email" name="email" placeholder="ornek@email.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="phone">Telefon Numarası</label>
+                    <input type="tel" id="phone" name="phone" placeholder="05XX XXX XX XX">
+                </div>
+
+                <div class="form-group">
+                    <label for="companyName">Firma/Büro Adı</label>
+                    <input type="text" id="companyName" name="companyName" placeholder="Firma veya büro adınız (opsiyonel)">
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Şifre <span class="required">*</span></label>
+                    <input type="password" id="password" name="password" placeholder="En az 8 karakter" required minlength="8">
+                    <div class="password-strength" id="passwordStrength">
+                        <div class="bar"><div class="bar-fill" id="strengthBar"></div></div>
+                        <div class="text" id="strengthText"></div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="passwordConfirm">Şifre Tekrar <span class="required">*</span></label>
+                    <input type="password" id="passwordConfirm" name="passwordConfirm" placeholder="Şifrenizi tekrar girin" required>
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="kvkk" name="kvkk" required>
+                    <label for="kvkk">
+                        <a href="/kvkk" target="_blank">KVKK Aydınlatma Metni</a>'ni okudum ve kabul ediyorum. <span class="required">*</span>
+                    </label>
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="terms" name="terms" required>
+                    <label for="terms">
+                        <a href="/kullanim-kosullari" target="_blank">Kullanım Koşulları</a>'nı okudum ve kabul ediyorum. <span class="required">*</span>
+                    </label>
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="marketing" name="marketing">
+                    <label for="marketing">
+                        Kampanya, indirim ve yeniliklerden e-posta ile haberdar olmak istiyorum.
+                    </label>
+                </div>
+
+                <button type="submit" class="btn-register" id="registerBtn">
+                    <i class="fas fa-user-plus"></i>
+                    Kayıt Ol
+                </button>
+            </form>
+
+            <div class="divider"><span>veya</span></div>
+
+            <div class="login-link">
+                Zaten hesabınız var mı? <a href="/giris">Giriş Yapın</a>
+            </div>
+        </div>
+
+        <div class="back-home">
+            <a href="/"><i class="fas fa-arrow-left"></i> Ana Sayfaya Dön</a>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '';
+
+        // Şifre güç kontrolü
+        document.getElementById('password').addEventListener('input', (e) => {
+            const password = e.target.value;
+            const strengthBar = document.getElementById('strengthBar');
+            const strengthText = document.getElementById('strengthText');
+
+            let strength = 0;
+            let text = '';
+            let color = '';
+
+            if (password.length >= 8) strength++;
+            if (password.length >= 12) strength++;
+            if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
+            if (/[0-9]/.test(password)) strength++;
+            if (/[^a-zA-Z0-9]/.test(password)) strength++;
+
+            switch (strength) {
+                case 0:
+                case 1:
+                    text = 'Çok Zayıf';
+                    color = '#ef4444';
+                    break;
+                case 2:
+                    text = 'Zayıf';
+                    color = '#f97316';
+                    break;
+                case 3:
+                    text = 'Orta';
+                    color = '#eab308';
+                    break;
+                case 4:
+                    text = 'Güçlü';
+                    color = '#22c55e';
+                    break;
+                case 5:
+                    text = 'Çok Güçlü';
+                    color = '#10b981';
+                    break;
+            }
+
+            strengthBar.style.width = (strength * 20) + '%';
+            strengthBar.style.background = color;
+            strengthText.textContent = password.length > 0 ? text : '';
+            strengthText.style.color = color;
+        });
+
+        // Form gönderimi
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const btn = document.getElementById('registerBtn');
+            const errorAlert = document.getElementById('errorAlert');
+            const successAlert = document.getElementById('successAlert');
+
+            const password = document.getElementById('password').value;
+            const passwordConfirm = document.getElementById('passwordConfirm').value;
+
+            // Şifre eşleşme kontrolü
+            if (password !== passwordConfirm) {
+                errorAlert.textContent = 'Şifreler eşleşmiyor!';
+                errorAlert.style.display = 'block';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Kayıt yapılıyor...';
+            errorAlert.style.display = 'none';
+            successAlert.style.display = 'none';
+
+            try {
+                const response = await fetch(API_BASE + '/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: document.getElementById('email').value,
+                        password: password,
+                        full_name: document.getElementById('fullName').value,
+                        phone: document.getElementById('phone').value || null,
+                        company_name: document.getElementById('companyName').value || null,
+                        kvkk_accepted: document.getElementById('kvkk').checked,
+                        marketing_accepted: document.getElementById('marketing').checked
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    successAlert.innerHTML = `
+                        <strong>Kayıt başarılı!</strong><br>
+                        E-posta adresinize doğrulama linki gönderildi. Lütfen e-postanızı kontrol edin.
+                    `;
+                    successAlert.style.display = 'block';
+                    document.getElementById('registerForm').reset();
+
+                    // 3 saniye sonra giriş sayfasına yönlendir
+                    setTimeout(() => {
+                        window.location.href = '/giris';
+                    }, 3000);
+                } else {
+                    errorAlert.textContent = data.error || 'Kayıt başarısız';
+                    errorAlert.style.display = 'block';
+                }
+            } catch (err) {
+                errorAlert.textContent = 'Bağlantı hatası. Lütfen tekrar deneyin.';
+                errorAlert.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-user-plus"></i> Kayıt Ol';
+            }
+        });
+    </script>
+</body>
+</html>
