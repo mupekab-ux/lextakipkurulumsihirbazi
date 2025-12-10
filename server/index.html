@@ -10,6 +10,17 @@
     <meta property="og:type" content="website">
     <title>TakibiEsasi - Hukuki Takip Yazılımı</title>
 
+    <!-- Google Analytics - ID güncellenecek -->
+    <!--
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-XXXXXXXXXX');
+    </script>
+    -->
+
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="apple-touch-icon" href="/favicon.svg">
@@ -803,6 +814,29 @@
             width: 100%;
         }
 
+        .coming-soon-badge {
+            position: absolute;
+            top: -14px;
+            right: 20px;
+            background: linear-gradient(135deg, #FBBF24, #D97706);
+            color: #0A0A0F;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .pricing-card.coming-soon {
+            opacity: 0.85;
+        }
+
+        .pricing-card.coming-soon .btn {
+            pointer-events: none;
+            opacity: 0.6;
+        }
+
         /* ==================== TESTIMONIALS ==================== */
         .testimonials {
             padding: 120px 0;
@@ -1522,16 +1556,17 @@
                     <a href="/download" class="btn btn-primary">Başla</a>
                 </div>
 
-                <div class="pricing-card" data-aos="fade-up" data-aos-delay="200">
-                    <h3>Kurumsal</h3>
-                    <div class="price">₺399<span>/ay</span></div>
+                <div class="pricing-card coming-soon" data-aos="fade-up" data-aos-delay="200">
+                    <span class="coming-soon-badge">Yakında</span>
+                    <h3>Büro</h3>
+                    <div class="price" style="font-size: 32px;">Çok Yakında</div>
                     <ul class="pricing-features">
-                        <li><i class="fas fa-check"></i> Sınırsız Dava</li>
-                        <li><i class="fas fa-check"></i> Sınırsız Kullanıcı</li>
-                        <li><i class="fas fa-check"></i> Tüm Özellikler</li>
-                        <li><i class="fas fa-check"></i> 7/24 Destek</li>
+                        <li><i class="fas fa-check"></i> Çoklu Avukat Desteği</li>
+                        <li><i class="fas fa-check"></i> Merkezi Yönetim Paneli</li>
+                        <li><i class="fas fa-check"></i> Gelişmiş Raporlama</li>
+                        <li><i class="fas fa-check"></i> Özel Destek Hattı</li>
                     </ul>
-                    <a href="#contact" class="btn btn-outline">İletişime Geç</a>
+                    <a href="#contact" class="btn btn-outline">Bilgi Alın</a>
                 </div>
             </div>
         </div>
@@ -1751,10 +1786,11 @@
 
             <div class="footer-bottom">
                 <p>&copy; 2025 TakibiEsasi. Tüm hakları saklıdır.</p>
+                <!-- Sosyal medya linkleri - hesaplar açılınca güncellenecek -->
                 <div class="footer-social">
-                    <a href="#"><i class="fab fa-twitter"></i></a>
-                    <a href="#"><i class="fab fa-linkedin"></i></a>
-                    <a href="#"><i class="fab fa-instagram"></i></a>
+                    <a href="#" title="Yakında" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+                    <a href="#" title="Yakında" aria-label="LinkedIn"><i class="fab fa-linkedin"></i></a>
+                    <a href="#" title="Yakında" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
                 </div>
             </div>
         </div>

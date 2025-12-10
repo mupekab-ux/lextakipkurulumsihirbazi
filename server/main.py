@@ -1546,6 +1546,24 @@ async def download_page():
             return f.read()
     return "<h1>Download page not found</h1>"
 
+@app.get("/yardim", response_class=HTMLResponse)
+async def help_page():
+    """Serve help center page"""
+    html_path = "/var/www/takibiesasi/yardim.html"
+    if os.path.exists(html_path):
+        with open(html_path, 'r', encoding='utf-8') as f:
+            return f.read()
+    return "<h1>Help page not found</h1>"
+
+@app.get("/changelog", response_class=HTMLResponse)
+async def changelog_page():
+    """Serve changelog page"""
+    html_path = "/var/www/takibiesasi/changelog.html"
+    if os.path.exists(html_path):
+        with open(html_path, 'r', encoding='utf-8') as f:
+            return f.read()
+    return "<h1>Changelog page not found</h1>"
+
 # ============ DEMO REGISTRATION API ============
 
 class DemoRegisterRequest(BaseModel):
