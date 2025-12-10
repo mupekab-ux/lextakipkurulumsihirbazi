@@ -2364,6 +2364,183 @@ async def resend_verification(req: ForgotPasswordRequest):
         conn.close()
 
 
+# ============ USER PROFILE & DATA ENDPOINTS ============
+
+@app.get("/api/auth/profile")
+async def get_user_profile(authorization: str = Header(None)):
+    """Get logged-in user's profile"""
+    user_id = verify_user_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        cur.execute("""
+            SELECT id, email, full_name, phone, company_name,
+                   email_verified, is_active, role, created_at, last_login_at
+            FROM users WHERE id = %s
+        """, (user_id,))
+
+        user = cur.fetchone()
+        if not user:
+            raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
+
+        return {
+            "success": True,
+            "user": {
+                "id": user['id'],
+                "email": user['email'],
+                "full_name": user['full_name'],
+                "phone": user['phone'],
+                "company_name": user['company_name'],
+                "email_verified": user['email_verified'],
+                "is_active": user['is_active'],
+                "role": user['role'],
+                "created_at": user['created_at'].isoformat() if user['created_at'] else None,
+                "last_login_at": user['last_login_at'].isoformat() if user['last_login_at'] else None
+            }
+        }
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.get("/api/demo/status")
+async def get_user_demo_status(authorization: str = Header(None)):
+    """Get demo status for logged-in user"""
+    user_id = verify_user_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        # Check if user has an active license
+        cur.execute("""
+            SELECT id, license_type, status, expires_at FROM licenses
+            WHERE user_id = %s AND status = 'active'
+            ORDER BY created_at DESC LIMIT 1
+        """, (user_id,))
+        license = cur.fetchone()
+
+        if license:
+            return {
+                "success": True,
+                "has_license": True,
+                "license_type": license['license_type'],
+                "license_status": license['status'],
+                "expires_at": license['expires_at'].isoformat() if license['expires_at'] else None,
+                "demo_active": False,
+                "days_remaining": None
+            }
+
+        # Check demo status
+        cur.execute("""
+            SELECT * FROM demo_sessions
+            WHERE user_id = %s
+            ORDER BY created_at DESC LIMIT 1
+        """, (user_id,))
+        demo = cur.fetchone()
+
+        if not demo:
+            return {
+                "success": True,
+                "has_license": False,
+                "demo_active": False,
+                "days_remaining": 0,
+                "can_start_demo": True
+            }
+
+        days_remaining = max(0, (demo['demo_end_date'] - datetime.utcnow()).days) if demo['demo_end_date'] else 0
+        is_active = demo['status'] == 'active' and days_remaining > 0
+
+        return {
+            "success": True,
+            "has_license": False,
+            "demo_active": is_active,
+            "days_remaining": days_remaining,
+            "total_usage_minutes": demo['total_usage_minutes'],
+            "launch_count": demo['launch_count'],
+            "demo_start_date": demo['demo_start_date'].isoformat() if demo['demo_start_date'] else None,
+            "demo_end_date": demo['demo_end_date'].isoformat() if demo['demo_end_date'] else None
+        }
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.get("/api/downloads/my")
+async def get_user_downloads(authorization: str = Header(None)):
+    """Get logged-in user's download history"""
+    user_id = verify_user_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        cur.execute("""
+            SELECT id, version, file_name, downloaded_at
+            FROM downloads
+            WHERE user_id = %s
+            ORDER BY downloaded_at DESC
+            LIMIT 50
+        """, (user_id,))
+
+        downloads = []
+        for row in cur.fetchall():
+            downloads.append({
+                "id": row['id'],
+                "version": row['version'],
+                "file_name": row['file_name'],
+                "downloaded_at": row['downloaded_at'].isoformat() if row['downloaded_at'] else None
+            })
+
+        return {"success": True, "downloads": downloads, "total": len(downloads)}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.get("/api/orders/my")
+async def get_user_orders(authorization: str = Header(None)):
+    """Get logged-in user's orders"""
+    user_id = verify_user_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        cur.execute("""
+            SELECT id, order_number, product_type, product_name, quantity,
+                   total_price_cents, payment_status, created_at, paid_at
+            FROM orders
+            WHERE user_id = %s
+            ORDER BY created_at DESC
+        """, (user_id,))
+
+        orders = []
+        for row in cur.fetchall():
+            orders.append({
+                "id": row['id'],
+                "order_number": row['order_number'],
+                "product_type": row['product_type'],
+                "product_name": row['product_name'],
+                "quantity": row['quantity'],
+                "total_price": row['total_price_cents'] / 100 if row['total_price_cents'] else 0,
+                "payment_status": row['payment_status'],
+                "created_at": row['created_at'].isoformat() if row['created_at'] else None,
+                "paid_at": row['paid_at'].isoformat() if row['paid_at'] else None
+            })
+
+        return {"success": True, "orders": orders, "total": len(orders)}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
 # ============ ADMIN USER MANAGEMENT ============
 
 @app.get("/api/admin/users")

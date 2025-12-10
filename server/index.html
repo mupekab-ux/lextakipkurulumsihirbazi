@@ -1361,8 +1361,8 @@
 
             <div class="header-buttons">
                 <a href="/giris" class="btn btn-ghost">Giriş</a>
-                <a href="/download" class="btn btn-primary">
-                    <i class="fas fa-download"></i> İndir
+                <a href="/kayit" class="btn btn-primary">
+                    <i class="fas fa-user-plus"></i> Kayıt Ol
                 </a>
             </div>
 
@@ -1383,8 +1383,8 @@
         <a href="/demo" class="mobile-nav-link" style="color: #FBBF24;">14 Gün Demo</a>
         <a href="#faq" class="mobile-nav-link">SSS</a>
         <a href="#contact" class="mobile-nav-link">İletişim</a>
-        <a href="/download" class="btn btn-primary">
-            <i class="fas fa-download"></i> Satın Al
+        <a href="/kayit" class="btn btn-primary">
+            <i class="fas fa-user-plus"></i> Kayıt Ol
         </a>
     </div>
 
@@ -1402,11 +1402,11 @@
                 <p>Dava takibi, icra takibi ve vekalet yönetimi - tüm hukuki süreçlerinizi tek masaüstü uygulamasından yönetin. Avukatlar ve hukuk büroları için özel olarak geliştirildi.</p>
 
                 <div class="hero-buttons">
-                    <a href="/demo" class="btn btn-demo">
+                    <a href="/kayit" class="btn btn-demo">
                         <i class="fas fa-rocket"></i> 14 Gün Ücretsiz Dene
                     </a>
-                    <a href="/download" class="btn btn-primary">
-                        <i class="fas fa-download"></i> Satın Al
+                    <a href="/giris" class="btn btn-primary">
+                        <i class="fas fa-sign-in-alt"></i> Giriş Yap
                     </a>
                 </div>
                 <p class="hero-note">
@@ -1540,7 +1540,7 @@
                         <li><i class="fas fa-check"></i> Temel Özellikler</li>
                         <li><i class="fas fa-check"></i> E-posta Desteği</li>
                     </ul>
-                    <a href="/download" class="btn btn-outline">Başla</a>
+                    <a href="/kayit" class="btn btn-outline">Ücretsiz Dene</a>
                 </div>
 
                 <div class="pricing-card popular" data-aos="fade-up" data-aos-delay="100">
@@ -1553,7 +1553,7 @@
                         <li><i class="fas fa-check"></i> Tüm Özellikler</li>
                         <li><i class="fas fa-check"></i> Öncelikli Destek</li>
                     </ul>
-                    <a href="/download" class="btn btn-primary">Başla</a>
+                    <a href="/kayit" class="btn btn-primary">Ücretsiz Dene</a>
                 </div>
 
                 <div class="pricing-card coming-soon" data-aos="fade-up" data-aos-delay="200">
@@ -1566,7 +1566,7 @@
                         <li><i class="fas fa-check"></i> Gelişmiş Raporlama</li>
                         <li><i class="fas fa-check"></i> Özel Destek Hattı</li>
                     </ul>
-                    <a href="#contact" class="btn btn-outline">Bilgi Alın</a>
+                    <button class="btn btn-outline" disabled style="opacity: 0.6; cursor: not-allowed;">Yakında</button>
                 </div>
             </div>
         </div>
@@ -1922,7 +1922,7 @@
                             const priceDisplay = isComingSoon ? '<div class="price" style="font-size: 32px;">Çok Yakında</div>' : `<div class="price">₺${plan.price}<span>/${plan.period || 'ay'}</span></div>`;
                             const buttonHtml = isComingSoon
                                 ? '<button class="btn btn-outline" disabled style="opacity: 0.6; cursor: not-allowed;">Yakında</button>'
-                                : `<a href="/download" class="btn ${plan.is_popular ? 'btn-primary' : 'btn-outline'}">Başla</a>`;
+                                : `<a href="/kayit" class="btn ${plan.is_popular ? 'btn-primary' : 'btn-outline'}">Ücretsiz Dene</a>`;
 
                             return `
                                 <div class="pricing-card ${cardClass}" data-aos="fade-up" data-aos-delay="${index * 100}">
