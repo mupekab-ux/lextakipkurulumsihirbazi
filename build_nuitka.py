@@ -28,13 +28,16 @@ OUTPUT_DIR = "dist_nuitka"
 def check_nuitka():
     """Nuitka kurulu mu kontrol et"""
     try:
-        import nuitka
-        print(f"✓ Nuitka kurulu: {nuitka.__version__}")
+        import nuitka.Version
+        print(f"✓ Nuitka kurulu: {nuitka.Version.getNuitkaVersion()}")
         return True
     except ImportError:
         print("✗ Nuitka kurulu değil!")
         print("  Kurmak için: pip install nuitka ordered-set zstandard")
         return False
+    except Exception:
+        print("✓ Nuitka kurulu")
+        return True
 
 def build():
     """Nuitka ile build yap"""
