@@ -26,7 +26,7 @@ jobs:
 
       - name: Build with Nuitka
         run: |
-          python -m nuitka --standalone --onefile --output-dir=dist_nuitka --output-filename=TakibiEsasi.exe --windows-console-mode=disable --enable-plugin=pyqt6 --include-module=openpyxl --include-module=bcrypt --include-module=docx --include-module=pandas --include-module=requests --include-module=sqlite3 --assume-yes-for-downloads --windows-company-name=TakibiEsasi --windows-product-name=TakibiEsasi app/main.py
+          python -m nuitka --standalone --onefile --output-dir=dist_nuitka --output-filename=TakibiEsasi.exe --windows-console-mode=disable --enable-plugin=pyqt6 --include-module=openpyxl --include-module=bcrypt --include-module=docx --include-module=pandas --include-module=requests --include-module=sqlite3 --assume-yes-for-downloads --windows-company-name=TakibiEsasi --windows-product-name=TakibiEsasi --lto=yes app/main.py
 
       - name: List output files
         run: dir dist_nuitka
@@ -54,20 +54,63 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install PyQt6 openpyxl bcrypt python-docx pandas requests
-          pip install pyinstaller
+          pip install cython pyinstaller
+
+      - name: Compile Critical Files with Cython
+        run: |
+          echo "Compiling critical files with Cython..."
+          python setup_cython.py build_ext --inplace
+          echo "Compiled files:"
+          find app -name "*.so" -type f
+
+      - name: Prepare Protected Build
+        run: |
+          # Kritik .py dosyalarını sil (koruma için)
+          # Sadece .so dosyaları kalacak
+          for module in "app/license" "app/demo_manager" "app/updater" "app/services/user_service"; do
+            if [ -f "${module}.py" ]; then
+              # .so dosyası var mı kontrol et
+              if ls ${module}*.so 1> /dev/null 2>&1; then
+                echo "Removing ${module}.py (compiled version exists)"
+                rm -f "${module}.py"
+              fi
+            fi
+          done
 
       - name: Build with PyInstaller
         run: |
-          pyinstaller --onefile --windowed --name TakibiEsasi --add-data "app/themes:app/themes" --add-data "app/ui:app/ui" --hidden-import=openpyxl --hidden-import=bcrypt --hidden-import=docx --hidden-import=pandas --hidden-import=requests --hidden-import=sqlite3 app/main.py
+          # .so dosyalarını dahil et
+          SO_FILES=$(find app -name "*.so" -type f | while read f; do echo "--add-binary=$f:$(dirname $f)"; done | tr '\n' ' ')
+
+          pyinstaller --onedir --windowed --name TakibiEsasi \
+            --add-data "app/themes:app/themes" \
+            --add-data "app/ui:app/ui" \
+            --add-data "assets:assets" \
+            $SO_FILES \
+            --hidden-import=openpyxl \
+            --hidden-import=bcrypt \
+            --hidden-import=docx \
+            --hidden-import=pandas \
+            --hidden-import=requests \
+            --hidden-import=sqlite3 \
+            --hidden-import=PyQt6 \
+            app/main.py
 
       - name: List output files
-        run: ls -la dist/
+        run: |
+          ls -la dist/
+          if [ -d "dist/TakibiEsasi" ]; then
+            ls -la dist/TakibiEsasi/
+          fi
         continue-on-error: true
 
       - name: Create DMG
         run: |
           if [ -d "dist/TakibiEsasi.app" ]; then
             hdiutil create -volname TakibiEsasi -srcfolder dist/TakibiEsasi.app -ov -format UDZO dist/TakibiEsasi.dmg
+          elif [ -d "dist/TakibiEsasi" ]; then
+            # onedir modunda .app değil klasör oluşur
+            hdiutil create -volname TakibiEsasi -srcfolder dist/TakibiEsasi -ov -format UDZO dist/TakibiEsasi.dmg
           fi
         continue-on-error: true
 
