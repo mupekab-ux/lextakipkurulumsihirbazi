@@ -300,6 +300,22 @@ def init_db():
         )
     """)
 
+    # Activity log table
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS activity_log (
+            id SERIAL PRIMARY KEY,
+            activity_type VARCHAR(50) NOT NULL,
+            description TEXT,
+            user_id INTEGER,
+            license_key VARCHAR(50),
+            order_id INTEGER,
+            ip_address VARCHAR(50),
+            user_agent TEXT,
+            metadata JSONB,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
     # Commit base tables first
     conn.commit()
 
@@ -542,6 +558,26 @@ def generate_license_key():
         parts.append(part)
     return '-'.join(parts)
 
+
+def log_activity(activity_type: str, description: str, user_id: int = None,
+                 license_key: str = None, order_id: int = None,
+                 ip_address: str = None, user_agent: str = None, metadata: dict = None):
+    """Log an activity to the activity_log table"""
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO activity_log (activity_type, description, user_id, license_key,
+                                      order_id, ip_address, user_agent, metadata)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        """, (activity_type, description, user_id, license_key, order_id,
+              ip_address, user_agent, json.dumps(metadata) if metadata else None))
+        conn.commit()
+        cur.close()
+        conn.close()
+    except Exception as e:
+        print(f"Activity log error: {e}")
+
 def verify_admin_token(authorization: str = Header(None)):
     """Verify JWT token"""
     if not authorization or not authorization.startswith('Bearer '):
@@ -740,6 +776,14 @@ async def activate_license(req: ActivateRequest):
     conn.commit()
     cur.close()
     conn.close()
+
+    # Log activity
+    log_activity(
+        activity_type="license_activation",
+        description=f"Lisans aktive edildi: {req.license_key[:8]}...",
+        license_key=req.license_key,
+        metadata={"machine_id": req.machine_id}
+    )
 
     # Offline token oluştur (30 gün geçerli)
     token_data = generate_offline_token(req.license_key, req.machine_id)
@@ -1018,13 +1062,21 @@ async def admin_create_license(req: CreateLicenseRequest, authorization: str = H
     cur = conn.cursor()
 
     cur.execute("""
-        INSERT INTO licenses (license_key, customer_name, email)
-        VALUES (%s, %s, %s)
+        INSERT INTO licenses (license_key, customer_name, email, source)
+        VALUES (%s, %s, %s, 'manual')
     """, (license_key, req.customer_name, req.email))
 
     conn.commit()
     cur.close()
     conn.close()
+
+    # Log admin license creation
+    log_activity(
+        activity_type="license_created",
+        description=f"Admin tarafından lisans oluşturuldu: {license_key[:8]}...",
+        license_key=license_key,
+        metadata={"source": "manual", "customer_name": req.customer_name, "email": req.email}
+    )
 
     return {"success": True, "license_key": license_key}
 
@@ -1034,13 +1086,26 @@ async def admin_toggle_license(req: LicenseActionRequest, authorization: str = H
     verify_admin_token(authorization)
 
     conn = get_db()
-    cur = conn.cursor()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    # Get current state
+    cur.execute("SELECT is_active FROM licenses WHERE license_key = %s", (req.license_key,))
+    license = cur.fetchone()
+    new_state = not license['is_active'] if license else False
 
     cur.execute("UPDATE licenses SET is_active = NOT is_active WHERE license_key = %s", (req.license_key,))
 
     conn.commit()
     cur.close()
     conn.close()
+
+    # Log toggle action
+    log_activity(
+        activity_type="license_toggled",
+        description=f"Lisans {'aktif edildi' if new_state else 'devre dışı bırakıldı'}: {req.license_key[:8]}...",
+        license_key=req.license_key,
+        metadata={"new_state": new_state}
+    )
 
     return {"success": True}
 
@@ -2430,6 +2495,15 @@ async def user_register(req: UserRegisterRequest, request: Request):
         user = cur.fetchone()
         conn.commit()
 
+        # Log registration
+        log_activity(
+            activity_type="user_registration",
+            description=f"Yeni kullanıcı kaydı: {user['email']}",
+            user_id=user['id'],
+            ip_address=client_ip,
+            metadata={"full_name": user['full_name'], "company": req.company_name}
+        )
+
         # TODO: Send verification email here
 
         return {
@@ -3394,6 +3468,30 @@ async def mock_payment(order_id: int, req: MockPaymentRequest, authorization: st
         new_license = cur.fetchone()
         conn.commit()
 
+        # Log payment activity
+        log_activity(
+            activity_type="order_completed",
+            description=f"Sipariş tamamlandı: {updated_order['order_number']} - {order['total_price_cents']/100:.2f} TL",
+            user_id=user_id,
+            order_id=order_id,
+            license_key=new_license['license_key'],
+            metadata={
+                "product": order['product_name'],
+                "amount": order['total_price_cents'] / 100,
+                "transaction_id": transaction_id
+            }
+        )
+
+        # Log license creation
+        log_activity(
+            activity_type="license_created",
+            description=f"Satın alma ile lisans oluşturuldu: {new_license['license_key'][:8]}...",
+            user_id=user_id,
+            license_key=new_license['license_key'],
+            order_id=order_id,
+            metadata={"source": "purchase", "price": order['total_price_cents'] / 100}
+        )
+
         # TODO: Send purchase confirmation email
 
         return {
@@ -3890,6 +3988,666 @@ async def admin_extend_demo(demo_id: int, req: DemoExtendRequest, authorization:
 
         conn.commit()
         return {"success": True, "message": f"Demo {req.days} gün uzatıldı"}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+# ============ ENHANCED ADMIN DASHBOARD ============
+
+@app.get("/api/admin/dashboard")
+async def admin_dashboard(authorization: str = Header(None)):
+    """Comprehensive admin dashboard with all statistics"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        stats = {}
+
+        # === LICENSE STATS ===
+        cur.execute("SELECT COUNT(*) FROM licenses")
+        stats['total_licenses'] = cur.fetchone()[0]
+
+        cur.execute("SELECT COUNT(*) FROM licenses WHERE is_active = TRUE AND machine_id IS NOT NULL")
+        stats['active_licenses'] = cur.fetchone()[0]
+
+        cur.execute("SELECT COUNT(*) FROM licenses WHERE source = 'purchase'")
+        stats['purchased_licenses'] = cur.fetchone()[0]
+
+        cur.execute("SELECT COUNT(*) FROM licenses WHERE source = 'manual' OR source IS NULL")
+        stats['manual_licenses'] = cur.fetchone()[0]
+
+        # === USER STATS ===
+        cur.execute("SELECT COUNT(*) FROM users")
+        stats['total_users'] = cur.fetchone()[0]
+
+        cur.execute("SELECT COUNT(*) FROM users WHERE email_verified = TRUE")
+        stats['verified_users'] = cur.fetchone()[0]
+
+        cur.execute("SELECT COUNT(*) FROM users WHERE DATE(created_at) = CURRENT_DATE")
+        stats['today_registrations'] = cur.fetchone()[0]
+
+        cur.execute("SELECT COUNT(*) FROM users WHERE created_at >= CURRENT_DATE - INTERVAL '7 days'")
+        stats['week_registrations'] = cur.fetchone()[0]
+
+        # === ORDER/REVENUE STATS ===
+        cur.execute("SELECT COUNT(*) FROM orders WHERE payment_status = 'completed'")
+        stats['completed_orders'] = cur.fetchone()[0]
+
+        cur.execute("SELECT COUNT(*) FROM orders WHERE payment_status = 'pending'")
+        stats['pending_orders'] = cur.fetchone()[0]
+
+        cur.execute("SELECT COALESCE(SUM(total_price_cents), 0) FROM orders WHERE payment_status = 'completed'")
+        stats['total_revenue'] = cur.fetchone()[0] / 100
+
+        cur.execute("""
+            SELECT COALESCE(SUM(total_price_cents), 0) FROM orders
+            WHERE payment_status = 'completed' AND paid_at >= DATE_TRUNC('month', CURRENT_DATE)
+        """)
+        stats['month_revenue'] = cur.fetchone()[0] / 100
+
+        cur.execute("""
+            SELECT COALESCE(SUM(total_price_cents), 0) FROM orders
+            WHERE payment_status = 'completed' AND paid_at >= CURRENT_DATE - INTERVAL '7 days'
+        """)
+        stats['week_revenue'] = cur.fetchone()[0] / 100
+
+        cur.execute("""
+            SELECT COALESCE(SUM(total_price_cents), 0) FROM orders
+            WHERE payment_status = 'completed' AND DATE(paid_at) = CURRENT_DATE
+        """)
+        stats['today_revenue'] = cur.fetchone()[0] / 100
+
+        # Average order value
+        cur.execute("""
+            SELECT COALESCE(AVG(total_price_cents), 0) FROM orders WHERE payment_status = 'completed'
+        """)
+        stats['avg_order_value'] = cur.fetchone()[0] / 100
+
+        # === MONTHLY REVENUE (Last 12 months) ===
+        cur.execute("""
+            SELECT
+                TO_CHAR(DATE_TRUNC('month', paid_at), 'YYYY-MM') as month,
+                COALESCE(SUM(total_price_cents), 0) / 100 as revenue,
+                COUNT(*) as order_count
+            FROM orders
+            WHERE payment_status = 'completed'
+                AND paid_at >= CURRENT_DATE - INTERVAL '12 months'
+            GROUP BY DATE_TRUNC('month', paid_at)
+            ORDER BY month
+        """)
+        stats['monthly_revenue'] = [{"month": r['month'], "revenue": float(r['revenue']),
+                                      "orders": r['order_count']} for r in cur.fetchall()]
+
+        # === DAILY REVENUE (Last 30 days) ===
+        cur.execute("""
+            SELECT
+                TO_CHAR(DATE(paid_at), 'YYYY-MM-DD') as date,
+                COALESCE(SUM(total_price_cents), 0) / 100 as revenue,
+                COUNT(*) as order_count
+            FROM orders
+            WHERE payment_status = 'completed'
+                AND paid_at >= CURRENT_DATE - INTERVAL '30 days'
+            GROUP BY DATE(paid_at)
+            ORDER BY date
+        """)
+        stats['daily_revenue'] = [{"date": r['date'], "revenue": float(r['revenue']),
+                                    "orders": r['order_count']} for r in cur.fetchall()]
+
+        # === TOP SELLING PRODUCTS ===
+        cur.execute("""
+            SELECT
+                product_name,
+                COUNT(*) as count,
+                COALESCE(SUM(total_price_cents), 0) / 100 as total_revenue
+            FROM orders
+            WHERE payment_status = 'completed'
+            GROUP BY product_name
+            ORDER BY count DESC
+            LIMIT 10
+        """)
+        stats['top_products'] = [{"name": r['product_name'], "count": r['count'],
+                                   "revenue": float(r['total_revenue'])} for r in cur.fetchall()]
+
+        # === RECENT ACTIVITY ===
+        cur.execute("""
+            SELECT * FROM activity_log ORDER BY created_at DESC LIMIT 20
+        """)
+        stats['recent_activity'] = [{"id": r['id'], "type": r['activity_type'],
+                                      "description": r['description'],
+                                      "created_at": r['created_at'].isoformat() if r['created_at'] else None
+                                     } for r in cur.fetchall()]
+
+        # === RECENT ORDERS ===
+        cur.execute("""
+            SELECT o.id, o.order_number, o.product_name, o.total_price_cents,
+                   o.payment_status, o.created_at, u.email, u.full_name
+            FROM orders o
+            LEFT JOIN users u ON o.user_id = u.id
+            ORDER BY o.created_at DESC LIMIT 10
+        """)
+        stats['recent_orders'] = [{"id": r['id'], "order_number": r['order_number'],
+                                    "product": r['product_name'],
+                                    "total": r['total_price_cents'] / 100 if r['total_price_cents'] else 0,
+                                    "status": r['payment_status'],
+                                    "user_email": r['email'],
+                                    "user_name": r['full_name'],
+                                    "created_at": r['created_at'].isoformat() if r['created_at'] else None
+                                   } for r in cur.fetchall()]
+
+        # === RECENT LICENSES ===
+        cur.execute("""
+            SELECT l.*, u.email as user_email, u.full_name as user_name
+            FROM licenses l
+            LEFT JOIN users u ON l.user_id = u.id
+            ORDER BY l.created_at DESC LIMIT 10
+        """)
+        stats['recent_licenses'] = [{"id": r['id'], "license_key": r['license_key'],
+                                      "customer_name": r['customer_name'], "email": r['email'],
+                                      "is_active": r['is_active'], "source": r['source'],
+                                      "purchase_price": r['purchase_price_cents'] / 100 if r['purchase_price_cents'] else None,
+                                      "user_email": r['user_email'],
+                                      "created_at": r['created_at'].isoformat() if r['created_at'] else None
+                                     } for r in cur.fetchall()]
+
+        return {"success": True, "stats": stats}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.get("/api/admin/users/{user_id}/detail")
+async def admin_user_detail(user_id: int, authorization: str = Header(None)):
+    """Get detailed user information including orders, licenses, and downloads"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        # Get user info
+        cur.execute("""
+            SELECT id, email, full_name, phone, company_name, tax_number,
+                   email_verified, role, kvkk_accepted, marketing_accepted,
+                   last_login_at, created_at
+            FROM users WHERE id = %s
+        """, (user_id,))
+
+        user = cur.fetchone()
+        if not user:
+            return {"success": False, "error": "Kullanıcı bulunamadı"}
+
+        user_data = {
+            "id": user['id'],
+            "email": user['email'],
+            "full_name": user['full_name'],
+            "phone": user['phone'],
+            "company_name": user['company_name'],
+            "tax_number": user['tax_number'],
+            "email_verified": user['email_verified'],
+            "role": user['role'],
+            "kvkk_accepted": user['kvkk_accepted'],
+            "marketing_accepted": user['marketing_accepted'],
+            "last_login_at": user['last_login_at'].isoformat() if user['last_login_at'] else None,
+            "created_at": user['created_at'].isoformat() if user['created_at'] else None
+        }
+
+        # Get user's licenses
+        cur.execute("""
+            SELECT id, license_key, machine_id, is_active, transfer_count, source,
+                   purchase_price_cents, activated_at, created_at
+            FROM licenses WHERE user_id = %s OR email = %s
+            ORDER BY created_at DESC
+        """, (user_id, user['email']))
+
+        licenses = []
+        for r in cur.fetchall():
+            licenses.append({
+                "id": r['id'],
+                "license_key": r['license_key'],
+                "machine_id": r['machine_id'],
+                "is_active": r['is_active'],
+                "transfer_count": r['transfer_count'],
+                "source": r['source'],
+                "purchase_price": r['purchase_price_cents'] / 100 if r['purchase_price_cents'] else None,
+                "activated_at": r['activated_at'].isoformat() if r['activated_at'] else None,
+                "created_at": r['created_at'].isoformat() if r['created_at'] else None
+            })
+
+        # Get user's orders
+        cur.execute("""
+            SELECT id, order_number, product_name, quantity, total_price_cents,
+                   payment_status, payment_method, paid_at, created_at
+            FROM orders WHERE user_id = %s
+            ORDER BY created_at DESC
+        """, (user_id,))
+
+        orders = []
+        total_spent = 0
+        for r in cur.fetchall():
+            if r['payment_status'] == 'completed' and r['total_price_cents']:
+                total_spent += r['total_price_cents']
+            orders.append({
+                "id": r['id'],
+                "order_number": r['order_number'],
+                "product_name": r['product_name'],
+                "quantity": r['quantity'],
+                "total": r['total_price_cents'] / 100 if r['total_price_cents'] else 0,
+                "status": r['payment_status'],
+                "payment_method": r['payment_method'],
+                "paid_at": r['paid_at'].isoformat() if r['paid_at'] else None,
+                "created_at": r['created_at'].isoformat() if r['created_at'] else None
+            })
+
+        # Get user's invoices
+        cur.execute("""
+            SELECT id, invoice_number, total_cents, status, invoice_date
+            FROM invoices WHERE user_id = %s
+            ORDER BY created_at DESC
+        """, (user_id,))
+
+        invoices = [{"id": r['id'], "invoice_number": r['invoice_number'],
+                     "total": r['total_cents'] / 100 if r['total_cents'] else 0,
+                     "status": r['status'],
+                     "date": r['invoice_date'].isoformat() if r['invoice_date'] else None
+                    } for r in cur.fetchall()]
+
+        # Get user's downloads
+        cur.execute("""
+            SELECT version, file_name, ip_address, created_at
+            FROM downloads WHERE user_id = %s
+            ORDER BY created_at DESC LIMIT 20
+        """, (user_id,))
+
+        downloads = [{"version": r['version'], "file_name": r['file_name'],
+                      "ip": r['ip_address'],
+                      "date": r['created_at'].isoformat() if r['created_at'] else None
+                     } for r in cur.fetchall()]
+
+        # Get activity related to user
+        cur.execute("""
+            SELECT activity_type, description, created_at
+            FROM activity_log WHERE user_id = %s
+            ORDER BY created_at DESC LIMIT 30
+        """, (user_id,))
+
+        activities = [{"type": r['activity_type'], "description": r['description'],
+                       "date": r['created_at'].isoformat() if r['created_at'] else None
+                      } for r in cur.fetchall()]
+
+        return {
+            "success": True,
+            "user": user_data,
+            "licenses": licenses,
+            "orders": orders,
+            "invoices": invoices,
+            "downloads": downloads,
+            "activities": activities,
+            "summary": {
+                "total_orders": len(orders),
+                "completed_orders": len([o for o in orders if o['status'] == 'completed']),
+                "total_spent": total_spent / 100,
+                "total_licenses": len(licenses),
+                "active_licenses": len([l for l in licenses if l['is_active']]),
+                "total_downloads": len(downloads)
+            }
+        }
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.get("/api/admin/sales/report")
+async def admin_sales_report(
+    start_date: str = None,
+    end_date: str = None,
+    authorization: str = Header(None)
+):
+    """Generate sales report with optional date range"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        # Build date filter
+        date_filter = "payment_status = 'completed'"
+        params = []
+
+        if start_date:
+            date_filter += " AND DATE(paid_at) >= %s"
+            params.append(start_date)
+        if end_date:
+            date_filter += " AND DATE(paid_at) <= %s"
+            params.append(end_date)
+
+        # Summary stats
+        cur.execute(f"""
+            SELECT
+                COUNT(*) as order_count,
+                COALESCE(SUM(total_price_cents), 0) as total_revenue,
+                COALESCE(AVG(total_price_cents), 0) as avg_order,
+                COALESCE(MIN(total_price_cents), 0) as min_order,
+                COALESCE(MAX(total_price_cents), 0) as max_order
+            FROM orders WHERE {date_filter}
+        """, params)
+
+        summary = cur.fetchone()
+
+        # Daily breakdown
+        cur.execute(f"""
+            SELECT
+                DATE(paid_at) as date,
+                COUNT(*) as orders,
+                SUM(total_price_cents) as revenue
+            FROM orders
+            WHERE {date_filter}
+            GROUP BY DATE(paid_at)
+            ORDER BY date
+        """, params)
+
+        daily = [{"date": str(r['date']), "orders": r['orders'],
+                  "revenue": r['revenue'] / 100} for r in cur.fetchall()]
+
+        # Product breakdown
+        cur.execute(f"""
+            SELECT
+                product_name,
+                COUNT(*) as count,
+                SUM(total_price_cents) as revenue
+            FROM orders
+            WHERE {date_filter}
+            GROUP BY product_name
+            ORDER BY revenue DESC
+        """, params)
+
+        products = [{"product": r['product_name'], "count": r['count'],
+                     "revenue": r['revenue'] / 100} for r in cur.fetchall()]
+
+        # All orders in range
+        cur.execute(f"""
+            SELECT o.*, u.email as user_email, u.full_name as user_name
+            FROM orders o
+            LEFT JOIN users u ON o.user_id = u.id
+            WHERE {date_filter}
+            ORDER BY o.paid_at DESC
+        """, params)
+
+        orders = []
+        for r in cur.fetchall():
+            orders.append({
+                "id": r['id'],
+                "order_number": r['order_number'],
+                "product": r['product_name'],
+                "quantity": r['quantity'],
+                "total": r['total_price_cents'] / 100 if r['total_price_cents'] else 0,
+                "user_email": r['user_email'],
+                "user_name": r['user_name'],
+                "payment_method": r['payment_method'],
+                "paid_at": r['paid_at'].isoformat() if r['paid_at'] else None
+            })
+
+        return {
+            "success": True,
+            "period": {
+                "start": start_date or "All time",
+                "end": end_date or "Now"
+            },
+            "summary": {
+                "total_orders": summary['order_count'],
+                "total_revenue": summary['total_revenue'] / 100,
+                "avg_order_value": summary['avg_order'] / 100,
+                "min_order": summary['min_order'] / 100,
+                "max_order": summary['max_order'] / 100
+            },
+            "daily_breakdown": daily,
+            "product_breakdown": products,
+            "orders": orders
+        }
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.get("/api/admin/activity")
+async def admin_activity_log(
+    limit: int = 100,
+    activity_type: str = None,
+    authorization: str = Header(None)
+):
+    """Get activity log"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        query = "SELECT * FROM activity_log"
+        params = []
+
+        if activity_type:
+            query += " WHERE activity_type = %s"
+            params.append(activity_type)
+
+        query += " ORDER BY created_at DESC LIMIT %s"
+        params.append(limit)
+
+        cur.execute(query, params)
+
+        activities = []
+        for r in cur.fetchall():
+            activities.append({
+                "id": r['id'],
+                "type": r['activity_type'],
+                "description": r['description'],
+                "user_id": r['user_id'],
+                "license_key": r['license_key'],
+                "order_id": r['order_id'],
+                "ip_address": r['ip_address'],
+                "metadata": r['metadata'],
+                "created_at": r['created_at'].isoformat() if r['created_at'] else None
+            })
+
+        # Get activity type counts
+        cur.execute("""
+            SELECT activity_type, COUNT(*) as count
+            FROM activity_log
+            GROUP BY activity_type
+            ORDER BY count DESC
+        """)
+
+        type_counts = {r['activity_type']: r['count'] for r in cur.fetchall()}
+
+        return {
+            "success": True,
+            "activities": activities,
+            "type_counts": type_counts
+        }
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.get("/api/admin/export/orders")
+async def admin_export_orders(
+    format: str = "json",
+    start_date: str = None,
+    end_date: str = None,
+    authorization: str = Header(None)
+):
+    """Export orders as JSON or CSV"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        query = """
+            SELECT o.id, o.order_number, o.product_name, o.quantity,
+                   o.total_price_cents / 100.0 as total,
+                   o.payment_status, o.payment_method, o.paid_at, o.created_at,
+                   u.email as user_email, u.full_name as user_name
+            FROM orders o
+            LEFT JOIN users u ON o.user_id = u.id
+            WHERE 1=1
+        """
+        params = []
+
+        if start_date:
+            query += " AND DATE(o.created_at) >= %s"
+            params.append(start_date)
+        if end_date:
+            query += " AND DATE(o.created_at) <= %s"
+            params.append(end_date)
+
+        query += " ORDER BY o.created_at DESC"
+
+        cur.execute(query, params)
+        rows = cur.fetchall()
+
+        if format == "csv":
+            import io
+            output = io.StringIO()
+            output.write("ID,Sipariş No,Ürün,Adet,Toplam,Durum,Ödeme Yöntemi,Ödeme Tarihi,Oluşturma Tarihi,E-posta,Ad Soyad\n")
+            for r in rows:
+                output.write(f"{r['id']},{r['order_number']},{r['product_name']},{r['quantity']},{r['total']},{r['payment_status']},{r['payment_method'] or ''},{r['paid_at'] or ''},{r['created_at']},{r['user_email'] or ''},{r['user_name'] or ''}\n")
+
+            return {"success": True, "format": "csv", "data": output.getvalue()}
+
+        # JSON format
+        orders = []
+        for r in rows:
+            orders.append({
+                "id": r['id'],
+                "order_number": r['order_number'],
+                "product": r['product_name'],
+                "quantity": r['quantity'],
+                "total": float(r['total']) if r['total'] else 0,
+                "status": r['payment_status'],
+                "payment_method": r['payment_method'],
+                "paid_at": r['paid_at'].isoformat() if r['paid_at'] else None,
+                "created_at": r['created_at'].isoformat() if r['created_at'] else None,
+                "user_email": r['user_email'],
+                "user_name": r['user_name']
+            })
+
+        return {"success": True, "format": "json", "data": orders}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.get("/api/admin/export/licenses")
+async def admin_export_licenses(format: str = "json", authorization: str = Header(None)):
+    """Export licenses as JSON or CSV"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        cur.execute("""
+            SELECT l.id, l.license_key, l.customer_name, l.email, l.machine_id,
+                   l.is_active, l.transfer_count, l.source,
+                   l.purchase_price_cents / 100.0 as purchase_price,
+                   l.activated_at, l.created_at,
+                   u.full_name as user_name
+            FROM licenses l
+            LEFT JOIN users u ON l.user_id = u.id
+            ORDER BY l.created_at DESC
+        """)
+        rows = cur.fetchall()
+
+        if format == "csv":
+            import io
+            output = io.StringIO()
+            output.write("ID,Lisans Key,Müşteri,E-posta,Makine ID,Aktif,Transfer,Kaynak,Fiyat,Aktivasyon,Oluşturma\n")
+            for r in rows:
+                output.write(f"{r['id']},{r['license_key']},{r['customer_name'] or ''},{r['email'] or ''},{r['machine_id'] or ''},{r['is_active']},{r['transfer_count']},{r['source'] or ''},{r['purchase_price'] or ''},{r['activated_at'] or ''},{r['created_at']}\n")
+
+            return {"success": True, "format": "csv", "data": output.getvalue()}
+
+        licenses = []
+        for r in rows:
+            licenses.append({
+                "id": r['id'],
+                "license_key": r['license_key'],
+                "customer_name": r['customer_name'],
+                "email": r['email'],
+                "machine_id": r['machine_id'],
+                "is_active": r['is_active'],
+                "transfer_count": r['transfer_count'],
+                "source": r['source'],
+                "purchase_price": float(r['purchase_price']) if r['purchase_price'] else None,
+                "activated_at": r['activated_at'].isoformat() if r['activated_at'] else None,
+                "created_at": r['created_at'].isoformat() if r['created_at'] else None
+            })
+
+        return {"success": True, "format": "json", "data": licenses}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.get("/api/admin/export/users")
+async def admin_export_users(format: str = "json", authorization: str = Header(None)):
+    """Export users as JSON or CSV"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        cur.execute("""
+            SELECT u.id, u.email, u.full_name, u.phone, u.company_name,
+                   u.email_verified, u.role, u.created_at, u.last_login_at,
+                   COUNT(DISTINCT o.id) as order_count,
+                   COALESCE(SUM(CASE WHEN o.payment_status = 'completed' THEN o.total_price_cents ELSE 0 END), 0) / 100.0 as total_spent,
+                   COUNT(DISTINCT l.id) as license_count
+            FROM users u
+            LEFT JOIN orders o ON u.id = o.user_id
+            LEFT JOIN licenses l ON u.id = l.user_id
+            GROUP BY u.id
+            ORDER BY u.created_at DESC
+        """)
+        rows = cur.fetchall()
+
+        if format == "csv":
+            import io
+            output = io.StringIO()
+            output.write("ID,E-posta,Ad Soyad,Telefon,Şirket,Doğrulanmış,Rol,Kayıt,Son Giriş,Sipariş,Harcama,Lisans\n")
+            for r in rows:
+                output.write(f"{r['id']},{r['email']},{r['full_name'] or ''},{r['phone'] or ''},{r['company_name'] or ''},{r['email_verified']},{r['role']},{r['created_at']},{r['last_login_at'] or ''},{r['order_count']},{r['total_spent']},{r['license_count']}\n")
+
+            return {"success": True, "format": "csv", "data": output.getvalue()}
+
+        users = []
+        for r in rows:
+            users.append({
+                "id": r['id'],
+                "email": r['email'],
+                "full_name": r['full_name'],
+                "phone": r['phone'],
+                "company_name": r['company_name'],
+                "email_verified": r['email_verified'],
+                "role": r['role'],
+                "created_at": r['created_at'].isoformat() if r['created_at'] else None,
+                "last_login_at": r['last_login_at'].isoformat() if r['last_login_at'] else None,
+                "order_count": r['order_count'],
+                "total_spent": float(r['total_spent']),
+                "license_count": r['license_count']
+            })
+
+        return {"success": True, "format": "json", "data": users}
 
     finally:
         cur.close()
