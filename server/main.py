@@ -44,6 +44,9 @@ DB_CONFIG = {
 ADMIN_USERNAME = "admin"
 ADMIN_PASSWORD = "TakibiAdmin2024!"
 JWT_SECRET = "takibiesasi-secret-key-2024"
+OFFLINE_TOKEN_SECRET = "takibiesasi-offline-token-secret-2024"
+OFFLINE_TOKEN_DAYS = 30  # Offline token geçerlilik süresi
+
 DOWNLOAD_DIR = "/var/www/takibiesasi/download"
 RELEASES_FILE = "/var/www/takibiesasi/releases/latest.json"
 RELEASES_HISTORY_FILE = "/var/www/takibiesasi/releases/history.json"
@@ -550,6 +553,60 @@ def verify_admin_token(authorization: str = Header(None)):
     except:
         raise HTTPException(status_code=401, detail="Invalid token")
 
+# ============ OFFLINE TOKEN FUNCTIONS ============
+
+def generate_offline_token(license_key: str, machine_id: str) -> dict:
+    """
+    Offline çalışma için JWT token oluşturur.
+    Token 30 gün geçerlidir.
+    """
+    expires_at = datetime.utcnow() + timedelta(days=OFFLINE_TOKEN_DAYS)
+
+    payload = {
+        "license_key": license_key,
+        "machine_id": machine_id,
+        "issued_at": datetime.utcnow().isoformat(),
+        "expires_at": expires_at.isoformat(),
+        "exp": expires_at.timestamp()  # JWT standard expiry
+    }
+
+    token = jwt.encode(payload, OFFLINE_TOKEN_SECRET, algorithm="HS256")
+
+    return {
+        "token": token,
+        "expires_at": expires_at.isoformat(),
+        "days_valid": OFFLINE_TOKEN_DAYS
+    }
+
+
+def verify_offline_token(token: str, machine_id: str) -> dict:
+    """
+    Offline token'ı doğrular.
+    Returns: {"valid": bool, "error": str or None, "license_key": str or None}
+    """
+    try:
+        payload = jwt.decode(token, OFFLINE_TOKEN_SECRET, algorithms=["HS256"])
+
+        # Makine ID kontrolü
+        if payload.get("machine_id") != machine_id:
+            return {"valid": False, "error": "Token bu makine için geçerli değil", "license_key": None}
+
+        # Token geçerli
+        return {
+            "valid": True,
+            "error": None,
+            "license_key": payload.get("license_key"),
+            "expires_at": payload.get("expires_at")
+        }
+
+    except jwt.ExpiredSignatureError:
+        return {"valid": False, "error": "Token süresi dolmuş", "license_key": None}
+    except jwt.InvalidTokenError:
+        return {"valid": False, "error": "Geçersiz token", "license_key": None}
+    except Exception as e:
+        return {"valid": False, "error": str(e), "license_key": None}
+
+
 def get_current_release():
     """Get current release info"""
     try:
@@ -684,7 +741,16 @@ async def activate_license(req: ActivateRequest):
     cur.close()
     conn.close()
 
-    return {"success": True, "message": "Lisans aktive edildi"}
+    # Offline token oluştur (30 gün geçerli)
+    token_data = generate_offline_token(req.license_key, req.machine_id)
+
+    return {
+        "success": True,
+        "message": "Lisans aktive edildi",
+        "offline_token": token_data["token"],
+        "token_expires_at": token_data["expires_at"],
+        "token_days_valid": token_data["days_valid"]
+    }
 
 @app.post("/api/verify")
 async def verify_license(req: VerifyRequest):
@@ -716,7 +782,15 @@ async def verify_license(req: VerifyRequest):
     cur.close()
     conn.close()
 
-    return {"valid": True}
+    # Yeni offline token oluştur (token yenileme - 30 gün daha)
+    token_data = generate_offline_token(req.license_key, req.machine_id)
+
+    return {
+        "valid": True,
+        "offline_token": token_data["token"],
+        "token_expires_at": token_data["expires_at"],
+        "token_days_valid": token_data["days_valid"]
+    }
 
 @app.post("/api/transfer")
 async def transfer_license(req: TransferRequest):

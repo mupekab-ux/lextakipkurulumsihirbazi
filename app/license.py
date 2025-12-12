@@ -214,6 +214,136 @@ def get_short_machine_id() -> str:
 
 
 # =============================================================================
+# OFFLINE TOKEN YÖNETİMİ
+# =============================================================================
+
+OFFLINE_TOKEN_FILE_NAME = ".takibiesasi_token"
+
+
+def _get_token_file_path() -> Path:
+    """Offline token dosyasının tam yolunu döndürür."""
+    return _get_license_dir() / OFFLINE_TOKEN_FILE_NAME
+
+
+def save_offline_token(token: str, expires_at: str) -> bool:
+    """
+    Offline token'ı yerel dosyaya kaydeder.
+
+    Args:
+        token: JWT token string
+        expires_at: Token bitiş tarihi (ISO format)
+
+    Returns:
+        Başarılı ise True
+    """
+    try:
+        token_data = {
+            "token": token,
+            "expires_at": expires_at,
+            "saved_at": datetime.utcnow().isoformat()
+        }
+
+        encoded = _encode_license_data(token_data)
+        token_file = _get_token_file_path()
+
+        with open(token_file, 'w', encoding='utf-8') as f:
+            f.write(encoded)
+
+        # Dosyayı gizli yap (Windows)
+        if platform.system() == "Windows":
+            try:
+                subprocess.run(
+                    ["attrib", "+H", str(token_file)],
+                    capture_output=True,
+                    creationflags=subprocess.CREATE_NO_WINDOW
+                )
+            except Exception:
+                pass
+
+        logger.info(f"Offline token kaydedildi, geçerlilik: {expires_at}")
+        return True
+
+    except Exception as e:
+        logger.error(f"Offline token kaydedilemedi: {e}")
+        return False
+
+
+def load_offline_token() -> Optional[Dict[str, Any]]:
+    """
+    Yerel offline token dosyasını okur.
+
+    Returns:
+        Token verisi sözlüğü veya None
+    """
+    try:
+        token_file = _get_token_file_path()
+
+        if not token_file.exists():
+            logger.debug("Offline token dosyası bulunamadı")
+            return None
+
+        with open(token_file, 'r', encoding='utf-8') as f:
+            encoded = f.read().strip()
+
+        if not encoded:
+            return None
+
+        return _decode_license_data(encoded)
+
+    except Exception as e:
+        logger.error(f"Offline token okunamadı: {e}")
+        return None
+
+
+def delete_offline_token() -> bool:
+    """Offline token dosyasını siler."""
+    try:
+        token_file = _get_token_file_path()
+        if token_file.exists():
+            token_file.unlink()
+            logger.info("Offline token silindi")
+        return True
+    except Exception as e:
+        logger.error(f"Offline token silinemedi: {e}")
+        return False
+
+
+def is_offline_token_valid() -> Tuple[bool, str]:
+    """
+    Offline token'ın geçerli olup olmadığını kontrol eder.
+
+    Returns:
+        (geçerli_mi, mesaj) tuple'ı
+    """
+    token_data = load_offline_token()
+
+    if not token_data:
+        return False, "Offline token bulunamadı"
+
+    expires_at_str = token_data.get("expires_at")
+    if not expires_at_str:
+        return False, "Token bitiş tarihi bulunamadı"
+
+    try:
+        expires_at = datetime.fromisoformat(expires_at_str.replace('Z', '+00:00'))
+        # UTC zamanını karşılaştır
+        if expires_at.tzinfo:
+            now = datetime.now(expires_at.tzinfo)
+        else:
+            now = datetime.utcnow()
+
+        if now > expires_at:
+            return False, "Offline token süresi dolmuş"
+
+        remaining_days = (expires_at - now).days
+        return True, f"Offline token geçerli ({remaining_days} gün kaldı)"
+
+    except Exception as e:
+        logger.error(f"Token tarihi parse edilemedi: {e}")
+        return False, "Token tarihi okunamadı"
+
+
+# =============================================================================
 # LİSANS DOSYASI YÖNETİMİ
 # =============================================================================
 
@@ -363,16 +493,113 @@ def verify_local_license() -> Tuple[bool, str]:
 
 
 def is_activated() -> bool:
-    """Uygulama aktive edilmiş mi kontrol eder."""
+    """
+    Uygulama aktive edilmiş mi kontrol eder.
+
+    Kontrol sırası:
+    1. Önce sunucuya bağlanmayı dene (online doğrulama)
+    2. Sunucu "geçersiz/devre dışı" derse False döndür
+    3. Bağlantı hatası varsa offline token kontrol et
+    4. Offline token geçerliyse True döndür
+    5. Hiçbiri yoksa False döndür
+    """
+    # Önce lokal lisans dosyası var mı kontrol et
+    license_data = load_license()
+    if not license_data:
+        logger.info("Lisans dosyası bulunamadı")
+        return False
+
+    license_key = license_data.get("license_key", "")
+    if not license_key:
+        logger.info("Lisans anahtarı bulunamadı")
+        return False
+
+    # Makine ID kontrolü
+    current_machine_id = generate_machine_id()
+    stored_machine_id = license_data.get("machine_id", "")
+
+    if current_machine_id != stored_machine_id:
+        logger.warning("Makine ID eşleşmiyor")
+        return False
+
+    # Online doğrulama dene
+    try:
+        import requests
+        response = requests.post(
+            f"{API_BASE_URL}/api/verify",
+            json={
+                "license_key": license_key,
+                "machine_id": current_machine_id
+            },
+            timeout=10
+        )
+
+        if response.status_code == 200:
+            data = response.json()
+
+            if data.get("valid"):
+                # Lisans geçerli - yeni token'ı kaydet
+                if data.get("offline_token"):
+                    save_offline_token(
+                        data["offline_token"],
+                        data.get("token_expires_at", "")
+                    )
+                logger.info("Online doğrulama başarılı")
+                return True
+            else:
+                # Sunucu lisansı reddetti (devre dışı, geçersiz vb.)
+                error = data.get("error", "Lisans geçersiz")
+                logger.warning(f"Sunucu lisansı reddetti: {error}")
+                # Offline token'ı da sil çünkü lisans artık geçersiz
+                delete_offline_token()
+                return False
+
+    except requests.exceptions.ConnectionError:
+        logger.info("Sunucuya bağlanılamadı, offline mod deneniyor")
+    except requests.exceptions.Timeout:
+        logger.info("Sunucu yanıt vermedi, offline mod deneniyor")
+    except Exception as e:
+        logger.warning(f"Online doğrulama hatası: {e}, offline mod deneniyor")
+
+    # Sunucuya bağlanamadık - offline token kontrol et
+    token_valid, token_msg = is_offline_token_valid()
+
+    if token_valid:
+        logger.info(f"Offline mod aktif: {token_msg}")
+        return True
+
+    # Offline token da geçersiz
+    logger.warning(f"Offline token geçersiz: {token_msg}")
+    return False
+
+
+def is_activated_offline_only() -> bool:
+    """
+    Sadece offline kontrol yapar (sunucuya bağlanmaz).
+    Hızlı kontrol gereken durumlar için kullanılır.
+    """
+    # Lokal lisans kontrolü
     valid, _ = verify_local_license()
-    return valid
+    if not valid:
+        return False
+
+    # Offline token kontrolü
+    token_valid, _ = is_offline_token_valid()
+    return token_valid
 
 
 def get_license_info() -> Optional[Dict[str, Any]]:
     """Mevcut lisans bilgilerini döndürür."""
-    if not is_activated():
+    license_data = load_license()
+    if not license_data:
         return None
-    return load_license()
+
+    # Offline token durumunu da ekle
+    token_valid, token_msg = is_offline_token_valid()
+    license_data["offline_token_valid"] = token_valid
+    license_data["offline_token_status"] = token_msg
+
+    return license_data
 
 
 # =============================================================================
@@ -416,9 +643,18 @@ def activate_online(license_key: str) -> Tuple[bool, str]:
                     activation_date=activation_date,
                     machine_id=machine_id
                 )
+
+                # Offline token'ı kaydet (30 gün geçerli)
+                if data.get("offline_token"):
+                    save_offline_token(
+                        data["offline_token"],
+                        data.get("token_expires_at", "")
+                    )
+                    logger.info("Offline token kaydedildi")
+
                 return True, data.get("message", "Lisans başarıyla aktive edildi.")
             else:
-                return False, data.get("message", "Aktivasyon başarısız.")
+                return False, data.get("error", data.get("message", "Aktivasyon başarısız."))
 
         elif response.status_code == 404:
             return False, "Lisans anahtarı bulunamadı."
