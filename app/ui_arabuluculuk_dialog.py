@@ -69,14 +69,14 @@ class ArabuluculukDialog(QDialog):
 
     def _restore_dialog_size(self) -> None:
         """Kaydedilmiş pencere boyutunu yükle."""
-        settings = QSettings("LexTakip", "LexTakip")
+        settings = QSettings("TakibiEsasi", "TakibiEsasi")
         size = settings.value("ArabuluculukDialog/size")
         if size:
             self.resize(size)
 
     def closeEvent(self, event) -> None:
         """Pencere boyutunu kaydet ve kapat."""
-        settings = QSettings("LexTakip", "LexTakip")
+        settings = QSettings("TakibiEsasi", "TakibiEsasi")
         settings.setValue("ArabuluculukDialog/size", self.size())
         super().closeEvent(event)
 

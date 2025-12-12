@@ -32,7 +32,7 @@ class AttachmentsDialog(QDialog):
     def __init__(self, parent=None, dosya_id: int | None = None):
         super().__init__(parent)
         self.dosya_id = dosya_id
-        self.setWindowTitle("LexTakip - Ekleri Yönet")
+        self.setWindowTitle("TakibiEsasi - Ekleri Yönet")
 
         layout = QVBoxLayout(self)
 
@@ -64,14 +64,14 @@ class AttachmentsDialog(QDialog):
 
     def _restore_dialog_size(self) -> None:
         """Kaydedilmiş pencere boyutunu yükle."""
-        settings = QSettings("LexTakip", "LexTakip")
+        settings = QSettings("TakibiEsasi", "TakibiEsasi")
         size = settings.value("AttachmentsDialog/size")
         if size:
             self.resize(size)
 
     def closeEvent(self, event) -> None:
         """Pencere boyutunu kaydet ve kapat."""
-        settings = QSettings("LexTakip", "LexTakip")
+        settings = QSettings("TakibiEsasi", "TakibiEsasi")
         settings.setValue("AttachmentsDialog/size", self.size())
         super().closeEvent(event)
 

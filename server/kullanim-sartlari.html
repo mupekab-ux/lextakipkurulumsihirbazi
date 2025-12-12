@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="TakibiEsasi Kullanım Şartları - Yazılımımızı kullanırken uymanız gereken kurallar ve koşullar.">
+    <title>Kullanım Şartları - TakibiEsasi</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --gold-light: #FBBF24;
+            --gold-dark: #D97706;
+            --bg-black: #0A0A0F;
+            --bg-card: #12121A;
+            --text-white: #FFFFFF;
+            --text-gray: #9CA3AF;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background-color: var(--bg-black);
+            color: var(--text-white);
+            min-height: 100vh;
+            line-height: 1.7;
+        }
+
+        /* Header */
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            padding: 20px 0;
+            background: rgba(10, 10, 15, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(251, 191, 36, 0.1);
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text-white);
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+        }
+
+        .logo-icon svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .logo-text {
+            font-family: 'Sora', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: var(--text-gray);
+            text-decoration: none;
+            font-size: 0.95rem;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: var(--gold-light);
+        }
+
+        /* Main Content */
+        main {
+            padding-top: 120px;
+            padding-bottom: 80px;
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        .page-header h1 {
+            font-family: 'Sora', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, var(--gold-light), var(--gold-dark));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .page-header p {
+            color: var(--text-gray);
+            font-size: 1.1rem;
+        }
+
+        .content-card {
+            background: var(--bg-card);
+            border: 1px solid rgba(251, 191, 36, 0.1);
+            border-radius: 20px;
+            padding: 48px;
+        }
+
+        .content-card h2 {
+            font-family: 'Sora', sans-serif;
+            font-size: 1.4rem;
+            margin-top: 32px;
+            margin-bottom: 16px;
+            color: var(--gold-light);
+        }
+
+        .content-card h2:first-child {
+            margin-top: 0;
+        }
+
+        .content-card h3 {
+            font-family: 'Sora', sans-serif;
+            font-size: 1.1rem;
+            margin-top: 24px;
+            margin-bottom: 12px;
+            color: var(--text-white);
+        }
+
+        .content-card p {
+            color: var(--text-gray);
+            margin-bottom: 16px;
+        }
+
+        .content-card ul, .content-card ol {
+            color: var(--text-gray);
+            margin-left: 24px;
+            margin-bottom: 16px;
+        }
+
+        .content-card li {
+            margin-bottom: 8px;
+        }
+
+        .content-card strong {
+            color: var(--text-white);
+        }
+
+        .warning-box {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 24px 0;
+        }
+
+        .warning-box h4 {
+            color: #EF4444;
+            margin-bottom: 12px;
+            font-size: 1rem;
+        }
+
+        .warning-box p {
+            margin-bottom: 0;
+        }
+
+        .info-box {
+            background: rgba(251, 191, 36, 0.1);
+            border: 1px solid rgba(251, 191, 36, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 24px 0;
+        }
+
+        .info-box h4 {
+            color: var(--gold-light);
+            margin-bottom: 12px;
+            font-size: 1rem;
+        }
+
+        .info-box p {
+            margin-bottom: 8px;
+        }
+
+        .info-box p:last-child {
+            margin-bottom: 0;
+        }
+
+        .last-updated {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 24px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-gray);
+            font-size: 0.9rem;
+        }
+
+        /* Footer */
+        footer {
+            padding: 40px 0;
+            text-align: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 20px;
+        }
+
+        .footer-links a {
+            color: var(--text-gray);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.3s;
+        }
+
+        .footer-links a:hover {
+            color: var(--gold-light);
+        }
+
+        .copyright {
+            color: var(--text-gray);
+            font-size: 0.85rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .page-header h1 {
+                font-size: 1.8rem;
+            }
+
+            .content-card {
+                padding: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="header-content">
+            <a href="/" class="logo">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#FBBF24"/>
+                                <stop offset="100%" style="stop-color:#D97706"/>
+                            </linearGradient>
+                        </defs>
+                        <path d="M30 2L54.5 16V44L30 58L5.5 44V16L30 2Z" fill="url(#goldGradient)"/>
+                        <g fill="#0A0A0F">
+                            <rect x="28" y="16" width="4" height="26" rx="1"/>
+                            <rect x="14" y="18" width="32" height="3" rx="1"/>
+                            <path d="M14 22L10 34H22L18 22H14Z"/>
+                            <ellipse cx="16" cy="35" rx="7" ry="2"/>
+                            <path d="M42 22L38 32H50L46 22H42Z"/>
+                            <ellipse cx="44" cy="33" rx="7" ry="2"/>
+                            <path d="M22 42H38L36 44H24L22 42Z"/>
+                            <ellipse cx="30" cy="45" rx="10" ry="2"/>
+                        </g>
+                    </svg>
+                </div>
+                <span class="logo-text">TakibiEsasi</span>
+            </a>
+            <nav class="nav-links">
+                <a href="/#ozellikler">Özellikler</a>
+                <a href="/#fiyatlandirma">Fiyatlandırma</a>
+                <a href="/#iletisim">İletişim</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        <div class="container">
+            <div class="page-header">
+                <h1>Kullanım Şartları</h1>
+                <p>TakibiEsasi yazılımını kullanırken uymanız gereken kurallar ve koşullar</p>
+            </div>
+
+            <div class="content-card">
+                <h2>1. Genel Hükümler</h2>
+                <p>Bu Kullanım Şartları ("Sözleşme"), TakibiEsasi yazılımını ("Yazılım") kullanan tüm kullanıcılar ("Kullanıcı") ile TakibiEsasi ("Şirket") arasındaki hukuki ilişkiyi düzenler.</p>
+                <p>Yazılımı indirerek, kurarak veya kullanarak bu Kullanım Şartları'nı kabul etmiş sayılırsınız. Bu şartları kabul etmiyorsanız, Yazılımı kullanmamanız gerekmektedir.</p>
+
+                <h2>2. Lisans ve Kullanım Hakkı</h2>
+                <h3>2.1. Lisans Verilmesi</h3>
+                <p>Şirket, Kullanıcı'ya Yazılımı aşağıdaki şartlarla kullanması için sınırlı, münhasır olmayan, devredilemez bir lisans vermektedir:</p>
+                <ul>
+                    <li>Yazılım yalnızca kişisel veya ticari amaçlarla kullanılabilir</li>
+                    <li>Lisans tek bir kullanıcı/bilgisayar için geçerlidir (aksi belirtilmedikçe)</li>
+                    <li>Lisans süresi, satın alınan pakete göre belirlenir</li>
+                </ul>
+
+                <h3>2.2. Demo Sürümü</h3>
+                <p>14 günlük demo sürümü için:</p>
+                <ul>
+                    <li>Tüm özellikler tam olarak kullanılabilir</li>
+                    <li>Demo süresi sonunda lisans satın alınması gerekmektedir</li>
+                    <li>Demo süresinde girilen veriler satın alma sonrasında korunur</li>
+                    <li>Her kullanıcı yalnızca bir kez demo hakkına sahiptir</li>
+                </ul>
+
+                <h2>3. Kullanım Kısıtlamaları</h2>
+                <div class="warning-box">
+                    <h4>Yasak Eylemler</h4>
+                    <p>Aşağıdaki eylemler kesinlikle yasaktır ve tespit edilmesi halinde lisansınız iptal edilebilir:</p>
+                </div>
+                <ul>
+                    <li>Yazılımı kopyalamak, çoğaltmak veya dağıtmak</li>
+                    <li>Yazılımı tersine mühendislik yapmak, kaynak kodunu çıkarmaya çalışmak</li>
+                    <li>Yazılımı değiştirmek, türev eserler oluşturmak</li>
+                    <li>Lisans korumalarını atlatmaya çalışmak</li>
+                    <li>Yazılımı yasadışı amaçlarla kullanmak</li>
+                    <li>Lisansı üçüncü kişilere satmak, kiralamak veya devretmek</li>
+                    <li>Yazılımı birden fazla bilgisayarda eş zamanlı kullanmak (tek kullanıcı lisansı için)</li>
+                </ul>
+
+                <h2>4. Fikri Mülkiyet Hakları</h2>
+                <p>Yazılım ve tüm bileşenleri (kaynak kodu, tasarım, grafikler, belgeler dahil) Şirket'in münhasır mülkiyetindedir ve Türk Fikir ve Sanat Eserleri Kanunu ile uluslararası telif hakkı yasaları tarafından korunmaktadır.</p>
+                <p>Kullanıcı'ya verilen lisans, mülkiyet hakkı değil, yalnızca kullanım hakkıdır. Tüm haklar saklıdır.</p>
+
+                <h2>5. Ödeme ve Fiyatlandırma</h2>
+                <ul>
+                    <li>Fiyatlar web sitesinde güncel olarak yayınlanmaktadır</li>
+                    <li>Ödemeler Türk Lirası (TL) üzerinden yapılır</li>
+                    <li>Ödeme tamamlandıktan sonra lisans anahtarı e-posta ile gönderilir</li>
+                    <li>Yıllık lisanslar, süre sonunda otomatik olarak yenilenmez</li>
+                    <li>KDV fiyatlara dahildir</li>
+                </ul>
+
+                <h2>6. İade Politikası</h2>
+                <p>Satın alma tarihinden itibaren <strong>14 gün</strong> içinde, herhangi bir gerekçe belirtmeksizin iade talep edebilirsiniz. İade koşulları:</p>
+                <ul>
+                    <li>İade talebi destek@takibiesasi.com adresine yazılı olarak yapılmalıdır</li>
+                    <li>İade onaylandıktan sonra 14 iş günü içinde ödeme iade edilir</li>
+                    <li>İade sonrasında lisans iptal edilir ve Yazılımın kullanımı durdurulmalıdır</li>
+                </ul>
+
+                <h2>7. Destek ve Güncellemeler</h2>
+                <h3>7.1. Teknik Destek</h3>
+                <ul>
+                    <li>Aktif lisans sahiplerine e-posta desteği sağlanır</li>
+                    <li>Destek saatleri: Hafta içi 09:00-18:00</li>
+                    <li>Öncelikli destek, belirli paketlere dahildir</li>
+                </ul>
+
+                <h3>7.2. Güncellemeler</h3>
+                <ul>
+                    <li>Küçük güncellemeler ve hata düzeltmeleri ücretsizdir</li>
+                    <li>Büyük sürüm güncellemeleri için ek ücret talep edilebilir</li>
+                    <li>Güncellemeler otomatik bildirim sistemi ile duyurulur</li>
+                </ul>
+
+                <h2>8. Garanti ve Sorumluluk Sınırlaması</h2>
+                <h3>8.1. Garanti Reddi</h3>
+                <p>Yazılım "OLDUĞU GİBİ" ve "MEVCUT HALİYLE" sunulmaktadır. Şirket, Yazılımın kesintisiz veya hatasız çalışacağını garanti etmez.</p>
+
+                <h3>8.2. Sorumluluk Sınırlaması</h3>
+                <p>Yasal olarak izin verilen azami ölçüde, Şirket aşağıdaki durumlardan sorumlu tutulamaz:</p>
+                <ul>
+                    <li>Veri kaybı veya hasarı</li>
+                    <li>İş kaybı veya kar kaybı</li>
+                    <li>Dolaylı, arızi veya özel zararlar</li>
+                    <li>Üçüncü taraf yazılımlarından kaynaklanan sorunlar</li>
+                </ul>
+                <p>Şirket'in toplam sorumluluğu, hiçbir durumda kullanıcının son 12 ayda ödediği lisans bedelini aşmayacaktır.</p>
+
+                <h2>9. Veri Koruma</h2>
+                <p>Yazılım kapsamında işlenen kişisel veriler için <a href="/gizlilik" style="color: var(--gold-light);">Gizlilik Politikası</a> ve <a href="/kvkk" style="color: var(--gold-light);">KVKK Aydınlatma Metni</a> geçerlidir.</p>
+
+                <div class="info-box">
+                    <h4>Verilerinizin Güvenliği</h4>
+                    <p>Yazılımda girdiğiniz veriler yalnızca sizin bilgisayarınızda saklanır. Şirket, bu verilere erişim hakkına sahip değildir (bulut senkronizasyonu kullanılmadığı sürece).</p>
+                </div>
+
+                <h2>10. Fesih</h2>
+                <h3>10.1. Kullanıcı Tarafından Fesih</h3>
+                <p>Kullanıcı, Yazılımı kaldırarak ve kullanımı durdurarak istediği zaman bu Sözleşme'yi feshedebilir.</p>
+
+                <h3>10.2. Şirket Tarafından Fesih</h3>
+                <p>Şirket, aşağıdaki durumlarda lisansı iptal edebilir:</p>
+                <ul>
+                    <li>Kullanım Şartları'nın ihlali</li>
+                    <li>Lisans korumalarını atlatma girişimi</li>
+                    <li>Yasadışı kullanım</li>
+                </ul>
+
+                <h3>10.3. Fesih Sonuçları</h3>
+                <p>Fesih durumunda:</p>
+                <ul>
+                    <li>Lisans derhal geçersiz hale gelir</li>
+                    <li>Yazılımın kullanımı durdurulmalıdır</li>
+                    <li>Şirket tarafından fesihte iade yapılmaz</li>
+                </ul>
+
+                <h2>11. Uygulanacak Hukuk ve Uyuşmazlık Çözümü</h2>
+                <p>Bu Sözleşme, Türkiye Cumhuriyeti hukukuna tabidir. Bu Sözleşme'den doğan uyuşmazlıklarda İstanbul Mahkemeleri ve İcra Daireleri yetkilidir.</p>
+
+                <h2>12. Değişiklikler</h2>
+                <p>Şirket, bu Kullanım Şartları'nı herhangi bir zamanda değiştirme hakkını saklı tutar. Önemli değişiklikler e-posta veya uygulama içi bildirim yoluyla duyurulacaktır. Değişikliklerden sonra Yazılımı kullanmaya devam etmeniz, güncellenmiş şartları kabul ettiğiniz anlamına gelir.</p>
+
+                <h2>13. Bölünebilirlik</h2>
+                <p>Bu Sözleşme'nin herhangi bir hükmünün geçersiz veya uygulanamaz olması halinde, diğer hükümler geçerliliğini koruyacaktır.</p>
+
+                <h2>14. İletişim</h2>
+                <p>Bu Kullanım Şartları hakkında sorularınız için:</p>
+                <div class="info-box">
+                    <p><strong>E-posta:</strong> destek@takibiesasi.com</p>
+                    <p><strong>Web:</strong> www.takibiesasi.com</p>
+                </div>
+
+                <div class="last-updated">
+                    <p>Son güncelleme: Aralık 2025</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-links">
+                <a href="/">Ana Sayfa</a>
+                <a href="/gizlilik">Gizlilik Politikası</a>
+                <a href="/kvkk">KVKK</a>
+                <a href="/kullanim-sartlari">Kullanım Şartları</a>
+            </div>
+            <p class="copyright">
+                &copy; 2025 TakibiEsasi. Tüm hakları saklıdır.
+            </p>
+        </div>
+    </footer>
+</body>
+</html>

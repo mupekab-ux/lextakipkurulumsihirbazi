@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-LexTakip UI Modülleri
+TakibiEsasi UI Modülleri
 
 Bu paket, UI bileşenlerini organize eder:
 - helpers: Yardımcı fonksiyonlar

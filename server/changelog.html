@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Surum Gecmisi - TakibiEsasi</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0A0A0F;
+            color: #FFFFFF;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        h1 {
+            color: #FBBF24;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #888;
+            margin-bottom: 40px;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 30px;
+            color: #FBBF24;
+            text-decoration: none;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .version {
+            background: #18181F;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            border-left: 4px solid #FBBF24;
+        }
+
+        .version-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .version h2 {
+            color: #FFFFFF;
+            font-size: 1.3rem;
+        }
+
+        .version .date {
+            color: #888;
+            font-size: 0.9rem;
+        }
+
+        .badge {
+            background: linear-gradient(135deg, #FBBF24, #D97706);
+            color: #0A0A0F;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .version ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .version li {
+            padding: 8px 0;
+            padding-left: 25px;
+            position: relative;
+            color: #ccc;
+        }
+
+        .version li:before {
+            content: "\f00c";
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            position: absolute;
+            left: 0;
+            color: #FBBF24;
+        }
+
+        .category {
+            color: #FBBF24;
+            font-weight: 500;
+            margin-top: 15px;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+
+        .category i {
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link"><i class="fas fa-arrow-left"></i> Ana Sayfaya Don</a>
+
+        <h1><i class="fas fa-history"></i> Surum Gecmisi</h1>
+        <p class="subtitle">TakibiEsasi'nin tum guncellemeleri ve yenilikler</p>
+
+        <div class="version">
+            <div class="version-header">
+                <h2>v1.0.0</h2>
+                <span class="date">Aralik 2024</span>
+                <span class="badge">Ilk Surum</span>
+            </div>
+
+            <div class="category"><i class="fas fa-star"></i> Ozellikler</div>
+            <ul>
+                <li>Hukuki dosya yonetimi ve takibi</li>
+                <li>Muvekkil ve karsi taraf bilgileri</li>
+                <li>Finans takibi ve ucret sozlesmeleri</li>
+                <li>Tahsilat ve odeme kayitlari</li>
+                <li>PDF, Excel ve Word raporlari</li>
+                <li>Durusma takvimi ve hatirlatmalar</li>
+                <li>Dosya arsivleme sistemi</li>
+                <li>Otomatik ve manuel yedekleme</li>
+                <li>Coklu kullanici destegi</li>
+            </ul>
+
+            <div class="category"><i class="fas fa-shield-alt"></i> Guvenlik</div>
+            <ul>
+                <li>Sifreli veritabani</li>
+                <li>Offline calisma (veriler cihazda kalir)</li>
+                <li>KVKK uyumlu veri isleme</li>
+            </ul>
+
+            <div class="category"><i class="fas fa-desktop"></i> Arayuz</div>
+            <ul>
+                <li>Modern ve kullanici dostu tasarim</li>
+                <li>Koyu ve acik tema secenekleri</li>
+                <li>Hizli erisim kisayollari</li>
+            </ul>
+        </div>
+
+        <!-- Gelecek guncellemeler buraya eklenecek -->
+
+    </div>
+</body>
+</html>

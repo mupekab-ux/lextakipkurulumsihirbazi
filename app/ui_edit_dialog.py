@@ -651,14 +651,14 @@ class EditDialog(QDialog):
 
     def _restore_dialog_size(self) -> None:
         """Kaydedilmiş pencere boyutunu yükle."""
-        settings = QSettings("LexTakip", "LexTakip")
+        settings = QSettings("TakibiEsasi", "TakibiEsasi")
         size = settings.value("EditDialog/size")
         if size:
             self.resize(size)
 
     def closeEvent(self, event) -> None:
         """Pencere boyutunu kaydet ve kapat."""
-        settings = QSettings("LexTakip", "LexTakip")
+        settings = QSettings("TakibiEsasi", "TakibiEsasi")
         settings.setValue("EditDialog/size", self.size())
         super().closeEvent(event)
 
@@ -681,7 +681,7 @@ class EditDialog(QDialog):
         )
         self._initial_assignee_ids: list[int] = []
         self.setWindowTitle(
-            "LexTakip - Dosya Düzenle" if dosya_id else "LexTakip - Yeni Dosya"
+            "TakibiEsasi - Dosya Düzenle" if dosya_id else "TakibiEsasi - Yeni Dosya"
         )
 
         main_layout = QVBoxLayout(self)
@@ -1612,7 +1612,9 @@ class EditDialog(QDialog):
             self.aciklama_edit.setEnabled(True)
 
             # Dava durumu değiştiyse ve eski değer doluydu → tamamlanan görevi kaydet + temizle
-            if old_value and old_value != new_value:
+            # NOT: Kısa değerler (< 3 karakter) için görev oluşturma - bu kullanıcı yazarken
+            # oluşan ara kayıtları önler
+            if old_value and old_value != new_value and len(old_value.strip()) >= 3:
                 # Tamamlanan görevi kaydet
                 old_is_tarihi = self._get_job_date_value("is_tarihi")
                 old_aciklama = self.aciklama_edit.toPlainText().strip()
@@ -1670,7 +1672,9 @@ class EditDialog(QDialog):
             self.aciklama2_edit.setEnabled(True)
 
             # Dava durumu 2 değiştiyse ve eski değer doluydu → tamamlanan görevi kaydet + temizle
-            if old_value and old_value != new_value:
+            # NOT: Kısa değerler (< 3 karakter) için görev oluşturma - bu kullanıcı yazarken
+            # oluşan ara kayıtları önler
+            if old_value and old_value != new_value and len(old_value.strip()) >= 3:
                 # Tamamlanan görevi kaydet
                 old_is_tarihi_2 = self._get_job_date_value("is_tarihi_2")
                 old_aciklama_2 = self.aciklama2_edit.toPlainText().strip()

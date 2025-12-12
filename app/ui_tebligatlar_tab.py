@@ -628,7 +628,7 @@ class TebligatlarTab(QWidget):
         if header is None:
             return
         try:
-            settings = QSettings("MyCompany", "LexTakip")
+            settings = QSettings("MyCompany", "TakibiEsasi")
             stored = settings.value("tebligatlar/col_widths")
             widths: list[int] = []
             if isinstance(stored, (list, tuple)):
@@ -659,7 +659,7 @@ class TebligatlarTab(QWidget):
             return
         try:
             widths = [header.sectionSize(col) for col in range(header.count())]
-            settings = QSettings("MyCompany", "LexTakip")
+            settings = QSettings("MyCompany", "TakibiEsasi")
             settings.setValue("tebligatlar/col_widths", widths)
             settings.sync()
         except Exception:

@@ -20,6 +20,7 @@ from PyQt6.QtCore import (
 from PyQt6.QtGui import (
     QColor,
     QFont,
+    QIcon,
     QPalette,
     QBrush,
     QKeySequence,
@@ -271,6 +272,29 @@ try:  # pragma: no cover - runtime import guard
     from app.workers import ChangeDetectorWorker
 except ModuleNotFoundError:  # pragma: no cover
     from workers import ChangeDetectorWorker
+
+try:  # pragma: no cover - runtime import guard
+    from app.demo_manager import get_demo_manager
+    from app.ui_demo_dialog import DemoStatusWidget
+    from app.db import get_database_path
+except ModuleNotFoundError:  # pragma: no cover
+    from demo_manager import get_demo_manager
+    from ui_demo_dialog import DemoStatusWidget
+    from db import get_database_path
+
+
+def _resource_path(relative_path: str) -> str:
+    """
+    PyInstaller ile paketlendiğinde dosya yollarını düzgün çözer.
+    """
+    import sys
+    import os
+    if getattr(sys, 'frozen', False):
+        base_path = sys._MEIPASS
+    else:
+        base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base_path, relative_path)
+
 
 ALERT_CATEGORY_META: dict[str, dict[str, str]] = {
     "hearing": {"icon": "⚖️", "accent": "#ffb300", "label": "Duruşma"},
@@ -2217,6 +2241,7 @@ class DosyalarTab(QWidget):
     attachments_requested = pyqtSignal()
     vekalet_requested = pyqtSignal()
     settings_requested = pyqtSignal()
+    about_requested = pyqtSignal()
     row_double_clicked = pyqtSignal(QModelIndex)
     filters_changed = pyqtSignal()
     clear_filters_requested = pyqtSignal()
@@ -2435,6 +2460,10 @@ class DosyalarTab(QWidget):
         self.settings_button.clicked.connect(self.settings_requested.emit)
         button_layout.addWidget(self.settings_button)
 
+        self.about_button = QPushButton("Hakkinda")
+        self.about_button.clicked.connect(self.about_requested.emit)
+        button_layout.addWidget(self.about_button)
+
         self.export_excel_button = QPushButton("Excel'e Aktar")
         self.export_excel_button.clicked.connect(self._on_export_excel_clicked)
         button_layout.addWidget(self.export_excel_button)
@@ -2465,7 +2494,7 @@ class DosyalarTab(QWidget):
         # Kaydedilmiş sütun genişliklerini yükle
         restored = False
         try:
-            settings = QSettings("MyCompany", "LexTakip")
+            settings = QSettings("MyCompany", "TakibiEsasi")
             stored = settings.value("dosyalar/col_widths")
             widths: list[int] = []
             if isinstance(stored, (list, tuple)):
@@ -2522,7 +2551,7 @@ class DosyalarTab(QWidget):
             return
         try:
             widths = [header.sectionSize(col) for col in range(header.count())]
-            settings = QSettings("MyCompany", "LexTakip")
+            settings = QSettings("MyCompany", "TakibiEsasi")
             settings.setValue("dosyalar/col_widths", widths)
             settings.sync()
         except Exception:
@@ -2620,7 +2649,7 @@ class DosyalarTab(QWidget):
         export_table_to_pdf_with_selection(
             self.table_view,
             path,
-            title="LexTakip – Dosyalar Listesi",
+            title="TakibiEsasi – Dosyalar Listesi",
             subtitle=None,
             selected_rows=selected_rows,
         )
@@ -3441,14 +3470,14 @@ class GorevDialog(QDialog):
 
     def _restore_dialog_size(self) -> None:
         """Kaydedilmiş pencere boyutunu yükle."""
-        settings = QSettings("LexTakip", "LexTakip")
+        settings = QSettings("TakibiEsasi", "TakibiEsasi")
         size = settings.value("GorevDialog/size")
         if size:
             self.resize(size)
 
     def closeEvent(self, event) -> None:
         """Pencere boyutunu kaydet ve kapat."""
-        settings = QSettings("LexTakip", "LexTakip")
+        settings = QSettings("TakibiEsasi", "TakibiEsasi")
         settings.setValue("GorevDialog/size", self.size())
         super().closeEvent(event)
 
@@ -4339,7 +4368,7 @@ class GorevlerTab(QWidget):
     def _load_calendar_task_column_widths(self) -> None:
         """Takvim görev tablosu için kayıtlı sütun genişliklerini yükle."""
         try:
-            settings = QSettings("MyCompany", "LexTakip")
+            settings = QSettings("MyCompany", "TakibiEsasi")
             widths = settings.value("calendar_tasks/col_widths", None)
             if widths:
                 header = self.table.horizontalHeader()
@@ -4357,7 +4386,7 @@ class GorevlerTab(QWidget):
         try:
             header = self.table.horizontalHeader()
             widths = [header.sectionSize(col) for col in range(header.count())]
-            settings = QSettings("MyCompany", "LexTakip")
+            settings = QSettings("MyCompany", "TakibiEsasi")
             settings.setValue("calendar_tasks/col_widths", widths)
             settings.sync()
         except Exception:
@@ -4897,7 +4926,7 @@ class GorevlerTab(QWidget):
     def _load_todo_column_widths(self) -> None:
         """Kayıtlı sütun genişliklerini yükle."""
         try:
-            settings = QSettings("MyCompany", "LexTakip")
+            settings = QSettings("MyCompany", "TakibiEsasi")
             widths = settings.value("todo/col_widths", None)
             if widths:
                 header = self.todo_table.horizontalHeader()
@@ -4915,7 +4944,7 @@ class GorevlerTab(QWidget):
         try:
             header = self.todo_table.horizontalHeader()
             widths = [header.sectionSize(col) for col in range(header.count())]
-            settings = QSettings("MyCompany", "LexTakip")
+            settings = QSettings("MyCompany", "TakibiEsasi")
             settings.setValue("todo/col_widths", widths)
             settings.sync()
         except Exception:
@@ -5360,6 +5389,13 @@ class GorevlerTab(QWidget):
 class MainWindow(QMainWindow):
     def __init__(self, current_user):
         super().__init__()
+
+        # Pencere ikonunu ayarla
+        import os
+        icon_path = _resource_path("assets/icon.png")
+        if os.path.exists(icon_path):
+            self.setWindowIcon(QIcon(icon_path))
+
         self.current_user = current_user
         self.current_user_id = self.current_user.get("id")
         load_status_palette()
@@ -5407,12 +5443,16 @@ class MainWindow(QMainWindow):
             self._apply_harici_search_filter
         )
         self._pending_harici_search_text = ""
-        self.setWindowTitle(f"LexTakip - Hoşgeldiniz, {current_user['username']}")
+        self.setWindowTitle(f"TakibiEsasi - Hoşgeldiniz, {current_user['username']}")
 
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         main_layout = QVBoxLayout()
         central_widget.setLayout(main_layout)
+
+        # Demo banner'ı ekle (eğer demo modundaysa)
+        self.demo_banner = None
+        self._setup_demo_banner(main_layout)
 
         self._dosyalar_header_configured = False
 
@@ -5884,6 +5924,7 @@ class MainWindow(QMainWindow):
         tab.attachments_requested.connect(self.manage_attachments)
         tab.vekalet_requested.connect(self.open_vekalet_dialog)
         tab.settings_requested.connect(self.open_settings)
+        tab.about_requested.connect(self.open_about)
         tab.row_double_clicked.connect(self.edit_row)
         tab.clear_filters_requested.connect(self.clear_all_filters)
         tab.refresh_requested.connect(self._refresh_dosyalar_table)
@@ -6684,7 +6725,7 @@ class MainWindow(QMainWindow):
         if self.harici_table_view is None:
             return
         try:
-            settings = QSettings("MyCompany", "LexTakip")
+            settings = QSettings("MyCompany", "TakibiEsasi")
             widths = settings.value("harici_finans/col_widths", None)
             if widths:
                 header = self.harici_table_view.horizontalHeader()
@@ -6704,7 +6745,7 @@ class MainWindow(QMainWindow):
         try:
             header = self.harici_table_view.horizontalHeader()
             widths = [header.sectionSize(col) for col in range(header.count())]
-            settings = QSettings("MyCompany", "LexTakip")
+            settings = QSettings("MyCompany", "TakibiEsasi")
             settings.setValue("harici_finans/col_widths", widths)
             settings.sync()
         except Exception:
@@ -6941,7 +6982,7 @@ class MainWindow(QMainWindow):
             export_table_to_pdf_with_selection(
                 self.finance_table_view,
                 path,
-                title="LexTakip – Finansal Takip",
+                title="TakibiEsasi – Finansal Takip",
                 subtitle=self._finance_filter_summary(),
                 selected_rows=selected_rows,
             )
@@ -6997,7 +7038,7 @@ class MainWindow(QMainWindow):
             export_table_to_pdf_with_selection(
                 view,
                 path,
-                title="LexTakip – Harici Finansal Takip",
+                title="TakibiEsasi – Harici Finansal Takip",
                 subtitle=self._harici_filter_summary(),
                 selected_rows=selected_rows,
             )
@@ -7215,6 +7256,43 @@ class MainWindow(QMainWindow):
         if role == "admin":
             return True
         return bool(self.permissions.get("can_view_finance", False))
+
+    def _setup_demo_banner(self, main_layout: QVBoxLayout) -> None:
+        """Demo modundaysa banner göster."""
+        try:
+            db_path = get_database_path()
+            demo_manager = get_demo_manager(db_path)
+            status = demo_manager.get_demo_status()
+
+            if status["status"] == "demo_active":
+                days_remaining = status.get("days_remaining", 0)
+                self.demo_banner = DemoStatusWidget(days_remaining)
+                self.demo_banner.license_clicked.connect(self._on_demo_license_clicked)
+                main_layout.addWidget(self.demo_banner)
+
+        except Exception as e:
+            print(f"Demo banner hatası: {e}")
+
+    def _on_demo_license_clicked(self) -> None:
+        """Demo banner'daki lisans butonuna tıklandı."""
+        try:
+            from app.ui_activation_dialog import ActivationDialog
+        except ModuleNotFoundError:
+            from ui_activation_dialog import ActivationDialog
+
+        dialog = ActivationDialog(self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            # Lisans aktifleştirildi, banner'ı kaldır
+            if self.demo_banner:
+                self.demo_banner.setParent(None)
+                self.demo_banner.deleteLater()
+                self.demo_banner = None
+                QMessageBox.information(
+                    self,
+                    "Lisans Aktif",
+                    "Lisansınız başarıyla aktifleştirildi!\n"
+                    "Tüm özelliklere sınırsız erişiminiz var."
+                )
 
     def _update_assignment_checkbox_state(self) -> None:
         self.dosyalar_tab.only_own_records = self.only_own_records
@@ -7572,7 +7650,7 @@ class MainWindow(QMainWindow):
             self._finance_widths_loaded = True
             return
 
-        settings = QSettings("MyCompany", "LexTakip")
+        settings = QSettings("MyCompany", "TakibiEsasi")
         stored = settings.value("finance/col_widths")
         widths: list[int] = []
         if isinstance(stored, (list, tuple)):
@@ -7611,7 +7689,7 @@ class MainWindow(QMainWindow):
             return
 
         widths = [header.sectionSize(col) for col in range(header.count())]
-        settings = QSettings("MyCompany", "LexTakip")
+        settings = QSettings("MyCompany", "TakibiEsasi")
         settings.setValue("finance/col_widths", widths)
         settings.sync()
 
@@ -7624,7 +7702,7 @@ class MainWindow(QMainWindow):
             return
         try:
             widths = [header.sectionSize(col) for col in range(header.count())]
-            settings = QSettings("MyCompany", "LexTakip")
+            settings = QSettings("MyCompany", "TakibiEsasi")
             settings.setValue("dosyalar/col_widths", widths)
             settings.sync()
         except Exception:
@@ -7663,5 +7741,14 @@ class MainWindow(QMainWindow):
             if self.finance_user_filter_combo is not None:
                 self.populate_finance_user_filter()
             self.refresh_table()
+
+    def open_about(self):
+        """Hakkinda penceresini acar"""
+        try:
+            from app.ui_about import AboutDialog
+        except ModuleNotFoundError:
+            from ui_about import AboutDialog
+        dialog = AboutDialog(self)
+        dialog.exec()
 
 # END OF PATCH

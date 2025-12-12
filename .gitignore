@@ -1,0 +1,60 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+*.manifest
+*.spec.bak
+
+# PyInstaller
+*.exe
+*.dll
+
+# Virtual environments
+venv/
+ENV/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local settings
+*.local
+.env
+
+# Database (kullanıcı verileri)
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+
+# License files (local)
+license.json
+agreements.json
+
+# Backup files
+backups/
+*.bak
+
+# Vekaletler (kullanıcı dosyaları)
+vekaletler/
+
+# Test outputs
+.pytest_cache/
+htmlcov/
+.coverage

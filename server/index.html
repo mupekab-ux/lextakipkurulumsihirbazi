@@ -1,0 +1,2031 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="TakibiEsasi - Avukatlar ve hukuk büroları için profesyonel hukuki takip yazılımı. Dava takibi, icra takibi ve tüm hukuki süreçlerinizi tek uygulamadan yönetin.">
+    <meta name="keywords" content="avukat yazılımı, dava takip, icra takip, hukuk bürosu, vekalet yönetimi, hukuki takip">
+    <meta property="og:title" content="TakibiEsasi - Hukuki Takip Yazılımı">
+    <meta property="og:description" content="Dava takibi, icra takibi ve tüm hukuki süreçlerinizi tek masaüstü uygulamasından profesyonelce yönetin.">
+    <meta property="og:type" content="website">
+    <title>TakibiEsasi - Hukuki Takip Yazılımı</title>
+
+    <!-- Google Analytics - ID güncellenecek -->
+    <!--
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-XXXXXXXXXX');
+    </script>
+    -->
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="apple-touch-icon" href="/favicon.svg">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=Instrument+Serif&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- AOS Animation -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+
+    <style>
+        :root {
+            /* Gold/Amber Gradient */
+            --gold-light: #FBBF24;
+            --gold-medium: #F59E0B;
+            --gold-dark: #D97706;
+            --gold-darker: #B45309;
+
+            /* Dark Backgrounds */
+            --bg-black: #0A0A0F;
+            --bg-dark: #121218;
+            --bg-panel: #18181F;
+            --bg-card: #1A1A24;
+
+            /* Text Colors */
+            --text-white: #FFFFFF;
+            --text-gray: #888888;
+            --text-muted: #555555;
+
+            /* Accents */
+            --success: #10B981;
+            --info: #3B82F6;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg-black);
+            color: var(--text-white);
+            line-height: 1.6;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ==================== ANIMATED BACKGROUND ==================== */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .bg-gradient {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background:
+                radial-gradient(ellipse 80% 50% at 50% -20%, rgba(251, 191, 36, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse 60% 40% at 90% 80%, rgba(217, 119, 6, 0.1) 0%, transparent 50%),
+                radial-gradient(ellipse 60% 40% at 10% 60%, rgba(245, 158, 11, 0.08) 0%, transparent 50%),
+                linear-gradient(180deg, var(--bg-black) 0%, var(--bg-dark) 50%, var(--bg-black) 100%);
+        }
+
+        .floating-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(60px);
+            animation: float 20s ease-in-out infinite;
+            opacity: 0.4;
+        }
+
+        .orb-1 {
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(251, 191, 36, 0.3) 0%, transparent 70%);
+            top: -100px;
+            right: -100px;
+            animation-delay: 0s;
+        }
+
+        .orb-2 {
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(217, 119, 6, 0.25) 0%, transparent 70%);
+            bottom: 20%;
+            left: -100px;
+            animation-delay: -7s;
+            animation-duration: 25s;
+        }
+
+        .orb-3 {
+            width: 250px;
+            height: 250px;
+            background: radial-gradient(circle, rgba(245, 158, 11, 0.2) 0%, transparent 70%);
+            top: 50%;
+            right: 10%;
+            animation-delay: -14s;
+            animation-duration: 22s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            25% { transform: translate(30px, -30px) scale(1.05); }
+            50% { transform: translate(-20px, 20px) scale(0.95); }
+            75% { transform: translate(20px, 10px) scale(1.02); }
+        }
+
+        /* Grid pattern */
+        .bg-grid {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image:
+                linear-gradient(rgba(251, 191, 36, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(251, 191, 36, 0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+            mask-image: radial-gradient(ellipse 80% 50% at 50% 0%, black 0%, transparent 70%);
+            -webkit-mask-image: radial-gradient(ellipse 80% 50% at 50% 0%, black 0%, transparent 70%);
+        }
+
+        /* Sparkles */
+        .sparkle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: var(--gold-light);
+            border-radius: 50%;
+            animation: sparkle 3s ease-in-out infinite;
+            box-shadow: 0 0 10px var(--gold-light), 0 0 20px var(--gold-medium);
+        }
+
+        @keyframes sparkle {
+            0%, 100% { opacity: 0; transform: scale(0); }
+            50% { opacity: 1; transform: scale(1); }
+        }
+
+        .sparkle:nth-child(1) { top: 15%; left: 20%; animation-delay: 0s; }
+        .sparkle:nth-child(2) { top: 25%; left: 80%; animation-delay: 0.5s; }
+        .sparkle:nth-child(3) { top: 45%; left: 10%; animation-delay: 1s; }
+        .sparkle:nth-child(4) { top: 60%; left: 70%; animation-delay: 1.5s; }
+        .sparkle:nth-child(5) { top: 80%; left: 30%; animation-delay: 2s; }
+        .sparkle:nth-child(6) { top: 35%; left: 50%; animation-delay: 2.5s; }
+        .sparkle:nth-child(7) { top: 70%; left: 85%; animation-delay: 0.3s; }
+        .sparkle:nth-child(8) { top: 10%; left: 60%; animation-delay: 1.2s; }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Sora', sans-serif;
+            font-weight: 600;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* ==================== HEADER ==================== */
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            padding: 16px 0;
+            transition: all 0.3s ease;
+        }
+
+        header.scrolled {
+            background: rgba(10, 10, 15, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        header .container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text-white);
+        }
+
+        .logo-icon {
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-icon svg {
+            width: 44px;
+            height: 44px;
+        }
+
+        .logo-text {
+            font-family: 'Sora', sans-serif;
+            font-weight: 600;
+            font-size: 22px;
+        }
+
+        nav {
+            display: flex;
+            align-items: center;
+            gap: 36px;
+        }
+
+        nav a {
+            color: var(--text-gray);
+            text-decoration: none;
+            font-size: 15px;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        nav a:hover {
+            color: var(--text-white);
+        }
+
+        .header-buttons {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-white);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-ghost:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold-dark) 100%);
+            color: var(--bg-black);
+            box-shadow:
+                0 8px 32px rgba(245, 158, 11, 0.3),
+                0 0 20px rgba(251, 191, 36, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn-primary:hover::before {
+            left: 100%;
+        }
+
+        .btn-primary:hover {
+            box-shadow:
+                0 16px 50px rgba(245, 158, 11, 0.5),
+                0 0 40px rgba(251, 191, 36, 0.4);
+            transform: translateY(-3px) scale(1.02);
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--gold-medium);
+            border: 2px solid var(--gold-medium);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-outline::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 0;
+            height: 100%;
+            background: rgba(245, 158, 11, 0.15);
+            transition: width 0.3s ease;
+            z-index: -1;
+        }
+
+        .btn-outline:hover::before {
+            width: 100%;
+        }
+
+        .btn-outline:hover {
+            border-color: var(--gold-light);
+            color: var(--gold-light);
+            box-shadow: 0 0 20px rgba(251, 191, 36, 0.2);
+        }
+
+        .btn-demo {
+            background: transparent;
+            border: 2px solid var(--gold-light);
+            color: var(--gold-light);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-demo::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 0;
+            height: 100%;
+            background: rgba(251, 191, 36, 0.15);
+            transition: width 0.3s ease;
+            z-index: -1;
+        }
+
+        .btn-demo:hover::before {
+            width: 100%;
+        }
+
+        .btn-demo:hover {
+            box-shadow: 0 0 25px rgba(251, 191, 36, 0.3);
+            transform: translateY(-3px);
+        }
+
+        .nav-demo {
+            color: var(--gold-light) !important;
+            font-weight: 600;
+        }
+
+        .hero-note {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            flex-wrap: wrap;
+            margin-top: 25px;
+            font-size: 14px;
+            color: var(--text-gray);
+        }
+
+        .hero-note span {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .hero-note i {
+            color: #22C55E;
+        }
+
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--text-white);
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        /* ==================== HERO ==================== */
+        .hero {
+            padding: 160px 0 100px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -200px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 1000px;
+            height: 1000px;
+            background: radial-gradient(circle, rgba(245, 158, 11, 0.1) 0%, transparent 60%);
+            pointer-events: none;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 50px;
+            font-size: 14px;
+            color: var(--gold-light);
+            margin-bottom: 28px;
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% {
+                box-shadow: 0 0 20px rgba(251, 191, 36, 0.2);
+            }
+            50% {
+                box-shadow: 0 0 30px rgba(251, 191, 36, 0.4);
+            }
+        }
+
+        .hero h1 {
+            font-size: clamp(40px, 6vw, 68px);
+            font-weight: 700;
+            line-height: 1.1;
+            margin-bottom: 24px;
+            background: linear-gradient(135deg, var(--text-white) 0%, var(--text-gray) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero h1 span {
+            background: linear-gradient(90deg, var(--gold-light), var(--gold-dark), var(--gold-light));
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradient-shift 3s ease infinite;
+        }
+
+        @keyframes gradient-shift {
+            0% { background-position: 0% center; }
+            50% { background-position: 100% center; }
+            100% { background-position: 0% center; }
+        }
+
+        .hero p {
+            font-size: 19px;
+            color: var(--text-gray);
+            max-width: 640px;
+            margin: 0 auto 44px;
+            line-height: 1.7;
+        }
+
+        .hero-buttons {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 70px;
+        }
+
+        .hero-image {
+            position: relative;
+            max-width: 950px;
+            margin: 0 auto 70px;
+        }
+
+        .hero-image img {
+            width: 100%;
+            border-radius: 20px;
+            box-shadow: 0 50px 120px rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .hero-image::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.4) 0%, transparent 40%);
+            border-radius: 22px;
+            z-index: -1;
+        }
+
+        .hero-stats {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 80px;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-family: 'Sora', sans-serif;
+            font-size: 48px;
+            font-weight: 700;
+            color: var(--gold-light);
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 15px;
+            color: var(--text-gray);
+            margin-top: 4px;
+        }
+
+        /* ==================== FEATURES ==================== */
+        .features {
+            padding: 120px 0;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 70px;
+        }
+
+        .section-subtitle {
+            font-size: 14px;
+            color: var(--gold-medium);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-bottom: 16px;
+            font-weight: 600;
+        }
+
+        .section-title {
+            font-size: clamp(32px, 4vw, 48px);
+            margin-bottom: 20px;
+        }
+
+        .section-desc {
+            font-size: 17px;
+            color: var(--text-gray);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 28px;
+        }
+
+        .feature-card {
+            background: linear-gradient(145deg, var(--bg-panel) 0%, var(--bg-card) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 20px;
+            padding: 36px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent 0%, var(--gold-light) 50%, transparent 100%);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .feature-card::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(251, 191, 36, 0.08) 0%, transparent 50%);
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            pointer-events: none;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-12px) scale(1.02);
+            box-shadow:
+                0 30px 80px rgba(0, 0, 0, 0.5),
+                0 0 40px rgba(251, 191, 36, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            border-color: rgba(251, 191, 36, 0.3);
+        }
+
+        .feature-card:hover::before {
+            opacity: 1;
+        }
+
+        .feature-card:hover::after {
+            opacity: 1;
+        }
+
+        .feature-icon {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.2) 0%, rgba(217, 119, 6, 0.15) 100%);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
+            font-size: 28px;
+            color: var(--gold-light);
+            transition: all 0.4s ease;
+            box-shadow: 0 4px 20px rgba(251, 191, 36, 0.15);
+        }
+
+        .feature-card:hover .feature-icon {
+            transform: scale(1.1) rotate(5deg);
+            box-shadow: 0 8px 30px rgba(251, 191, 36, 0.3);
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.3) 0%, rgba(217, 119, 6, 0.25) 100%);
+        }
+
+        .feature-card h3 {
+            font-size: 22px;
+            margin-bottom: 14px;
+        }
+
+        .feature-card p {
+            font-size: 15px;
+            color: var(--text-gray);
+            line-height: 1.7;
+        }
+
+        /* ==================== SCREENSHOTS ==================== */
+        .screenshots {
+            padding: 120px 0;
+            background: linear-gradient(180deg, transparent 0%, rgba(18, 18, 24, 0.6) 50%, transparent 100%);
+        }
+
+        .screenshots-tabs {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 50px;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            padding: 14px 28px;
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50px;
+            color: var(--text-gray);
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .tab-btn:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold-dark) 100%);
+            color: var(--bg-black);
+            border-color: transparent;
+        }
+
+        .screenshot-display {
+            position: relative;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .screenshot-display img {
+            width: 100%;
+            border-radius: 20px;
+            box-shadow: 0 50px 120px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        /* ==================== PRICING ==================== */
+        .pricing {
+            padding: 120px 0;
+        }
+
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 28px;
+            align-items: start;
+        }
+
+        .pricing-card {
+            background: linear-gradient(145deg, var(--bg-panel) 0%, var(--bg-card) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 24px;
+            padding: 44px 36px;
+            text-align: center;
+            transition: all 0.4s ease;
+            position: relative;
+        }
+
+        .pricing-card.popular {
+            border-color: var(--gold-medium);
+            transform: scale(1.05);
+            box-shadow: 0 30px 80px rgba(245, 158, 11, 0.2);
+        }
+
+        .pricing-badge {
+            position: absolute;
+            top: -14px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold-dark) 100%);
+            color: var(--bg-black);
+            padding: 8px 24px;
+            border-radius: 50px;
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .pricing-card h3 {
+            font-size: 26px;
+            margin-bottom: 8px;
+        }
+
+        .pricing-card .price {
+            font-family: 'Sora', sans-serif;
+            font-size: 52px;
+            font-weight: 700;
+            color: var(--gold-light);
+            margin: 28px 0;
+        }
+
+        .pricing-card .price span {
+            font-size: 18px;
+            color: var(--text-gray);
+            font-weight: 400;
+        }
+
+        .pricing-features {
+            list-style: none;
+            margin: 36px 0;
+            text-align: left;
+        }
+
+        .pricing-features li {
+            padding: 14px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            font-size: 15px;
+            color: var(--text-gray);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .pricing-features li:last-child {
+            border-bottom: none;
+        }
+
+        .pricing-features li i {
+            color: var(--success);
+            font-size: 16px;
+        }
+
+        .pricing-card .btn {
+            width: 100%;
+        }
+
+        .coming-soon-badge {
+            position: absolute;
+            top: -14px;
+            right: 20px;
+            background: linear-gradient(135deg, #FBBF24, #D97706);
+            color: #0A0A0F;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .pricing-card.coming-soon {
+            opacity: 0.85;
+        }
+
+        .pricing-card.coming-soon .btn {
+            pointer-events: none;
+            opacity: 0.6;
+        }
+
+        /* ==================== TESTIMONIALS ==================== */
+        .testimonials {
+            padding: 120px 0;
+            background: linear-gradient(180deg, transparent 0%, rgba(18, 18, 24, 0.6) 50%, transparent 100%);
+        }
+
+        .testimonials-slider {
+            max-width: 850px;
+            margin: 0 auto;
+        }
+
+        .testimonial-card {
+            background: linear-gradient(145deg, var(--bg-panel) 0%, var(--bg-card) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 24px;
+            padding: 56px;
+            text-align: center;
+        }
+
+        .testimonial-quote {
+            font-size: 64px;
+            color: var(--gold-light);
+            opacity: 0.3;
+            line-height: 1;
+            margin-bottom: 20px;
+        }
+
+        .testimonial-text {
+            font-family: 'Instrument Serif', serif;
+            font-size: 26px;
+            font-style: italic;
+            line-height: 1.6;
+            margin-bottom: 36px;
+            color: var(--text-white);
+        }
+
+        .testimonial-author {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .testimonial-avatar {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold-dark) 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Sora', sans-serif;
+            font-weight: 700;
+            font-size: 20px;
+            color: var(--bg-black);
+        }
+
+        .testimonial-info h4 {
+            font-size: 20px;
+            margin-bottom: 6px;
+        }
+
+        .testimonial-info p {
+            font-size: 15px;
+            color: var(--text-gray);
+        }
+
+        .testimonial-rating {
+            color: var(--gold-light);
+            margin-top: 28px;
+            font-size: 18px;
+        }
+
+        .testimonial-rating i {
+            margin: 0 2px;
+        }
+
+        /* ==================== FAQ ==================== */
+        .faq {
+            padding: 120px 0;
+        }
+
+        .faq-list {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .faq-item {
+            background: linear-gradient(145deg, var(--bg-panel) 0%, var(--bg-card) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 16px;
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+
+        .faq-question {
+            width: 100%;
+            padding: 24px 28px;
+            background: transparent;
+            border: none;
+            color: var(--text-white);
+            font-size: 17px;
+            font-weight: 600;
+            text-align: left;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .faq-question:hover {
+            color: var(--gold-light);
+        }
+
+        .faq-question i {
+            transition: transform 0.3s ease;
+            color: var(--gold-light);
+        }
+
+        .faq-item.active .faq-question i {
+            transform: rotate(180deg);
+        }
+
+        .faq-answer {
+            padding: 0 28px;
+            max-height: 0;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .faq-item.active .faq-answer {
+            padding: 0 28px 24px;
+            max-height: 500px;
+        }
+
+        .faq-answer p {
+            font-size: 16px;
+            color: var(--text-gray);
+            line-height: 1.7;
+        }
+
+        /* ==================== CONTACT ==================== */
+        .contact {
+            padding: 120px 0;
+            background: linear-gradient(180deg, transparent 0%, rgba(18, 18, 24, 0.6) 50%, transparent 100%);
+        }
+
+        .contact-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr;
+            gap: 70px;
+        }
+
+        .contact-info h3 {
+            font-size: 32px;
+            margin-bottom: 20px;
+        }
+
+        .contact-info > p {
+            font-size: 16px;
+            color: var(--text-gray);
+            margin-bottom: 40px;
+            line-height: 1.7;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .contact-item-icon {
+            width: 56px;
+            height: 56px;
+            background: rgba(245, 158, 11, 0.1);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--gold-light);
+            font-size: 20px;
+        }
+
+        .contact-item-text h4 {
+            font-size: 14px;
+            color: var(--text-gray);
+            font-weight: 400;
+            margin-bottom: 4px;
+        }
+
+        .contact-item-text p {
+            font-size: 17px;
+            color: var(--text-white);
+        }
+
+        .contact-form {
+            background: linear-gradient(145deg, var(--bg-panel) 0%, var(--bg-card) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 24px;
+            padding: 48px;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            color: var(--text-gray);
+            margin-bottom: 10px;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 16px 20px;
+            background: var(--bg-black);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: var(--text-white);
+            font-size: 16px;
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--gold-medium);
+            box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.1);
+        }
+
+        .form-group textarea {
+            min-height: 140px;
+            resize: vertical;
+        }
+
+        /* ==================== FOOTER ==================== */
+        footer {
+            padding: 100px 0 50px;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 60px;
+            margin-bottom: 70px;
+        }
+
+        .footer-brand p {
+            font-size: 15px;
+            color: var(--text-gray);
+            margin-top: 24px;
+            line-height: 1.8;
+        }
+
+        .footer-column h4 {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 24px;
+            color: var(--text-white);
+        }
+
+        .footer-column ul {
+            list-style: none;
+        }
+
+        .footer-column ul li {
+            margin-bottom: 14px;
+        }
+
+        .footer-column ul li a {
+            color: var(--text-gray);
+            text-decoration: none;
+            font-size: 15px;
+            transition: color 0.3s ease;
+        }
+
+        .footer-column ul li a:hover {
+            color: var(--gold-light);
+        }
+
+        .footer-bottom {
+            padding-top: 40px;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .footer-bottom p {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        .footer-social {
+            display: flex;
+            gap: 12px;
+        }
+
+        .footer-social a {
+            width: 44px;
+            height: 44px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-gray);
+            transition: all 0.3s ease;
+        }
+
+        .footer-social a:hover {
+            background: var(--gold-medium);
+            color: var(--bg-black);
+        }
+
+        /* ==================== RESPONSIVE ==================== */
+        @media (max-width: 1024px) {
+            .features-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .pricing-grid {
+                grid-template-columns: 1fr;
+                max-width: 420px;
+                margin: 0 auto;
+            }
+
+            .pricing-card.popular {
+                transform: none;
+            }
+
+            .contact-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .footer-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            nav, .header-buttons {
+                display: none;
+            }
+
+            .mobile-menu-btn {
+                display: block;
+            }
+
+            .hero {
+                padding: 140px 0 80px;
+            }
+
+            .hero h1 {
+                font-size: 36px;
+            }
+
+            .hero p {
+                font-size: 16px;
+            }
+
+            .hero-buttons {
+                flex-direction: column;
+            }
+
+            .hero-stats {
+                gap: 40px;
+            }
+
+            .stat-number {
+                font-size: 36px;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .testimonial-text {
+                font-size: 20px;
+            }
+
+            .testimonial-card {
+                padding: 36px 24px;
+            }
+
+            .footer-grid {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+
+            .footer-bottom {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .section-header {
+                margin-bottom: 50px;
+            }
+
+            .features, .screenshots, .pricing, .testimonials, .faq, .contact {
+                padding: 80px 0;
+            }
+        }
+
+        /* Mobile Navigation */
+        .mobile-nav {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg-black);
+            z-index: 9999;
+            padding: 100px 24px 40px;
+        }
+
+        .mobile-nav.active {
+            display: block;
+        }
+
+        .mobile-nav-close {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            background: none;
+            border: none;
+            color: var(--text-white);
+            font-size: 28px;
+            cursor: pointer;
+        }
+
+        .mobile-nav a {
+            display: block;
+            color: var(--text-white);
+            font-size: 24px;
+            font-weight: 600;
+            text-decoration: none;
+            padding: 16px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .mobile-nav .btn {
+            width: 100%;
+            margin-top: 24px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="bg-animation">
+        <div class="bg-gradient"></div>
+        <div class="bg-grid"></div>
+        <div class="floating-orb orb-1"></div>
+        <div class="floating-orb orb-2"></div>
+        <div class="floating-orb orb-3"></div>
+        <div class="sparkle"></div>
+        <div class="sparkle"></div>
+        <div class="sparkle"></div>
+        <div class="sparkle"></div>
+        <div class="sparkle"></div>
+        <div class="sparkle"></div>
+        <div class="sparkle"></div>
+        <div class="sparkle"></div>
+    </div>
+
+    <!-- Header -->
+    <header id="header">
+        <div class="container">
+            <a href="#" class="logo">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Hexagon -->
+                        <defs>
+                            <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#FBBF24"/>
+                                <stop offset="100%" style="stop-color:#D97706"/>
+                            </linearGradient>
+                        </defs>
+                        <path d="M30 2L54.5 16V44L30 58L5.5 44V16L30 2Z" fill="url(#goldGradient)"/>
+                        <!-- Scales of Justice -->
+                        <g fill="#0A0A0F">
+                            <!-- Center pole -->
+                            <rect x="28" y="16" width="4" height="26" rx="1"/>
+                            <!-- Top beam -->
+                            <rect x="14" y="18" width="32" height="3" rx="1"/>
+                            <!-- Left scale pan -->
+                            <path d="M14 22L10 34H22L18 22H14Z"/>
+                            <ellipse cx="16" cy="35" rx="7" ry="2"/>
+                            <!-- Right scale pan -->
+                            <path d="M42 22L38 32H50L46 22H42Z"/>
+                            <ellipse cx="44" cy="33" rx="7" ry="2"/>
+                            <!-- Base -->
+                            <path d="M22 42H38L36 44H24L22 42Z"/>
+                            <ellipse cx="30" cy="45" rx="10" ry="2"/>
+                        </g>
+                        <!-- TES text -->
+                        <text x="30" y="52" text-anchor="middle" font-family="Sora, sans-serif" font-size="6" font-weight="700" fill="#0A0A0F">TES</text>
+                    </svg>
+                </div>
+                <span class="logo-text">TakibiEsasi</span>
+            </a>
+
+            <nav>
+                <a href="#features">Özellikler</a>
+                <a href="#screenshots">Ekran Görüntüleri</a>
+                <a href="#pricing">Fiyatlandırma</a>
+                <a href="/demo" class="nav-demo">Demo</a>
+                <a href="#faq">SSS</a>
+                <a href="#contact">İletişim</a>
+            </nav>
+
+            <div class="header-buttons">
+                <a href="/giris" class="btn btn-ghost">Giriş</a>
+                <a href="/kayit" class="btn btn-primary">
+                    <i class="fas fa-user-plus"></i> Kayıt Ol
+                </a>
+            </div>
+
+            <button class="mobile-menu-btn" id="mobileMenuBtn">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Mobile Navigation -->
+    <div class="mobile-nav" id="mobileNav">
+        <button class="mobile-nav-close" id="mobileNavClose">
+            <i class="fas fa-times"></i>
+        </button>
+        <a href="#features" class="mobile-nav-link">Özellikler</a>
+        <a href="#screenshots" class="mobile-nav-link">Ekran Görüntüleri</a>
+        <a href="#pricing" class="mobile-nav-link">Fiyatlandırma</a>
+        <a href="/demo" class="mobile-nav-link" style="color: #FBBF24;">14 Gün Demo</a>
+        <a href="#faq" class="mobile-nav-link">SSS</a>
+        <a href="#contact" class="mobile-nav-link">İletişim</a>
+        <a href="/kayit" class="btn btn-primary">
+            <i class="fas fa-user-plus"></i> Kayıt Ol
+        </a>
+    </div>
+
+    <!-- Hero -->
+    <section class="hero">
+        <div class="container">
+            <div data-aos="fade-up">
+                <div class="hero-badge">
+                    <i class="fas fa-bolt"></i>
+                    Yeni Sürüm Yayında
+                </div>
+
+                <h1>Dava ve İcra Takibinde<br><span>Profesyonel Çözüm</span></h1>
+
+                <p>Dava takibi, icra takibi ve vekalet yönetimi - tüm hukuki süreçlerinizi tek masaüstü uygulamasından yönetin. Avukatlar ve hukuk büroları için özel olarak geliştirildi.</p>
+
+                <div class="hero-buttons">
+                    <a href="/kayit" class="btn btn-demo">
+                        <i class="fas fa-rocket"></i> 14 Gün Ücretsiz Dene
+                    </a>
+                    <a href="/giris" class="btn btn-primary">
+                        <i class="fas fa-sign-in-alt"></i> Giriş Yap
+                    </a>
+                </div>
+                <p class="hero-note">
+                    <span><i class="fas fa-check"></i> Kredi kartı gerekmez</span>
+                    <span><i class="fas fa-check"></i> Tüm özellikler aktif</span>
+                    <span><i class="fas fa-check"></i> Anında kullanım</span>
+                </p>
+            </div>
+
+            <div class="hero-image" data-aos="fade-up" data-aos-delay="200">
+                <img src="https://placehold.co/950x550/1A1A24/FBBF24?text=TakibiEsasi+Dashboard" alt="TakibiEsasi Dashboard">
+            </div>
+
+            <div class="hero-stats" data-aos="fade-up" data-aos-delay="400">
+                <div class="stat-item">
+                    <span class="stat-number" data-count="1000">0</span>
+                    <span class="stat-label">Aktif Kullanıcı</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" data-count="50000">0</span>
+                    <span class="stat-label">Takip Edilen Dava</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" data-count="99">0</span>
+                    <span class="stat-label">% Memnuniyet</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features -->
+    <section class="features" id="features">
+        <div class="container">
+            <div class="section-header" data-aos="fade-up">
+                <p class="section-subtitle">Özellikler</p>
+                <h2 class="section-title">Güçlü Özellikler</h2>
+                <p class="section-desc">İşinizi kolaylaştıran, zamanınızı değerli kılan profesyonel özellikler</p>
+            </div>
+
+            <div class="features-grid">
+                <div class="feature-card" data-aos="fade-up" data-aos-delay="0">
+                    <div class="feature-icon">
+                        <i class="fas fa-gavel"></i>
+                    </div>
+                    <h3>Dava Takibi</h3>
+                    <p>Hukuk ve ceza davalarınızı detaylı şekilde takip edin. Esas numarası, mahkeme bilgisi, taraflar ve duruşma süreçleri tek ekranda.</p>
+                </div>
+
+                <div class="feature-card" data-aos="fade-up" data-aos-delay="100">
+                    <div class="feature-icon">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                    </div>
+                    <h3>İcra Takibi</h3>
+                    <p>İcra dosyalarınızı profesyonelce yönetin. Borçlu bilgileri, takip aşamaları ve tahsilat süreçlerini anlık izleyin.</p>
+                </div>
+
+                <div class="feature-card" data-aos="fade-up" data-aos-delay="200">
+                    <div class="feature-icon">
+                        <i class="fas fa-chart-pie"></i>
+                    </div>
+                    <h3>Raporlama ve İstatistikler</h3>
+                    <p>Dava ve icra dosyalarınızın detaylı raporlarını alın. Grafik ve istatistiklerle iş yükünüzü analiz edin.</p>
+                </div>
+
+                <div class="feature-card" data-aos="fade-up" data-aos-delay="300">
+                    <div class="feature-icon">
+                        <i class="fas fa-file-signature"></i>
+                    </div>
+                    <h3>Vekalet Yönetimi</h3>
+                    <p>Vekaletnamelerinizi dijital ortamda saklayın. Vekalet türü, tarih ve ilişkili davaları kolayca takip edin.</p>
+                </div>
+
+                <div class="feature-card" data-aos="fade-up" data-aos-delay="400">
+                    <div class="feature-icon">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <h3>Takvim ve Hatırlatıcılar</h3>
+                    <p>Duruşma tarihleri, randevular ve önemli süreleri takvimde görün. Otomatik hatırlatıcılar ile hiçbir şeyi kaçırmayın.</p>
+                </div>
+
+                <div class="feature-card" data-aos="fade-up" data-aos-delay="500">
+                    <div class="feature-icon">
+                        <i class="fas fa-sync-alt"></i>
+                    </div>
+                    <h3>Bilgisayar Transferi</h3>
+                    <p>Tüm verilerinizi tek tıkla yeni bilgisayarınıza taşıyın. Davalar, müvekiller ve ayarlarınız güvenle aktarılır.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Screenshots -->
+    <section class="screenshots" id="screenshots">
+        <div class="container">
+            <div class="section-header" data-aos="fade-up">
+                <p class="section-subtitle">Ekran Görüntüleri</p>
+                <h2 class="section-title">Uygulama Görüntüleri</h2>
+                <p class="section-desc">Modern ve kullanıcı dostu arayüz tasarımı</p>
+            </div>
+
+            <div class="screenshots-tabs" data-aos="fade-up" data-aos-delay="100">
+                <button class="tab-btn active" data-tab="dashboard">Ana Panel</button>
+                <button class="tab-btn" data-tab="cases">Davalar</button>
+                <button class="tab-btn" data-tab="icra">İcra Dosyaları</button>
+                <button class="tab-btn" data-tab="vekaletler">Vekaletler</button>
+                <button class="tab-btn" data-tab="takvim">Takvim</button>
+            </div>
+
+            <div class="screenshot-display" data-aos="fade-up" data-aos-delay="200">
+                <img id="screenshotImg" src="https://placehold.co/1000x600/1A1A24/FBBF24?text=Dashboard+Ekrani" alt="TakibiEsasi Dashboard">
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing -->
+    <section class="pricing" id="pricing">
+        <div class="container">
+            <div class="section-header" data-aos="fade-up">
+                <p class="section-subtitle">Fiyatlandırma</p>
+                <h2 class="section-title">Uygun Fiyatlar</h2>
+                <p class="section-desc">İhtiyacınıza uygun paketi seçin</p>
+            </div>
+
+            <div class="pricing-grid" id="pricing-grid">
+                <div class="pricing-card" data-aos="fade-up" data-aos-delay="0">
+                    <h3>Başlangıç</h3>
+                    <div class="price">₺99<span>/ay</span></div>
+                    <ul class="pricing-features">
+                        <li><i class="fas fa-check"></i> 5 Dava Takibi</li>
+                        <li><i class="fas fa-check"></i> 1 Kullanıcı</li>
+                        <li><i class="fas fa-check"></i> Temel Özellikler</li>
+                        <li><i class="fas fa-check"></i> E-posta Desteği</li>
+                    </ul>
+                    <a href="/kayit" class="btn btn-outline">Ücretsiz Dene</a>
+                </div>
+
+                <div class="pricing-card popular" data-aos="fade-up" data-aos-delay="100">
+                    <span class="pricing-badge">Önerilen</span>
+                    <h3>Profesyonel</h3>
+                    <div class="price">₺199<span>/ay</span></div>
+                    <ul class="pricing-features">
+                        <li><i class="fas fa-check"></i> Sınırsız Dava</li>
+                        <li><i class="fas fa-check"></i> 5 Kullanıcı</li>
+                        <li><i class="fas fa-check"></i> Tüm Özellikler</li>
+                        <li><i class="fas fa-check"></i> Öncelikli Destek</li>
+                    </ul>
+                    <a href="/satin-al" class="btn btn-primary">Satın Al</a>
+                </div>
+
+                <div class="pricing-card coming-soon" data-aos="fade-up" data-aos-delay="200">
+                    <span class="coming-soon-badge">Yakında</span>
+                    <h3>Büro</h3>
+                    <div class="price" style="font-size: 32px;">Çok Yakında</div>
+                    <ul class="pricing-features">
+                        <li><i class="fas fa-check"></i> Çoklu Avukat Desteği</li>
+                        <li><i class="fas fa-check"></i> Merkezi Yönetim Paneli</li>
+                        <li><i class="fas fa-check"></i> Gelişmiş Raporlama</li>
+                        <li><i class="fas fa-check"></i> Özel Destek Hattı</li>
+                    </ul>
+                    <button class="btn btn-outline" disabled style="opacity: 0.6; cursor: not-allowed;">Yakında</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="testimonials" id="testimonials">
+        <div class="container">
+            <div class="section-header" data-aos="fade-up">
+                <p class="section-subtitle">Referanslar</p>
+                <h2 class="section-title">Müşterilerimiz Ne Diyor?</h2>
+            </div>
+
+            <div class="testimonials-slider" data-aos="fade-up" data-aos-delay="100">
+                <div class="testimonial-card" id="testimonial-card">
+                    <div class="testimonial-quote">"</div>
+                    <p class="testimonial-text">TakibiEsasi ile dava ve icra takibim çok kolaylaştı. Artık hiçbir duruşma tarihini kaçırmıyorum. Vekalet yönetimi de son derece pratik.</p>
+                    <div class="testimonial-author">
+                        <div class="testimonial-avatar">MY</div>
+                        <div class="testimonial-info">
+                            <h4>Av. Mehmet Yılmaz</h4>
+                            <p>Yılmaz Hukuk Bürosu</p>
+                        </div>
+                    </div>
+                    <div class="testimonial-rating">
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                        <i class="fas fa-star"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="faq" id="faq">
+        <div class="container">
+            <div class="section-header" data-aos="fade-up">
+                <p class="section-subtitle">SSS</p>
+                <h2 class="section-title">Sıkça Sorulan Sorular</h2>
+            </div>
+
+            <div class="faq-list" data-aos="fade-up" data-aos-delay="100" id="faq-list">
+                <div class="faq-item active">
+                    <button class="faq-question">
+                        Ücretsiz deneme süresi var mı?
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Evet, TakibiEsasi'yı 14 gün boyunca ücretsiz olarak deneyebilirsiniz. Deneme süresinde tüm özelliklere tam erişim sağlarsınız.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question">
+                        Verilerim güvende mi?
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Evet, verileriniz en yüksek güvenlik standartları ile korunmaktadır. SSL şifreleme, düzenli yedekleme ve KVKK uyumlu altyapı kullanıyoruz.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question">
+                        Mobil uygulama var mı?
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Şu anda masaüstü uygulamamız mevcut. Mobil uygulama geliştirme sürecindedir ve yakında kullanıma sunulacaktır.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question">
+                        Teknik destek nasıl alabilirim?
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>E-posta, telefon veya canlı destek üzerinden bize ulaşabilirsiniz. Profesyonel paket kullanıcıları öncelikli destek alır.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact -->
+    <section class="contact" id="contact">
+        <div class="container">
+            <div class="section-header" data-aos="fade-up">
+                <p class="section-subtitle">İletişim</p>
+                <h2 class="section-title">Bizimle İletişime Geçin</h2>
+            </div>
+
+            <div class="contact-grid">
+                <div class="contact-info" data-aos="fade-up" data-aos-delay="0">
+                    <h3>Sorularınız mı var?</h3>
+                    <p>Ürünümüz hakkında daha fazla bilgi almak veya demo talep etmek için bizimle iletişime geçin.</p>
+
+                    <div class="contact-item">
+                        <div class="contact-item-icon">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <div class="contact-item-text">
+                            <h4>E-posta</h4>
+                            <p>info@takibiesasi.com</p>
+                        </div>
+                    </div>
+
+                    <div class="contact-item">
+                        <div class="contact-item-icon">
+                            <i class="fas fa-phone"></i>
+                        </div>
+                        <div class="contact-item-text">
+                            <h4>Telefon</h4>
+                            <p>+90 212 000 00 00</p>
+                        </div>
+                    </div>
+
+                    <div class="contact-item">
+                        <div class="contact-item-icon">
+                            <i class="fas fa-map-marker-alt"></i>
+                        </div>
+                        <div class="contact-item-text">
+                            <h4>Adres</h4>
+                            <p>İstanbul, Türkiye</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="contact-form" data-aos="fade-up" data-aos-delay="100">
+                    <form id="contactForm">
+                        <div class="form-group">
+                            <label>Ad Soyad</label>
+                            <input type="text" name="name" required placeholder="Adınızı girin">
+                        </div>
+                        <div class="form-group">
+                            <label>E-posta</label>
+                            <input type="email" name="email" required placeholder="E-posta adresinizi girin">
+                        </div>
+                        <div class="form-group">
+                            <label>Mesajınız</label>
+                            <textarea name="message" required placeholder="Mesajınızı yazın"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width: 100%;">
+                            <i class="fas fa-paper-plane"></i> Gönder
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <a href="#" class="logo">
+                        <div class="logo-icon">
+                            <svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <defs>
+                                    <linearGradient id="goldGradient2" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" style="stop-color:#FBBF24"/>
+                                        <stop offset="100%" style="stop-color:#D97706"/>
+                                    </linearGradient>
+                                </defs>
+                                <path d="M30 2L54.5 16V44L30 58L5.5 44V16L30 2Z" fill="url(#goldGradient2)"/>
+                                <g fill="#0A0A0F">
+                                    <rect x="28" y="16" width="4" height="26" rx="1"/>
+                                    <rect x="14" y="18" width="32" height="3" rx="1"/>
+                                    <path d="M14 22L10 34H22L18 22H14Z"/>
+                                    <ellipse cx="16" cy="35" rx="7" ry="2"/>
+                                    <path d="M42 22L38 32H50L46 22H42Z"/>
+                                    <ellipse cx="44" cy="33" rx="7" ry="2"/>
+                                    <path d="M22 42H38L36 44H24L22 42Z"/>
+                                    <ellipse cx="30" cy="45" rx="10" ry="2"/>
+                                </g>
+                                <text x="30" y="52" text-anchor="middle" font-family="Sora, sans-serif" font-size="6" font-weight="700" fill="#0A0A0F">TES</text>
+                            </svg>
+                        </div>
+                        <span class="logo-text">TakibiEsasi</span>
+                    </a>
+                    <p>TakibiEsasi, avukatlar ve hukuk büroları için geliştirilmiş profesyonel masaüstü yazılımıdır. Dava takibi, icra takibi ve vekalet yönetimi - tüm ihtiyaçlarınız tek uygulamada.</p>
+                </div>
+
+                <div class="footer-column">
+                    <h4>Hızlı Linkler</h4>
+                    <ul>
+                        <li><a href="#features">Özellikler</a></li>
+                        <li><a href="#pricing">Fiyatlandırma</a></li>
+                        <li><a href="#faq">SSS</a></li>
+                        <li><a href="/download">İndir</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-column">
+                    <h4>Destek</h4>
+                    <ul>
+                        <li><a href="#">Dökümanlar</a></li>
+                        <li><a href="#">Video Rehber</a></li>
+                        <li><a href="#contact">Teknik Destek</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-column">
+                    <h4>Yasal</h4>
+                    <ul>
+                        <li><a href="/gizlilik">Gizlilik Politikası</a></li>
+                        <li><a href="/kullanim-sartlari">Kullanım Şartları</a></li>
+                        <li><a href="/kvkk">KVKK</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p>&copy; 2025 TakibiEsasi. Tüm hakları saklıdır.</p>
+                <!-- Sosyal medya linkleri - hesaplar açılınca güncellenecek -->
+                <div class="footer-social">
+                    <a href="#" title="Yakında" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+                    <a href="#" title="Yakında" aria-label="LinkedIn"><i class="fab fa-linkedin"></i></a>
+                    <a href="#" title="Yakında" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- AOS Animation -->
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+
+    <script>
+        const API_BASE = '';
+
+        // Initialize AOS
+        AOS.init({
+            duration: 800,
+            once: true,
+            offset: 100
+        });
+
+        // Header scroll effect
+        const header = document.getElementById('header');
+        window.addEventListener('scroll', () => {
+            header.classList.toggle('scrolled', window.scrollY > 50);
+        });
+
+        // Counter animation
+        function animateCounters() {
+            document.querySelectorAll('.stat-number').forEach(counter => {
+                const target = parseInt(counter.dataset.count);
+                const duration = 2000;
+                const step = target / (duration / 16);
+                let current = 0;
+
+                const updateCounter = () => {
+                    current += step;
+                    if (current < target) {
+                        counter.textContent = Math.floor(current).toLocaleString();
+                        requestAnimationFrame(updateCounter);
+                    } else {
+                        counter.textContent = target.toLocaleString() + (target === 99 ? '%' : '+');
+                    }
+                };
+                updateCounter();
+            });
+        }
+
+        // Trigger counter animation
+        const statsObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    animateCounters();
+                    statsObserver.disconnect();
+                }
+            });
+        }, { threshold: 0.5 });
+
+        const statsSection = document.querySelector('.hero-stats');
+        if (statsSection) statsObserver.observe(statsSection);
+
+        // Screenshot tabs
+        const screenshots = {
+            dashboard: 'https://placehold.co/1000x600/1A1A24/FBBF24?text=Ana+Panel',
+            cases: 'https://placehold.co/1000x600/1A1A24/FBBF24?text=Dava+Listesi',
+            icra: 'https://placehold.co/1000x600/1A1A24/FBBF24?text=Icra+Dosyalari',
+            vekaletler: 'https://placehold.co/1000x600/1A1A24/FBBF24?text=Vekaletler',
+            takvim: 'https://placehold.co/1000x600/1A1A24/FBBF24?text=Takvim'
+        };
+
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById('screenshotImg').src = screenshots[btn.dataset.tab];
+            });
+        });
+
+        // FAQ accordion
+        function initFaqAccordion() {
+            document.querySelectorAll('.faq-question').forEach(question => {
+                question.addEventListener('click', () => {
+                    const item = question.parentElement;
+                    const isActive = item.classList.contains('active');
+                    document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('active'));
+                    if (!isActive) item.classList.add('active');
+                });
+            });
+        }
+        initFaqAccordion();
+
+        // Contact form
+        document.getElementById('contactForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = {
+                name: formData.get('name'),
+                email: formData.get('email'),
+                message: formData.get('message')
+            };
+
+            try {
+                const response = await fetch(API_BASE + '/api/contact', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    alert('Mesajınız gönderildi. En kısa sürede size dönüş yapacağız.');
+                    e.target.reset();
+                } else {
+                    alert('Bir hata oluştu. Lütfen tekrar deneyin.');
+                }
+            } catch (error) {
+                alert('Bir hata oluştu. Lütfen tekrar deneyin.');
+            }
+        });
+
+        // Load dynamic content
+        async function loadPricing() {
+            try {
+                const response = await fetch(API_BASE + '/api/site/pricing');
+                if (response.ok) {
+                    const plans = await response.json();
+                    if (plans && plans.length > 0) {
+                        document.getElementById('pricing-grid').innerHTML = plans.map((plan, index) => {
+                            const features = plan.features ? plan.features.split('\n').filter(f => f.trim()) : [];
+                            const isComingSoon = plan.period === 'Yakında' || plan.price === 0;
+                            const cardClass = isComingSoon ? 'coming-soon' : (plan.is_popular ? 'popular' : '');
+                            const badge = isComingSoon ? '<span class="coming-soon-badge">Yakında</span>' : (plan.is_popular ? '<span class="pricing-badge">Önerilen</span>' : '');
+                            const priceDisplay = isComingSoon ? '<div class="price" style="font-size: 32px;">Çok Yakında</div>' : `<div class="price">₺${plan.price}<span>/${plan.period || 'ay'}</span></div>`;
+                            let buttonHtml;
+                            if (isComingSoon) {
+                                buttonHtml = '<button class="btn btn-outline" disabled style="opacity: 0.6; cursor: not-allowed;">Yakında</button>';
+                            } else if (plan.is_popular) {
+                                buttonHtml = `<a href="/satin-al" class="btn btn-primary">Satın Al</a>`;
+                            } else {
+                                buttonHtml = `<a href="/kayit" class="btn btn-outline">Ücretsiz Dene</a>`;
+                            }
+
+                            return `
+                                <div class="pricing-card ${cardClass}" data-aos="fade-up" data-aos-delay="${index * 100}">
+                                    ${badge}
+                                    <h3>${plan.name}</h3>
+                                    ${priceDisplay}
+                                    <ul class="pricing-features">
+                                        ${features.map(f => `<li><i class="fas fa-check"></i> ${f}</li>`).join('')}
+                                    </ul>
+                                    ${buttonHtml}
+                                </div>
+                            `;
+                        }).join('');
+                    }
+                }
+            } catch (e) { console.log('Pricing load error'); }
+        }
+
+        async function loadTestimonials() {
+            try {
+                const response = await fetch(API_BASE + '/api/site/testimonials');
+                if (response.ok) {
+                    const testimonials = await response.json();
+                    if (testimonials && testimonials.length > 0) {
+                        const t = testimonials[0];
+                        const initials = t.name.split(' ').map(n => n[0]).join('').toUpperCase();
+                        document.getElementById('testimonial-card').innerHTML = `
+                            <div class="testimonial-quote">"</div>
+                            <p class="testimonial-text">${t.content}</p>
+                            <div class="testimonial-author">
+                                <div class="testimonial-avatar">${initials}</div>
+                                <div class="testimonial-info">
+                                    <h4>${t.name}</h4>
+                                    <p>${t.title || ''}</p>
+                                </div>
+                            </div>
+                            <div class="testimonial-rating">
+                                ${'<i class="fas fa-star"></i>'.repeat(t.rating || 5)}
+                            </div>
+                        `;
+                    }
+                }
+            } catch (e) { console.log('Testimonials load error'); }
+        }
+
+        async function loadFAQ() {
+            try {
+                const response = await fetch(API_BASE + '/api/site/faq');
+                if (response.ok) {
+                    const faqs = await response.json();
+                    if (faqs && faqs.length > 0) {
+                        document.getElementById('faq-list').innerHTML = faqs.map((faq, index) => `
+                            <div class="faq-item ${index === 0 ? 'active' : ''}">
+                                <button class="faq-question">
+                                    ${faq.question}
+                                    <i class="fas fa-chevron-down"></i>
+                                </button>
+                                <div class="faq-answer">
+                                    <p>${faq.answer}</p>
+                                </div>
+                            </div>
+                        `).join('');
+                        initFaqAccordion();
+                    }
+                }
+            } catch (e) { console.log('FAQ load error'); }
+        }
+
+        // Load all
+        loadPricing();
+        loadTestimonials();
+        loadFAQ();
+
+        // Mobile menu
+        document.getElementById('mobileMenuBtn').addEventListener('click', () => {
+            document.getElementById('mobileNav').classList.add('active');
+        });
+
+        document.getElementById('mobileNavClose').addEventListener('click', () => {
+            document.getElementById('mobileNav').classList.remove('active');
+        });
+
+        document.querySelectorAll('.mobile-nav-link').forEach(link => {
+            link.addEventListener('click', () => {
+                document.getElementById('mobileNav').classList.remove('active');
+            });
+        });
+
+        // Smooth scroll
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -12,9 +12,73 @@ try:  # pragma: no cover - runtime import guard
 except ModuleNotFoundError:  # pragma: no cover
     from utils import hash_password, iso_to_tr, normalize_hex, get_attachments_dir
 
-DOCS_DIR = os.path.join(os.path.expanduser("~"), "Documents", "LexTakip")
-os.makedirs(DOCS_DIR, exist_ok=True)
+
+def _get_documents_dir() -> str:
+    """Windows ve diğer platformlarda Documents klasörünü güvenli şekilde bulur."""
+    import sys
+
+    if sys.platform == "win32":
+        try:
+            # Windows'ta CSIDL_PERSONAL (Documents) klasörünü bul
+            import ctypes.wintypes
+            CSIDL_PERSONAL = 5  # Documents folder
+            buf = ctypes.create_unicode_buffer(ctypes.wintypes.MAX_PATH)
+            ctypes.windll.shell32.SHGetFolderPathW(None, CSIDL_PERSONAL, None, 0, buf)
+            if buf.value:
+                return buf.value
+        except Exception:
+            pass
+
+        # Fallback: USERPROFILE kullan
+        userprofile = os.environ.get("USERPROFILE", "")
+        if userprofile:
+            docs = os.path.join(userprofile, "Documents")
+            if os.path.exists(docs):
+                return docs
+            # Türkçe Windows için
+            docs_tr = os.path.join(userprofile, "Belgeler")
+            if os.path.exists(docs_tr):
+                return docs_tr
+
+    # Linux/Mac veya fallback
+    return os.path.join(os.path.expanduser("~"), "Documents")
+
+
+def _get_app_data_dir() -> str:
+    """Uygulama veri klasörünü oluşturur ve döndürür."""
+    docs_dir = _get_documents_dir()
+    app_dir = os.path.join(docs_dir, "TakibiEsasi")
+
+    try:
+        os.makedirs(app_dir, exist_ok=True)
+    except (OSError, PermissionError) as e:
+        # Documents klasörü erişilemezse, kullanıcı klasöründe oluştur
+        import sys
+        if sys.platform == "win32":
+            fallback = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")), "TakibiEsasi")
+        else:
+            fallback = os.path.join(os.path.expanduser("~"), ".takibiesasi")
+
+        try:
+            os.makedirs(fallback, exist_ok=True)
+            return fallback
+        except Exception:
+            # Son çare: geçici klasör
+            import tempfile
+            temp_dir = os.path.join(tempfile.gettempdir(), "TakibiEsasi")
+            os.makedirs(temp_dir, exist_ok=True)
+            return temp_dir
+
+    return app_dir
+
+
+DOCS_DIR = _get_app_data_dir()
 DB_PATH = os.path.join(DOCS_DIR, "data.db")
+
+
+def get_database_path() -> str:
+    """Veritabanı dosya yolunu döndür."""
+    return DB_PATH
 
 
 def timed_query(conn, sql, params=()):
@@ -1071,6 +1135,15 @@ def cleanup_orphaned_gorevler(conn: sqlite3.Connection) -> None:
           AND gorev_turu IS NULL
           AND LENGTH(TRIM(konu)) < 3
           AND aciklama LIKE '%"source": "auto_completed"%'
+    """)
+
+    # IS_TARIHI ve IS_TARIHI_2 görevlerinde de kısa konu olanları temizle
+    # (Kullanıcı dava durumu combo'suna yazarken oluşan ara kayıtlar)
+    cur.execute("""
+        DELETE FROM gorevler
+        WHERE tamamlandi = 1
+          AND gorev_turu IN ('IS_TARIHI', 'IS_TARIHI_2')
+          AND LENGTH(TRIM(konu)) < 3
     """)
 
     conn.commit()
@@ -3068,8 +3141,8 @@ def get_backup_info(backup_path: str) -> dict[str, Any] | None:
 
 # --------------------------------------------------------- Dosya Klasör Yönetimi --
 
-# Ana dosyalar klasörü (Documents/LexTakip Dosyaları)
-CASE_FILES_DIR = os.path.join(os.path.expanduser("~"), "Documents", "LexTakip Dosyaları")
+# Ana dosyalar klasörü (Documents/TakibiEsasi Dosyaları)
+CASE_FILES_DIR = os.path.join(os.path.expanduser("~"), "Documents", "TakibiEsasi Dosyaları")
 
 
 def get_case_files_root() -> str:

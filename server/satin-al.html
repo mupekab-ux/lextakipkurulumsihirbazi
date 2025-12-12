@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Satın Al - TakibiEsasi</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0a0a0f 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+
+        /* Header */
+        .page-header {
+            background: rgba(255, 255, 255, 0.03);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .page-header .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+
+        .page-header .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .page-header .logo-icon i {
+            color: #0a0a0f;
+            font-size: 18px;
+        }
+
+        .page-header .logo-text {
+            color: #fff;
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .header-nav {
+            display: flex;
+            gap: 16px;
+        }
+
+        .header-nav a {
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .header-nav a:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Main Content */
+        .main-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 48px 24px;
+        }
+
+        .page-title {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .page-title h1 {
+            font-size: 36px;
+            margin-bottom: 16px;
+        }
+
+        .page-title h1 span {
+            color: #f59e0b;
+        }
+
+        .page-title p {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 18px;
+        }
+
+        /* Pricing Grid */
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            margin-bottom: 48px;
+        }
+
+        .pricing-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 32px;
+            position: relative;
+            transition: all 0.3s;
+        }
+
+        .pricing-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(245, 158, 11, 0.3);
+        }
+
+        .pricing-card.popular {
+            border-color: #f59e0b;
+            background: rgba(245, 158, 11, 0.05);
+        }
+
+        .pricing-card.coming-soon {
+            opacity: 0.6;
+        }
+
+        .pricing-badge {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: #0a0a0f;
+            padding: 6px 20px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .coming-soon-badge {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(100, 100, 100, 0.8);
+            color: #fff;
+            padding: 6px 20px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .pricing-card h3 {
+            font-size: 24px;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        .pricing-card .price {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .pricing-card .price .amount {
+            font-size: 48px;
+            font-weight: 700;
+            color: #f59e0b;
+        }
+
+        .pricing-card .price .period {
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .pricing-features {
+            list-style: none;
+            margin-bottom: 24px;
+        }
+
+        .pricing-features li {
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .pricing-features li:last-child {
+            border-bottom: none;
+        }
+
+        .pricing-features li i {
+            color: #22c55e;
+            width: 20px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px 28px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            border: none;
+            width: 100%;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: #0a0a0f;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(245, 158, 11, 0.3);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+        }
+
+        .btn-outline:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* Features Section */
+        .features-section {
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 20px;
+            padding: 48px;
+            margin-bottom: 48px;
+        }
+
+        .features-section h2 {
+            text-align: center;
+            font-size: 28px;
+            margin-bottom: 32px;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 24px;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+        }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            background: rgba(245, 158, 11, 0.1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #f59e0b;
+            flex-shrink: 0;
+        }
+
+        .feature-item h4 {
+            margin-bottom: 4px;
+        }
+
+        .feature-item p {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 14px;
+        }
+
+        /* FAQ Section */
+        .faq-section h2 {
+            text-align: center;
+            font-size: 28px;
+            margin-bottom: 32px;
+        }
+
+        .faq-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+
+        .faq-question {
+            padding: 20px 24px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 500;
+        }
+
+        .faq-question:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .faq-answer {
+            padding: 0 24px 20px;
+            color: rgba(255, 255, 255, 0.6);
+            display: none;
+        }
+
+        .faq-item.active .faq-answer {
+            display: block;
+        }
+
+        .faq-item.active .faq-question i {
+            transform: rotate(180deg);
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: #1a1a2e;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            font-size: 20px;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .order-summary {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+
+        .order-summary h4 {
+            margin-bottom: 16px;
+            color: #f59e0b;
+        }
+
+        .order-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .order-row:last-child {
+            border-bottom: none;
+            font-weight: 600;
+            font-size: 18px;
+            padding-top: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 14px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: #fff;
+            font-size: 15px;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #f59e0b;
+        }
+
+        .payment-methods {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .payment-method {
+            flex: 1;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .payment-method:hover {
+            border-color: rgba(245, 158, 11, 0.3);
+        }
+
+        .payment-method.selected {
+            border-color: #f59e0b;
+            background: rgba(245, 158, 11, 0.1);
+        }
+
+        .payment-method i {
+            font-size: 24px;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+
+        .alert-info {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            color: #3b82f6;
+        }
+
+        .alert-success {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: #22c55e;
+        }
+
+        .alert-error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #ef4444;
+        }
+
+        /* Footer */
+        .page-footer {
+            text-align: center;
+            padding: 32px;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 14px;
+        }
+
+        .page-footer a {
+            color: #f59e0b;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="page-header">
+        <a href="/" class="logo">
+            <div class="logo-icon">
+                <i class="fas fa-balance-scale"></i>
+            </div>
+            <span class="logo-text">TakibiEsasi</span>
+        </a>
+        <nav class="header-nav">
+            <a href="/"><i class="fas fa-home"></i> Ana Sayfa</a>
+            <a href="/hesabim"><i class="fas fa-user"></i> Hesabım</a>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="page-title">
+            <h1>Planınızı <span>Seçin</span></h1>
+            <p>Hukuk büronuz için en uygun planı seçin ve hemen kullanmaya başlayın</p>
+        </div>
+
+        <!-- Pricing Grid -->
+        <div class="pricing-grid" id="pricingGrid">
+            <!-- Will be loaded dynamically -->
+            <div style="text-align: center; padding: 60px;">
+                <i class="fas fa-spinner fa-spin" style="font-size: 32px; color: #f59e0b;"></i>
+            </div>
+        </div>
+
+        <!-- Features Section -->
+        <div class="features-section">
+            <h2>Tüm Planlarda Dahil</h2>
+            <div class="features-grid">
+                <div class="feature-item">
+                    <div class="feature-icon"><i class="fas fa-cloud"></i></div>
+                    <div>
+                        <h4>Bulut Yedekleme</h4>
+                        <p>Verileriniz güvende, otomatik yedekleme</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon"><i class="fas fa-sync"></i></div>
+                    <div>
+                        <h4>Ücretsiz Güncellemeler</h4>
+                        <p>Tüm yeni özellikler dahil</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon"><i class="fas fa-headset"></i></div>
+                    <div>
+                        <h4>Teknik Destek</h4>
+                        <p>E-posta ile 7/24 destek</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon"><i class="fas fa-exchange-alt"></i></div>
+                    <div>
+                        <h4>2 Transfer Hakkı</h4>
+                        <p>Bilgisayar değiştirme imkanı</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- FAQ Section -->
+        <div class="faq-section">
+            <h2>Sıkça Sorulan Sorular</h2>
+
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFaq(this)">
+                    <span>Ödeme yöntemleri nelerdir?</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    Kredi kartı, banka kartı ve havale/EFT ile ödeme yapabilirsiniz. Tüm ödemeler güvenli SSL bağlantısı üzerinden gerçekleşir.
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFaq(this)">
+                    <span>Lisansı başka bilgisayara taşıyabilir miyim?</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    Evet, her lisansla birlikte 2 transfer hakkı verilir. Bilgisayar değişikliğinde lisansınızı kolayca taşıyabilirsiniz.
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFaq(this)">
+                    <span>İptal ve iade politikası nedir?</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    Satın alma tarihinden itibaren 14 gün içinde iade talep edebilirsiniz. İade işlemleri 5-7 iş günü içinde tamamlanır.
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleFaq(this)">
+                    <span>Fatura alabilir miyim?</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="faq-answer">
+                    Evet, tüm satışlarımızda e-fatura kesiyoruz. Faturanız otomatik olarak e-posta adresinize gönderilir.
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Purchase Modal -->
+    <div class="modal-overlay" id="purchaseModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Siparişi Tamamla</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="order-summary">
+                    <h4><i class="fas fa-shopping-cart"></i> Sipariş Özeti</h4>
+                    <div class="order-row">
+                        <span>Plan:</span>
+                        <span id="orderPlanName">-</span>
+                    </div>
+                    <div class="order-row">
+                        <span>Süre:</span>
+                        <span id="orderPeriod">1 Yıl</span>
+                    </div>
+                    <div class="order-row">
+                        <span>Toplam:</span>
+                        <span id="orderTotal">₺0</span>
+                    </div>
+                </div>
+
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    Demo aşamasındayız. Gerçek ödeme alınmayacaktır.
+                </div>
+
+                <div id="purchaseAlert" class="alert" style="display: none;"></div>
+
+                <h4 style="margin-bottom: 16px;">Ödeme Yöntemi</h4>
+                <div class="payment-methods">
+                    <div class="payment-method selected" onclick="selectPayment(this, 'card')">
+                        <i class="fas fa-credit-card"></i>
+                        <span>Kredi Kartı</span>
+                    </div>
+                    <div class="payment-method" onclick="selectPayment(this, 'bank')">
+                        <i class="fas fa-university"></i>
+                        <span>Havale/EFT</span>
+                    </div>
+                </div>
+
+                <div id="cardForm">
+                    <div class="form-group">
+                        <label>Kart Numarası</label>
+                        <input type="text" id="cardNumber" placeholder="0000 0000 0000 0000" maxlength="19">
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="form-group">
+                            <label>Son Kullanma</label>
+                            <input type="text" id="cardExpiry" placeholder="AA/YY" maxlength="5">
+                        </div>
+                        <div class="form-group">
+                            <label>CVV</label>
+                            <input type="text" id="cardCvv" placeholder="123" maxlength="3">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Kart Üzerindeki İsim</label>
+                        <input type="text" id="cardName" placeholder="AD SOYAD">
+                    </div>
+                </div>
+
+                <div id="bankForm" style="display: none;">
+                    <div class="alert alert-info">
+                        <strong>Banka Hesap Bilgileri:</strong><br>
+                        Banka: Garanti Bankası<br>
+                        IBAN: TR00 0000 0000 0000 0000 0000 00<br>
+                        Hesap Adı: TakibiEsasi Yazılım Ltd.<br><br>
+                        Açıklama kısmına sipariş numaranızı yazmayı unutmayın.
+                    </div>
+                </div>
+
+                <button class="btn btn-primary" id="purchaseBtn" onclick="completePurchase()">
+                    <i class="fas fa-lock"></i>
+                    Ödemeyi Tamamla
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="page-footer">
+        <p>Sorularınız mı var? <a href="mailto:destek@takibiesasi.com">destek@takibiesasi.com</a> adresinden bize ulaşın.</p>
+    </footer>
+
+    <script>
+        const API_BASE = '';
+        let selectedPlan = null;
+        let selectedPaymentMethod = 'card';
+
+        // Sayfa yüklendiğinde
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuth();
+            loadPricing();
+        });
+
+        // Giriş kontrolü
+        function checkAuth() {
+            const token = localStorage.getItem('userToken');
+            if (!token) {
+                window.location.href = '/giris?redirect=/satin-al';
+            }
+        }
+
+        // Fiyatları yükle
+        async function loadPricing() {
+            try {
+                const response = await fetch(API_BASE + '/api/site/pricing');
+                if (response.ok) {
+                    const plans = await response.json();
+                    displayPricing(plans);
+                }
+            } catch (err) {
+                console.error('Pricing load error:', err);
+                displayPricing([
+                    { name: 'Başlangıç', price: 99, period: 'ay', features: '5 Dava Takibi\n1 Kullanıcı\nTemel Özellikler\nE-posta Desteği' },
+                    { name: 'Profesyonel', price: 199, period: 'ay', features: 'Sınırsız Dava\n5 Kullanıcı\nTüm Özellikler\nÖncelikli Destek', is_popular: true }
+                ]);
+            }
+        }
+
+        // Fiyatları göster
+        function displayPricing(plans) {
+            const grid = document.getElementById('pricingGrid');
+
+            grid.innerHTML = plans.map(plan => {
+                const isComingSoon = plan.period === 'Yakında' || plan.price === 0;
+                const features = plan.features ? plan.features.split('\n').filter(f => f.trim()) : [];
+
+                return `
+                    <div class="pricing-card ${plan.is_popular ? 'popular' : ''} ${isComingSoon ? 'coming-soon' : ''}">
+                        ${plan.is_popular ? '<span class="pricing-badge">Önerilen</span>' : ''}
+                        ${isComingSoon ? '<span class="coming-soon-badge">Yakında</span>' : ''}
+                        <h3>${plan.name}</h3>
+                        <div class="price">
+                            ${isComingSoon ? '<span class="amount">-</span>' : `<span class="amount">₺${plan.price}</span><span class="period">/${plan.period || 'ay'}</span>`}
+                        </div>
+                        <ul class="pricing-features">
+                            ${features.map(f => `<li><i class="fas fa-check"></i> ${f}</li>`).join('')}
+                        </ul>
+                        ${isComingSoon
+                            ? '<button class="btn btn-outline" disabled>Yakında</button>'
+                            : `<button class="btn ${plan.is_popular ? 'btn-primary' : 'btn-outline'}" onclick="openPurchaseModal('${plan.name}', ${plan.price}, '${plan.period || 'ay'}')">
+                                <i class="fas fa-shopping-cart"></i> Satın Al
+                               </button>`
+                        }
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Satın alma modalını aç
+        function openPurchaseModal(planName, price, period) {
+            selectedPlan = { name: planName, price: price, period: period };
+
+            document.getElementById('orderPlanName').textContent = planName;
+            document.getElementById('orderPeriod').textContent = period === 'ay' ? '1 Aylık' : '1 Yıllık';
+            document.getElementById('orderTotal').textContent = '₺' + price;
+
+            document.getElementById('purchaseModal').classList.add('active');
+        }
+
+        // Modalı kapat
+        function closeModal() {
+            document.getElementById('purchaseModal').classList.remove('active');
+            document.getElementById('purchaseAlert').style.display = 'none';
+        }
+
+        // Ödeme yöntemi seç
+        function selectPayment(element, method) {
+            document.querySelectorAll('.payment-method').forEach(el => el.classList.remove('selected'));
+            element.classList.add('selected');
+            selectedPaymentMethod = method;
+
+            document.getElementById('cardForm').style.display = method === 'card' ? 'block' : 'none';
+            document.getElementById('bankForm').style.display = method === 'bank' ? 'block' : 'none';
+        }
+
+        // FAQ toggle
+        function toggleFaq(element) {
+            element.parentElement.classList.toggle('active');
+        }
+
+        // Satın almayı tamamla
+        async function completePurchase() {
+            const token = localStorage.getItem('userToken');
+            const btn = document.getElementById('purchaseBtn');
+            const alert = document.getElementById('purchaseAlert');
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> İşleniyor...';
+
+            try {
+                const response = await fetch(API_BASE + '/api/orders/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify({
+                        product_type: 'license',
+                        product_name: selectedPlan.name,
+                        quantity: 1,
+                        unit_price_cents: selectedPlan.price * 100,
+                        payment_method: selectedPaymentMethod
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Simulate payment
+                    const payResponse = await fetch(API_BASE + '/api/orders/' + data.order.id + '/pay', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + token
+                        },
+                        body: JSON.stringify({
+                            transaction_id: 'DEMO_' + Date.now()
+                        })
+                    });
+
+                    const payData = await payResponse.json();
+
+                    if (payData.success) {
+                        alert.className = 'alert alert-success';
+                        alert.innerHTML = '<i class="fas fa-check-circle"></i> Ödeme başarılı! Lisansınız hesabınıza eklendi.';
+                        alert.style.display = 'block';
+
+                        setTimeout(() => {
+                            window.location.href = '/hesabim';
+                        }, 2000);
+                    } else {
+                        throw new Error(payData.error || 'Ödeme işlemi başarısız');
+                    }
+                } else {
+                    throw new Error(data.error || 'Sipariş oluşturulamadı');
+                }
+            } catch (err) {
+                alert.className = 'alert alert-error';
+                alert.innerHTML = '<i class="fas fa-exclamation-circle"></i> ' + err.message;
+                alert.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-lock"></i> Ödemeyi Tamamla';
+            }
+        }
+
+        // Kart numarası formatla
+        document.getElementById('cardNumber')?.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\s/g, '').replace(/\D/g, '');
+            value = value.match(/.{1,4}/g)?.join(' ') || value;
+            e.target.value = value;
+        });
+
+        // Son kullanma formatla
+        document.getElementById('cardExpiry')?.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length >= 2) {
+                value = value.slice(0, 2) + '/' + value.slice(2);
+            }
+            e.target.value = value;
+        });
+    </script>
+</body>
+</html>

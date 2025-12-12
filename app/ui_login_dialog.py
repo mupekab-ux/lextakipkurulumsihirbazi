@@ -18,7 +18,7 @@ except ModuleNotFoundError:  # pragma: no cover
 class LoginDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("LexTakip - Giriş")
+        self.setWindowTitle("TakibiEsasi - Giriş")
         layout = QVBoxLayout(self)
 
         layout.addWidget(QLabel("Kullanıcı Adı"))

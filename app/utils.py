@@ -89,8 +89,8 @@ THEME_PASTEL = "Pastel Tema"
 THEME_DARK_GREY = "Koyu Gri"
 THEME_DARK_BLUE = "Koyu Mavi"
 
-THEME_SETTINGS_ORG = "LexTakip"
-THEME_SETTINGS_APP = "LexTakipApp"
+THEME_SETTINGS_ORG = "TakibiEsasi"
+THEME_SETTINGS_APP = "TakibiEsasiApp"
 THEME_SETTINGS_KEY = "ui/theme"
 
 THEME_MAP: dict[str, str] = {
@@ -427,7 +427,7 @@ def normalize_str(value: str) -> str:
 def get_attachments_dir() -> Path:
     """Ek dosyalarının saklandığı klasörü döndürür ve yoksa oluşturur.
 
-    Depo talimatlarına uygun şekilde kullanıcı ``Documents/LexTakip``
+    Depo talimatlarına uygun şekilde kullanıcı ``Documents/TakibiEsasi``
     dizini altındaki ``attachments`` klasörü tercih edilir. Eğer sistemde
     ``Documents`` klasörü bulunmuyorsa kullanıcının ana dizinine
     yedeklenir.
@@ -441,7 +441,7 @@ def get_attachments_dir() -> Path:
         # Windows dışındaki kurulumlarda ``Documents`` klasörü olmayabilir.
         documents_dir = home
 
-    base_path = documents_dir / "LexTakip"
+    base_path = documents_dir / "TakibiEsasi"
     try:
         base_path.mkdir(parents=True, exist_ok=True)
     except Exception:

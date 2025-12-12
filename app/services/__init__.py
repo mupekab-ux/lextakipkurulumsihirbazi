@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-LexTakip Servis Modülleri
+TakibiEsasi Servis Modülleri
 
 Bu paket, iş mantığını servislere bölerek daha iyi organizasyon sağlar.
 Geriye dönük uyumluluk için tüm fonksiyonlar models.py'den de erişilebilir.

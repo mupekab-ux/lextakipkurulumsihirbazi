@@ -3,3 +3,5 @@ openpyxl
 bcrypt  # Parola özetleme için
 python-docx
 pandas
+requests  # API istekleri için
+pyinstaller  # Executable oluşturmak için

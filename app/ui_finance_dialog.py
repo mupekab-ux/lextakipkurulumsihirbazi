@@ -322,7 +322,7 @@ class FinanceDialog(QDialog):
 
     def _restore_dialog_size(self) -> None:
         """Kaydedilmiş pencere boyutunu yükle."""
-        settings = QSettings("LexTakip", "LexTakip")
+        settings = QSettings("TakibiEsasi", "TakibiEsasi")
         size = settings.value("FinanceDialog/size")
         if size:
             self.resize(size)
@@ -331,7 +331,7 @@ class FinanceDialog(QDialog):
 
     def closeEvent(self, event) -> None:
         """Pencere boyutunu kaydet ve kapat."""
-        settings = QSettings("LexTakip", "LexTakip")
+        settings = QSettings("TakibiEsasi", "TakibiEsasi")
         settings.setValue("FinanceDialog/size", self.size())
         super().closeEvent(event)
 
@@ -1310,7 +1310,7 @@ class FinanceDialog(QDialog):
 
     def _load_client_cash_column_widths(self) -> None:
         """Müvekkil kasası sütun genişliklerini QSettings'den yükle."""
-        settings = QSettings("LexTakip", "LexTakip")
+        settings = QSettings("TakibiEsasi", "TakibiEsasi")
         widths = settings.value("FinansDialog/client_cash_widths", None)
         if widths:
             header = self.client_cash_table.horizontalHeader()
@@ -1325,7 +1325,7 @@ class FinanceDialog(QDialog):
         """Müvekkil kasası sütun genişliklerini QSettings'e kaydet."""
         header = self.client_cash_table.horizontalHeader()
         widths = [header.sectionSize(i) for i in range(header.count() - 1)]  # Son sütun stretch
-        settings = QSettings("LexTakip", "LexTakip")
+        settings = QSettings("TakibiEsasi", "TakibiEsasi")
         settings.setValue("FinansDialog/client_cash_widths", widths)
 
     def _on_client_cash_column_resized(self, index: int, old_size: int, new_size: int) -> None:
