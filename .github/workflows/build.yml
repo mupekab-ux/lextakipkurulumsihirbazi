@@ -29,8 +29,7 @@ jobs:
           python -m nuitka --standalone --onefile --output-dir=dist_nuitka --output-filename=TakibiEsasi.exe --windows-console-mode=disable --enable-plugin=pyqt6 --include-module=openpyxl --include-module=bcrypt --include-module=docx --include-module=pandas --include-module=requests --include-module=sqlite3 --assume-yes-for-downloads --windows-company-name=TakibiEsasi --windows-product-name=TakibiEsasi app/main.py
 
       - name: List output files
-        run: |
-          dir dist_nuitka
+        run: dir dist_nuitka
         continue-on-error: true
 
       - name: Upload Windows Artifact
@@ -55,25 +54,20 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install PyQt6 openpyxl bcrypt python-docx pandas requests
-          pip install nuitka ordered-set zstandard
+          pip install pyinstaller
 
-      - name: Build with Nuitka
+      - name: Build with PyInstaller
         run: |
-          python -m nuitka --standalone --onefile --output-dir=dist_macos --output-filename=TakibiEsasi --macos-create-app-bundle --macos-app-name=TakibiEsasi --macos-disable-console --enable-plugin=pyqt6 --include-module=openpyxl --include-module=bcrypt --include-module=docx --include-module=pandas --include-module=requests --include-module=sqlite3 --assume-yes-for-downloads app/main.py
+          pyinstaller --onefile --windowed --name TakibiEsasi --add-data "app/themes:app/themes" --add-data "app/ui:app/ui" --hidden-import=openpyxl --hidden-import=bcrypt --hidden-import=docx --hidden-import=pandas --hidden-import=requests --hidden-import=sqlite3 app/main.py
 
       - name: List output files
-        run: |
-          ls -la dist_macos/
+        run: ls -la dist/
         continue-on-error: true
 
       - name: Create DMG
         run: |
-          if [ -d "dist_macos/TakibiEsasi.app" ]; then
-            hdiutil create -volname TakibiEsasi -srcfolder dist_macos/TakibiEsasi.app -ov -format UDZO dist_macos/TakibiEsasi.dmg
-          elif [ -f "dist_macos/TakibiEsasi" ]; then
-            mkdir -p dist_macos/TakibiEsasi.app/Contents/MacOS
-            cp dist_macos/TakibiEsasi dist_macos/TakibiEsasi.app/Contents/MacOS/
-            hdiutil create -volname TakibiEsasi -srcfolder dist_macos/TakibiEsasi.app -ov -format UDZO dist_macos/TakibiEsasi.dmg
+          if [ -d "dist/TakibiEsasi.app" ]; then
+            hdiutil create -volname TakibiEsasi -srcfolder dist/TakibiEsasi.app -ov -format UDZO dist/TakibiEsasi.dmg
           fi
         continue-on-error: true
 
@@ -82,7 +76,7 @@ jobs:
         with:
           name: TakibiEsasi-macOS
           path: |
-            dist_macos/TakibiEsasi.dmg
-            dist_macos/TakibiEsasi.app
-            dist_macos/TakibiEsasi
+            dist/TakibiEsasi.dmg
+            dist/TakibiEsasi.app
+            dist/TakibiEsasi
           if-no-files-found: warn
