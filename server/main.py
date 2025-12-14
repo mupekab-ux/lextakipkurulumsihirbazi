@@ -21,6 +21,10 @@ import jwt
 import bcrypt
 import re
 import uuid
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import threading
 
 app = FastAPI(title="TakibiEsasi API", version="1.0.0")
 
@@ -50,6 +54,15 @@ OFFLINE_TOKEN_DAYS = 30  # Offline token geçerlilik süresi
 DOWNLOAD_DIR = "/var/www/takibiesasi/download"
 RELEASES_FILE = "/var/www/takibiesasi/releases/latest.json"
 RELEASES_HISTORY_FILE = "/var/www/takibiesasi/releases/history.json"
+
+# Email Configuration
+EMAIL_CONFIG = {
+    "smtp_server": "smtp.gmail.com",
+    "smtp_port": 587,
+    "email": "destek@takibiesasi.com",
+    "password": "hohmrbtbnqyjltzd",  # App Password (boşluksuz)
+    "from_name": "TakibiEsasi"
+}
 
 # Ensure directories exist
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
@@ -678,6 +691,259 @@ def save_release(release_data):
     with open(RELEASES_HISTORY_FILE, 'w') as f:
         json.dump(history, f, indent=2)
 
+# ============ EMAIL SYSTEM ============
+
+def send_email_async(to_email: str, subject: str, html_content: str, text_content: str = None):
+    """Send email asynchronously in background thread"""
+    def _send():
+        try:
+            send_email(to_email, subject, html_content, text_content)
+        except Exception as e:
+            print(f"Email sending failed: {e}")
+
+    thread = threading.Thread(target=_send)
+    thread.start()
+
+def send_email(to_email: str, subject: str, html_content: str, text_content: str = None):
+    """Send email via SMTP"""
+    try:
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = subject
+        msg['From'] = f"{EMAIL_CONFIG['from_name']} <{EMAIL_CONFIG['email']}>"
+        msg['To'] = to_email
+
+        # Plain text version
+        if text_content:
+            part1 = MIMEText(text_content, 'plain', 'utf-8')
+            msg.attach(part1)
+
+        # HTML version
+        part2 = MIMEText(html_content, 'html', 'utf-8')
+        msg.attach(part2)
+
+        # Connect and send
+        server = smtplib.SMTP(EMAIL_CONFIG['smtp_server'], EMAIL_CONFIG['smtp_port'])
+        server.starttls()
+        server.login(EMAIL_CONFIG['email'], EMAIL_CONFIG['password'])
+        server.sendmail(EMAIL_CONFIG['email'], to_email, msg.as_string())
+        server.quit()
+
+        print(f"Email sent to {to_email}: {subject}")
+        return True
+    except Exception as e:
+        print(f"Email error: {e}")
+        return False
+
+# Email Templates
+def get_email_template(content: str, title: str = "TakibiEsasi") -> str:
+    """Wrap content in email template"""
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="margin:0; padding:0; background-color:#0a0a0f; font-family: Arial, sans-serif;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#0a0a0f; padding: 40px 20px;">
+            <tr>
+                <td align="center">
+                    <table width="600" cellpadding="0" cellspacing="0" style="background-color:#12121a; border-radius:16px; border:1px solid #2a2a3a;">
+                        <!-- Header -->
+                        <tr>
+                            <td style="padding:30px; text-align:center; border-bottom:1px solid #2a2a3a;">
+                                <h1 style="margin:0; color:#fbbf24; font-size:28px;">⚖️ TakibiEsasi</h1>
+                                <p style="margin:8px 0 0; color:#888; font-size:14px;">Hukuki Takip Sistemi</p>
+                            </td>
+                        </tr>
+                        <!-- Content -->
+                        <tr>
+                            <td style="padding:30px; color:#e0e0e0;">
+                                {content}
+                            </td>
+                        </tr>
+                        <!-- Footer -->
+                        <tr>
+                            <td style="padding:20px 30px; text-align:center; border-top:1px solid #2a2a3a; color:#666; font-size:12px;">
+                                <p style="margin:0;">© 2024 TakibiEsasi. Tüm hakları saklıdır.</p>
+                                <p style="margin:8px 0 0;">
+                                    <a href="https://takibiesasi.com" style="color:#fbbf24; text-decoration:none;">takibiesasi.com</a> |
+                                    <a href="mailto:destek@takibiesasi.com" style="color:#fbbf24; text-decoration:none;">destek@takibiesasi.com</a>
+                                </p>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>
+    """
+
+def send_welcome_email(email: str, full_name: str):
+    """Send welcome email to new user"""
+    content = f"""
+    <h2 style="color:#fbbf24; margin-top:0;">Hoş Geldiniz, {full_name}! 🎉</h2>
+    <p>TakibiEsasi ailesine katıldığınız için teşekkür ederiz.</p>
+    <p>Artık hukuki takip işlemlerinizi kolayca yönetebilir, icra dosyalarınızı takip edebilir ve raporlarınızı oluşturabilirsiniz.</p>
+
+    <div style="background:#1a1a2a; border-radius:10px; padding:20px; margin:20px 0;">
+        <h3 style="color:#fbbf24; margin-top:0;">Hızlı Başlangıç</h3>
+        <ul style="padding-left:20px; margin:0;">
+            <li style="margin-bottom:10px;">Hesabınıza giriş yapın</li>
+            <li style="margin-bottom:10px;">Lisans anahtarınızı etkinleştirin</li>
+            <li style="margin-bottom:10px;">İlk dosyanızı oluşturun</li>
+        </ul>
+    </div>
+
+    <p>Herhangi bir sorunuz olursa <a href="mailto:destek@takibiesasi.com" style="color:#fbbf24;">destek@takibiesasi.com</a> adresinden bize ulaşabilirsiniz.</p>
+
+    <p style="margin-bottom:0;">İyi çalışmalar dileriz!</p>
+    """
+
+    send_email_async(email, "TakibiEsasi'na Hoş Geldiniz! 🎉", get_email_template(content))
+
+def send_purchase_email(email: str, name: str, license_key: str, order_number: str, amount: float):
+    """Send purchase confirmation email with license key"""
+    content = f"""
+    <h2 style="color:#fbbf24; margin-top:0;">Satın Alma Onayı ✅</h2>
+    <p>Sayın {name},</p>
+    <p>TakibiEsasi lisansınız başarıyla oluşturuldu. Aşağıda lisans bilgilerinizi bulabilirsiniz:</p>
+
+    <div style="background:linear-gradient(135deg, #1a1a2a, #2a2a3a); border-radius:10px; padding:25px; margin:20px 0; border:1px solid #fbbf24;">
+        <p style="margin:0 0 10px; color:#888; font-size:12px; text-transform:uppercase;">Lisans Anahtarınız</p>
+        <p style="margin:0; font-size:24px; font-family:monospace; color:#fbbf24; letter-spacing:2px; word-break:break-all;">{license_key}</p>
+    </div>
+
+    <div style="background:#1a1a2a; border-radius:10px; padding:20px; margin:20px 0;">
+        <table width="100%" style="color:#e0e0e0;">
+            <tr><td style="padding:8px 0; color:#888;">Sipariş No:</td><td style="padding:8px 0; text-align:right;">{order_number}</td></tr>
+            <tr><td style="padding:8px 0; color:#888;">Tutar:</td><td style="padding:8px 0; text-align:right; color:#fbbf24; font-weight:bold;">{amount:.2f} TL</td></tr>
+            <tr><td style="padding:8px 0; color:#888;">Tarih:</td><td style="padding:8px 0; text-align:right;">{datetime.now().strftime('%d.%m.%Y %H:%M')}</td></tr>
+        </table>
+    </div>
+
+    <h3 style="color:#fbbf24;">Lisans Aktivasyonu</h3>
+    <ol style="padding-left:20px;">
+        <li style="margin-bottom:10px;">TakibiEsasi uygulamasını açın</li>
+        <li style="margin-bottom:10px;">Lisans bölümüne gidin</li>
+        <li style="margin-bottom:10px;">Yukarıdaki lisans anahtarını girin</li>
+        <li style="margin-bottom:10px;">"Etkinleştir" butonuna tıklayın</li>
+    </ol>
+
+    <p><strong>Önemli:</strong> Bu lisans anahtarını güvenli bir yerde saklayınız.</p>
+    """
+
+    send_email_async(email, f"Lisans Anahtarınız - Sipariş #{order_number}", get_email_template(content))
+
+def send_demo_welcome_email(email: str):
+    """Send demo welcome email"""
+    content = f"""
+    <h2 style="color:#fbbf24; margin-top:0;">Demo Sürümüne Hoş Geldiniz! 🎯</h2>
+    <p>TakibiEsasi demo sürümünü indirdiğiniz için teşekkür ederiz.</p>
+
+    <div style="background:#1a1a2a; border-radius:10px; padding:20px; margin:20px 0;">
+        <h3 style="color:#fbbf24; margin-top:0;">Demo Sürümü Özellikleri</h3>
+        <ul style="padding-left:20px; margin:0;">
+            <li style="margin-bottom:10px;">7 gün ücretsiz kullanım</li>
+            <li style="margin-bottom:10px;">Tüm temel özelliklere erişim</li>
+            <li style="margin-bottom:10px;">Sınırlı dosya oluşturma</li>
+        </ul>
+    </div>
+
+    <div style="text-align:center; margin:30px 0;">
+        <a href="https://takibiesasi.com/#pricing" style="display:inline-block; background:linear-gradient(135deg, #fbbf24, #f59e0b); color:#000; text-decoration:none; padding:15px 40px; border-radius:8px; font-weight:bold; font-size:16px;">Tam Sürümü Satın Al</a>
+    </div>
+
+    <p>Demo süreniz dolmadan önce size hatırlatma e-postası göndereceğiz.</p>
+    """
+
+    send_email_async(email, "TakibiEsasi Demo Sürümüne Hoş Geldiniz!", get_email_template(content))
+
+def send_demo_expiring_email(email: str, days_left: int):
+    """Send demo expiration warning email"""
+    content = f"""
+    <h2 style="color:#fbbf24; margin-top:0;">Demo Süreniz Dolmak Üzere ⏰</h2>
+    <p>TakibiEsasi demo sürenizin bitmesine <strong style="color:#fbbf24;">{days_left} gün</strong> kaldı.</p>
+
+    <p>Demo süreniz sona erdikten sonra uygulamayı kullanmaya devam edemezsiniz. Çalışmalarınızın kesintiye uğramaması için hemen tam sürüme geçin!</p>
+
+    <div style="background:#1a1a2a; border-radius:10px; padding:20px; margin:20px 0;">
+        <h3 style="color:#fbbf24; margin-top:0;">Tam Sürüm Avantajları</h3>
+        <ul style="padding-left:20px; margin:0;">
+            <li style="margin-bottom:10px;">Sınırsız dosya oluşturma</li>
+            <li style="margin-bottom:10px;">Tüm premium özellikler</li>
+            <li style="margin-bottom:10px;">Öncelikli destek</li>
+            <li style="margin-bottom:10px;">Otomatik güncellemeler</li>
+        </ul>
+    </div>
+
+    <div style="text-align:center; margin:30px 0;">
+        <a href="https://takibiesasi.com/#pricing" style="display:inline-block; background:linear-gradient(135deg, #fbbf24, #f59e0b); color:#000; text-decoration:none; padding:15px 40px; border-radius:8px; font-weight:bold; font-size:16px;">Hemen Satın Al</a>
+    </div>
+    """
+
+    send_email_async(email, f"Demo Süreniz {days_left} Gün İçinde Doluyor!", get_email_template(content))
+
+def send_demo_expired_email(email: str):
+    """Send demo expired email"""
+    content = f"""
+    <h2 style="color:#ef4444; margin-top:0;">Demo Süreniz Doldu 😢</h2>
+    <p>TakibiEsasi demo süreniz sona erdi.</p>
+
+    <p>Endişelenmeyin! Verileriniz hala güvende ve tam sürüme geçtiğinizde kaldığınız yerden devam edebilirsiniz.</p>
+
+    <div style="background:linear-gradient(135deg, #1a1a2a, #2a2a3a); border-radius:10px; padding:25px; margin:20px 0; border:1px solid #fbbf24; text-align:center;">
+        <p style="margin:0 0 15px; font-size:18px;">Özel Teklif: <strong style="color:#fbbf24;">%20 İndirim!</strong></p>
+        <p style="margin:0; color:#888; font-size:14px;">Kod: <span style="color:#fbbf24; font-family:monospace;">DEMO20</span></p>
+    </div>
+
+    <div style="text-align:center; margin:30px 0;">
+        <a href="https://takibiesasi.com/#pricing" style="display:inline-block; background:linear-gradient(135deg, #fbbf24, #f59e0b); color:#000; text-decoration:none; padding:15px 40px; border-radius:8px; font-weight:bold; font-size:16px;">İndirimli Satın Al</a>
+    </div>
+
+    <p>Sorularınız için <a href="mailto:destek@takibiesasi.com" style="color:#fbbf24;">destek@takibiesasi.com</a> adresinden bize ulaşabilirsiniz.</p>
+    """
+
+    send_email_async(email, "Demo Süreniz Doldu - Özel İndirim Fırsatı!", get_email_template(content))
+
+def send_password_reset_email(email: str, reset_token: str):
+    """Send password reset email"""
+    reset_url = f"https://takibiesasi.com/reset-password?token={reset_token}"
+    content = f"""
+    <h2 style="color:#fbbf24; margin-top:0;">Şifre Sıfırlama 🔐</h2>
+    <p>Hesabınız için şifre sıfırlama talebinde bulunuldu.</p>
+
+    <div style="text-align:center; margin:30px 0;">
+        <a href="{reset_url}" style="display:inline-block; background:linear-gradient(135deg, #fbbf24, #f59e0b); color:#000; text-decoration:none; padding:15px 40px; border-radius:8px; font-weight:bold; font-size:16px;">Şifremi Sıfırla</a>
+    </div>
+
+    <p style="color:#888; font-size:14px;">Bu link 1 saat içinde geçerliliğini yitirecektir.</p>
+
+    <p>Eğer bu talebi siz yapmadıysanız, bu e-postayı görmezden gelebilirsiniz. Hesabınız güvende.</p>
+    """
+
+    send_email_async(email, "Şifre Sıfırlama Talebi", get_email_template(content))
+
+def send_license_activated_email(email: str, license_key: str, machine_name: str = None):
+    """Send license activation confirmation email"""
+    content = f"""
+    <h2 style="color:#fbbf24; margin-top:0;">Lisans Etkinleştirildi ✅</h2>
+    <p>TakibiEsasi lisansınız başarıyla etkinleştirildi.</p>
+
+    <div style="background:#1a1a2a; border-radius:10px; padding:20px; margin:20px 0;">
+        <table width="100%" style="color:#e0e0e0;">
+            <tr><td style="padding:8px 0; color:#888;">Lisans:</td><td style="padding:8px 0; text-align:right; font-family:monospace;">{license_key[:8]}...{license_key[-4:]}</td></tr>
+            <tr><td style="padding:8px 0; color:#888;">Cihaz:</td><td style="padding:8px 0; text-align:right;">{machine_name or 'Bilinmiyor'}</td></tr>
+            <tr><td style="padding:8px 0; color:#888;">Tarih:</td><td style="padding:8px 0; text-align:right;">{datetime.now().strftime('%d.%m.%Y %H:%M')}</td></tr>
+        </table>
+    </div>
+
+    <p>Eğer bu aktivasyonu siz yapmadıysanız, lütfen hemen bizimle iletişime geçin.</p>
+    """
+
+    send_email_async(email, "Lisansınız Etkinleştirildi", get_email_template(content))
+
 # ============ USER AUTH HELPERS ============
 
 def hash_password(password: str) -> str:
@@ -784,6 +1050,14 @@ async def activate_license(req: ActivateRequest):
         license_key=req.license_key,
         metadata={"machine_id": req.machine_id}
     )
+
+    # Send license activation email
+    if license.get('email'):
+        send_license_activated_email(
+            email=license['email'],
+            license_key=req.license_key,
+            machine_name=req.machine_id[:20] if req.machine_id else None
+        )
 
     # Offline token oluştur (30 gün geçerli)
     token_data = generate_offline_token(req.license_key, req.machine_id)
@@ -2117,6 +2391,9 @@ async def register_demo(req: DemoRegisterRequest, request: Request):
         result = cur.fetchone()
         conn.commit()
 
+        # Send demo welcome email
+        send_demo_welcome_email(req.email.lower().strip())
+
         return {
             "success": True,
             "message": "Demo kaydı başarılı! İndirme bağlantınız hazır.",
@@ -2221,6 +2498,75 @@ async def get_demo_status(authorization: str = Header(None)):
             }
         else:
             return {"success": True, "is_demo": False}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.post("/api/admin/demo/check-expiring")
+async def check_expiring_demos(authorization: str = Header(None)):
+    """Check for expiring demos and send reminder emails (cron job endpoint)"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        results = {
+            "expiring_3_days": 0,
+            "expiring_1_day": 0,
+            "expired_today": 0,
+            "emails_sent": []
+        }
+
+        # Demo süresi 14 gün
+        demo_days = 14
+
+        # 3 gün kalan demolar
+        cur.execute("""
+            SELECT email, registered_at
+            FROM demo_registrations
+            WHERE converted_to_license = FALSE
+            AND DATE(registered_at + INTERVAL '%s days') = CURRENT_DATE + INTERVAL '3 days'
+        """, (demo_days,))
+
+        for demo in cur.fetchall():
+            send_demo_expiring_email(demo['email'], 3)
+            results["expiring_3_days"] += 1
+            results["emails_sent"].append({"email": demo['email'], "type": "3_days_left"})
+
+        # 1 gün kalan demolar
+        cur.execute("""
+            SELECT email, registered_at
+            FROM demo_registrations
+            WHERE converted_to_license = FALSE
+            AND DATE(registered_at + INTERVAL '%s days') = CURRENT_DATE + INTERVAL '1 day'
+        """, (demo_days,))
+
+        for demo in cur.fetchall():
+            send_demo_expiring_email(demo['email'], 1)
+            results["expiring_1_day"] += 1
+            results["emails_sent"].append({"email": demo['email'], "type": "1_day_left"})
+
+        # Bugün biten demolar
+        cur.execute("""
+            SELECT email, registered_at
+            FROM demo_registrations
+            WHERE converted_to_license = FALSE
+            AND DATE(registered_at + INTERVAL '%s days') = CURRENT_DATE
+        """, (demo_days,))
+
+        for demo in cur.fetchall():
+            send_demo_expired_email(demo['email'])
+            results["expired_today"] += 1
+            results["emails_sent"].append({"email": demo['email'], "type": "expired"})
+
+        return {
+            "success": True,
+            "message": f"Demo kontrol tamamlandı",
+            "results": results
+        }
 
     finally:
         cur.close()
@@ -2547,7 +2893,8 @@ async def user_register(req: UserRegisterRequest, request: Request):
             metadata={"full_name": user['full_name'], "company": req.company_name}
         )
 
-        # TODO: Send verification email here
+        # Send welcome email
+        send_welcome_email(user['email'], user['full_name'] or user['email'].split('@')[0])
 
         return {
             "success": True,
@@ -2699,7 +3046,8 @@ async def forgot_password(req: ForgotPasswordRequest):
         """, (reset_token, expires_at, user['id']))
         conn.commit()
 
-        # TODO: Send password reset email here
+        # Send password reset email
+        send_password_reset_email(user['email'], reset_token)
 
         return {"success": True, "message": "Eğer bu e-posta kayıtlıysa, şifre sıfırlama bağlantısı gönderildi."}
 
@@ -3535,7 +3883,14 @@ async def mock_payment(order_id: int, req: MockPaymentRequest, authorization: st
             metadata={"source": "purchase", "price": order['total_price_cents'] / 100}
         )
 
-        # TODO: Send purchase confirmation email
+        # Send purchase confirmation email
+        send_purchase_email(
+            email=order['billing_email'],
+            name=order['billing_name'],
+            license_key=new_license['license_key'],
+            order_number=updated_order['order_number'],
+            amount=order['total_price_cents'] / 100
+        )
 
         return {
             "success": True,
