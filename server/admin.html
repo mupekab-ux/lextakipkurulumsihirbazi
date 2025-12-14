@@ -729,6 +729,8 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="simpleModal" style="display:none;"></div>
+
     <div class="modal-overlay" id="releaseModal">
         <div class="modal">
             <div class="modal-header"><h3>Yeni Surum</h3><button class="btn btn-icon btn-secondary" onclick="closeModal('releaseModal')"><i class="fas fa-times"></i></button></div>
@@ -932,8 +934,8 @@
                         <td><code>${o.order_number}</code></td>
                         <td>${o.user_name || o.user_email || '-'}</td>
                         <td>${o.product_name || '-'}</td>
-                        <td>${formatMoney(o.total_price / 100)}</td>
-                        <td><span class="badge badge-${o.payment_status === 'completed' ? 'success' : o.payment_status === 'pending' ? 'warning' : 'danger'}">${o.payment_status}</span></td>
+                        <td>${formatMoney(o.total || 0)}</td>
+                        <td><span class="badge badge-${o.status === 'completed' ? 'success' : o.status === 'pending' ? 'warning' : 'danger'}">${getStatusText(o.status)}</span></td>
                         <td>${formatDate(o.created_at)}</td>
                         <td><button class="btn btn-sm btn-secondary" onclick="viewOrderDetail(${o.id})"><i class="fas fa-eye"></i></button></td>
                     </tr>
@@ -941,7 +943,58 @@
             } catch (e) { console.error('Orders load error:', e); }
         }
 
-        function viewOrderDetail(id) { showToast('Siparis detayi yakinda...', 'info'); }
+        function getStatusText(status) {
+            const statusMap = {
+                'pending': 'Bekliyor',
+                'completed': 'Tamamlandi',
+                'processing': 'Isleniyor',
+                'failed': 'Basarisiz',
+                'refunded': 'Iade Edildi',
+                'cancelled': 'Iptal'
+            };
+            return statusMap[status] || status || '-';
+        }
+
+        async function viewOrderDetail(id) {
+            try {
+                const data = await api(`/admin/orders/${id}`);
+                if (data.success && data.order) {
+                    const o = data.order;
+                    document.getElementById('simpleModal').innerHTML = `
+                        <div class="modal" style="display:block;">
+                            <div class="modal-header">
+                                <h3>Siparis Detayi - ${o.order_number || 'N/A'}</h3>
+                                <button class="btn btn-sm btn-secondary" onclick="closeSimpleModal()">&times;</button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="detail-grid">
+                                    <div class="detail-item"><div class="label">Siparis No</div><div class="value">${o.order_number || '-'}</div></div>
+                                    <div class="detail-item"><div class="label">Durum</div><div class="value">${getStatusText(o.payment_status)}</div></div>
+                                    <div class="detail-item"><div class="label">Musteri</div><div class="value">${o.user_name || o.billing_name || '-'}</div></div>
+                                    <div class="detail-item"><div class="label">E-posta</div><div class="value">${o.user_email || o.billing_email || '-'}</div></div>
+                                    <div class="detail-item"><div class="label">Urun</div><div class="value">${o.product_name || '-'}</div></div>
+                                    <div class="detail-item"><div class="label">Adet</div><div class="value">${o.quantity || 1}</div></div>
+                                    <div class="detail-item"><div class="label">Tutar</div><div class="value">${formatMoney((o.total_price_cents || 0) / 100)}</div></div>
+                                    <div class="detail-item"><div class="label">Olusturma</div><div class="value">${formatDate(o.created_at)}</div></div>
+                                    <div class="detail-item"><div class="label">Odeme Tarihi</div><div class="value">${o.paid_at ? formatDate(o.paid_at) : '-'}</div></div>
+                                    <div class="detail-item"><div class="label">Fatura Adresi</div><div class="value">${o.billing_address || '-'}</div></div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    document.getElementById('simpleModal').style.display = 'flex';
+                } else {
+                    showToast('Siparis bulunamadi', 'error');
+                }
+            } catch (e) {
+                console.error('Order detail error:', e);
+                showToast('Siparis detayi yuklenemedi', 'error');
+            }
+        }
+
+        function closeSimpleModal() {
+            document.getElementById('simpleModal').style.display = 'none';
+        }
 
         async function exportOrders(format) {
             const data = await api(`/admin/export/orders?format=${format}`);
