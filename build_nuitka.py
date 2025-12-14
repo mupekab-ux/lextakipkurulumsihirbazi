@@ -21,9 +21,10 @@ import shutil
 
 # Build ayarları
 APP_NAME = "TakibiEsasi"
-MAIN_FILE = "app/main.py"
-ICON_FILE = "app/icon.ico"  # Varsa
-OUTPUT_DIR = "dist_nuitka"
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+MAIN_FILE = os.path.join(SCRIPT_DIR, "app/main.py")
+ICON_FILE = os.path.join(SCRIPT_DIR, "app/icon.ico")
+OUTPUT_DIR = os.path.join(SCRIPT_DIR, "dist_nuitka")
 
 def check_nuitka():
     """Nuitka kurulu mu kontrol et"""
@@ -80,8 +81,8 @@ def build():
         "--include-module=sqlite3",
 
         # Data dosyaları
-        "--include-data-dir=app/themes=app/themes",
-        "--include-data-dir=app/ui=app/ui",
+        f"--include-data-dir={os.path.join(SCRIPT_DIR, 'app/themes')}=app/themes",
+        f"--include-data-dir={os.path.join(SCRIPT_DIR, 'app/ui')}=app/ui",
 
         # Performans ve koruma
         "--lto=yes",                       # Link Time Optimization
@@ -108,7 +109,7 @@ def build():
     print("Komut:", " ".join(cmd))
     print("\n")
 
-    result = subprocess.run(cmd, cwd=os.path.dirname(os.path.abspath(__file__)))
+    result = subprocess.run(cmd, cwd=SCRIPT_DIR)
 
     if result.returncode == 0:
         print("\n" + "="*60)
