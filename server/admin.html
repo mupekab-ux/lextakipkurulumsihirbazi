@@ -7,6 +7,7 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root {
@@ -39,9 +40,11 @@
         .nav-item:hover { background: var(--bg-input); color: var(--text); }
         .nav-item.active { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: var(--bg-dark); }
         .nav-item i { width: 20px; text-align: center; }
+        .nav-badge { background: var(--danger); color: white; font-size: 10px; padding: 2px 6px; border-radius: 10px; margin-left: auto; }
         .main-content { margin-left: 260px; padding: 30px; min-height: 100vh; }
         .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; gap: 16px; }
         .page-header h1 { font-size: 28px; font-weight: 700; }
+        .header-actions { display: flex; gap: 12px; flex-wrap: wrap; }
         .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 24px; }
         .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .card-title { font-size: 18px; font-weight: 600; }
@@ -52,8 +55,12 @@
         .stat-card .icon.success { background: rgba(16, 185, 129, 0.2); color: var(--success); }
         .stat-card .icon.info { background: rgba(59, 130, 246, 0.2); color: var(--info); }
         .stat-card .icon.warning { background: rgba(245, 158, 11, 0.2); color: var(--warning); }
+        .stat-card .icon.danger { background: rgba(239, 68, 68, 0.2); color: var(--danger); }
         .stat-card .value { font-size: 32px; font-weight: 700; margin-bottom: 4px; }
         .stat-card .label { color: var(--text-muted); font-size: 14px; }
+        .stat-card .trend { font-size: 12px; margin-top: 8px; }
+        .stat-card .trend.up { color: var(--success); }
+        .stat-card .trend.down { color: var(--danger); }
         .form-group { margin-bottom: 20px; }
         .form-group label { display: block; margin-bottom: 8px; font-weight: 500; color: var(--text); }
         .form-group small { display: block; margin-top: 4px; color: var(--text-muted); font-size: 12px; }
@@ -65,6 +72,7 @@
         .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3); }
         .btn-secondary { background: var(--bg-input); color: var(--text); border: 1px solid var(--border); }
         .btn-secondary:hover { background: var(--border); }
+        .btn-success { background: var(--success); color: white; }
         .btn-danger { background: var(--danger); color: white; }
         .btn-danger:hover { background: #DC2626; }
         .btn-sm { padding: 8px 16px; font-size: 13px; }
@@ -79,6 +87,7 @@
         .badge-danger { background: rgba(239, 68, 68, 0.2); color: var(--danger); }
         .badge-warning { background: rgba(245, 158, 11, 0.2); color: var(--warning); }
         .badge-info { background: rgba(59, 130, 246, 0.2); color: var(--info); }
+        .badge-primary { background: rgba(251, 191, 36, 0.2); color: var(--primary); }
         .page-section { display: none; }
         .page-section.active { display: block; }
         .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
@@ -92,11 +101,32 @@
         .item-card .item-actions { display: flex; gap: 8px; flex-shrink: 0; }
         .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.7); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
         .modal-overlay.active { display: flex; }
-        .modal { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
+        .modal { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; }
+        .modal.modal-lg { max-width: 900px; }
         .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid var(--border); }
         .modal-header h3 { font-size: 18px; }
         .modal-body { padding: 24px; }
         .modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 12px; }
+        .chart-container { position: relative; height: 300px; margin-top: 20px; }
+        .activity-item { display: flex; gap: 16px; padding: 16px; border-bottom: 1px solid var(--border); }
+        .activity-item:last-child { border-bottom: none; }
+        .activity-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .activity-content { flex: 1; }
+        .activity-content .title { font-weight: 500; margin-bottom: 4px; }
+        .activity-content .desc { color: var(--text-muted); font-size: 13px; }
+        .activity-content .time { color: var(--text-muted); font-size: 12px; margin-top: 4px; }
+        .tabs { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+        .tab { padding: 8px 16px; border-radius: 6px; cursor: pointer; color: var(--text-muted); transition: all 0.2s; }
+        .tab:hover { color: var(--text); }
+        .tab.active { background: var(--primary); color: var(--bg-dark); }
+        .user-detail-section { margin-bottom: 24px; }
+        .user-detail-section h4 { margin-bottom: 12px; color: var(--text-muted); font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
+        .detail-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        .detail-item { background: var(--bg-input); padding: 12px; border-radius: 8px; }
+        .detail-item .label { color: var(--text-muted); font-size: 12px; margin-bottom: 4px; }
+        .detail-item .value { font-weight: 500; }
+        .filter-bar { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+        .filter-bar input, .filter-bar select { width: auto; min-width: 150px; }
         .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; }
         .media-item { position: relative; aspect-ratio: 1; border-radius: 10px; overflow: hidden; border: 2px solid transparent; cursor: pointer; transition: all 0.2s; }
         .media-item:hover { border-color: var(--primary); }
@@ -112,6 +142,9 @@
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         .toast.success { border-left: 4px solid var(--success); }
         .toast.error { border-left: 4px solid var(--danger); }
+        .toast.info { border-left: 4px solid var(--info); }
+        .revenue-highlight { background: linear-gradient(135deg, rgba(251, 191, 36, 0.1), rgba(245, 158, 11, 0.1)); border: 1px solid rgba(251, 191, 36, 0.3); }
+        .revenue-highlight .value { color: var(--primary); }
         @media (max-width: 768px) { .sidebar { transform: translateX(-100%); } .sidebar.open { transform: translateX(0); } .main-content { margin-left: 0; } }
     </style>
 </head>
@@ -142,15 +175,24 @@
         <aside class="sidebar">
             <div class="sidebar-logo">
                 <h2><i class="fas fa-balance-scale"></i> TakibiEsasi</h2>
-                <span>Admin Panel v2.0</span>
+                <span>Admin Panel v3.0</span>
             </div>
             <nav>
                 <div class="nav-section">
                     <div class="nav-section-title">Genel</div>
                     <div class="nav-item active" data-page="dashboard"><i class="fas fa-home"></i> Dashboard</div>
+                    <div class="nav-item" data-page="orders"><i class="fas fa-shopping-cart"></i> Siparisler</div>
                     <div class="nav-item" data-page="licenses"><i class="fas fa-key"></i> Lisanslar</div>
-                    <div class="nav-item" data-page="users"><i class="fas fa-users"></i> Kullanıcılar</div>
-                    <div class="nav-item" data-page="demo"><i class="fas fa-rocket"></i> Demo Kayıtları</div>
+                    <div class="nav-item" data-page="users"><i class="fas fa-users"></i> Kullanicilar</div>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">Raporlar</div>
+                    <div class="nav-item" data-page="sales-report"><i class="fas fa-chart-line"></i> Satis Raporlari</div>
+                    <div class="nav-item" data-page="activity"><i class="fas fa-history"></i> Aktivite Logu</div>
+                </div>
+                <div class="nav-section">
+                    <div class="nav-section-title">Diger</div>
+                    <div class="nav-item" data-page="demo"><i class="fas fa-rocket"></i> Demo Kayitlari</div>
                     <div class="nav-item" data-page="messages"><i class="fas fa-envelope"></i> Mesajlar</div>
                 </div>
                 <div class="nav-section">
@@ -182,48 +224,290 @@
         <main class="main-content">
             <!-- Dashboard -->
             <section class="page-section active" id="page-dashboard">
-                <div class="page-header"><h1>Dashboard</h1></div>
+                <div class="page-header">
+                    <h1>Dashboard</h1>
+                    <div class="header-actions">
+                        <button class="btn btn-secondary" onclick="loadDashboard()"><i class="fas fa-sync-alt"></i> Yenile</button>
+                    </div>
+                </div>
+
+                <!-- Revenue Stats -->
                 <div class="stats-grid">
-                    <div class="stat-card"><div class="icon primary"><i class="fas fa-key"></i></div><div class="value" id="statTotal">0</div><div class="label">Toplam Lisans</div></div>
-                    <div class="stat-card"><div class="icon success"><i class="fas fa-check-circle"></i></div><div class="value" id="statActive">0</div><div class="label">Aktif Lisans</div></div>
-                    <div class="stat-card"><div class="icon info"><i class="fas fa-calendar-day"></i></div><div class="value" id="statToday">0</div><div class="label">Bugun Aktivasyon</div></div>
-                    <div class="stat-card"><div class="icon warning"><i class="fas fa-code-branch"></i></div><div class="value" id="statVersion">-</div><div class="label">Guncel Surum</div></div>
-                    <div class="stat-card"><div class="icon info"><i class="fas fa-rocket"></i></div><div class="value" id="statDemoTotal">0</div><div class="label">Demo Kayit</div></div>
-                    <div class="stat-card"><div class="icon success"><i class="fas fa-exchange-alt"></i></div><div class="value" id="statDemoConverted">0%</div><div class="label">Donusum Orani</div></div>
+                    <div class="stat-card revenue-highlight">
+                        <div class="icon primary"><i class="fas fa-turkish-lira-sign"></i></div>
+                        <div class="value" id="statTotalRevenue">0 ₺</div>
+                        <div class="label">Toplam Gelir</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="icon success"><i class="fas fa-calendar-alt"></i></div>
+                        <div class="value" id="statMonthRevenue">0 ₺</div>
+                        <div class="label">Bu Ay</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="icon info"><i class="fas fa-calendar-week"></i></div>
+                        <div class="value" id="statWeekRevenue">0 ₺</div>
+                        <div class="label">Bu Hafta</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="icon warning"><i class="fas fa-calendar-day"></i></div>
+                        <div class="value" id="statTodayRevenue">0 ₺</div>
+                        <div class="label">Bugun</div>
+                    </div>
+                </div>
+
+                <!-- License & User Stats -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="icon primary"><i class="fas fa-key"></i></div>
+                        <div class="value" id="statTotalLicenses">0</div>
+                        <div class="label">Toplam Lisans</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="icon success"><i class="fas fa-check-circle"></i></div>
+                        <div class="value" id="statActiveLicenses">0</div>
+                        <div class="label">Aktif Lisans</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="icon info"><i class="fas fa-shopping-bag"></i></div>
+                        <div class="value" id="statPurchasedLicenses">0</div>
+                        <div class="label">Satin Alinan</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="icon warning"><i class="fas fa-users"></i></div>
+                        <div class="value" id="statTotalUsers">0</div>
+                        <div class="label">Toplam Kullanici</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="icon success"><i class="fas fa-shopping-cart"></i></div>
+                        <div class="value" id="statCompletedOrders">0</div>
+                        <div class="label">Tamamlanan Siparis</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="icon danger"><i class="fas fa-clock"></i></div>
+                        <div class="value" id="statPendingOrders">0</div>
+                        <div class="label">Bekleyen Siparis</div>
+                    </div>
+                </div>
+
+                <!-- Charts -->
+                <div class="grid-2">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Aylik Gelir</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="monthlyRevenueChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Gunluk Satis (Son 30 Gun)</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="dailyRevenueChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity & Orders -->
+                <div class="grid-2">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Son Aktiviteler</h3>
+                            <a href="#" onclick="showPage('activity')" style="color: var(--primary); font-size: 14px;">Tumu</a>
+                        </div>
+                        <div id="recentActivity"></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Son Siparisler</h3>
+                            <a href="#" onclick="showPage('orders')" style="color: var(--primary); font-size: 14px;">Tumu</a>
+                        </div>
+                        <div class="table-container">
+                            <table>
+                                <thead><tr><th>Siparis</th><th>Musteri</th><th>Tutar</th><th>Durum</th></tr></thead>
+                                <tbody id="recentOrders"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Licenses -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Son Lisanslar</h3>
+                        <a href="#" onclick="showPage('licenses')" style="color: var(--primary); font-size: 14px;">Tumu</a>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>Lisans</th><th>Musteri</th><th>Kaynak</th><th>Fiyat</th><th>Durum</th><th>Tarih</th></tr></thead>
+                            <tbody id="recentLicenses"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Orders -->
+            <section class="page-section" id="page-orders">
+                <div class="page-header">
+                    <h1>Siparisler</h1>
+                    <div class="header-actions">
+                        <button class="btn btn-secondary" onclick="exportOrders('csv')"><i class="fas fa-download"></i> CSV</button>
+                        <button class="btn btn-secondary" onclick="exportOrders('json')"><i class="fas fa-download"></i> JSON</button>
+                    </div>
+                </div>
+                <div class="stats-grid" style="margin-bottom: 24px;">
+                    <div class="stat-card"><div class="icon info"><i class="fas fa-shopping-cart"></i></div><div class="value" id="orderStatTotal">0</div><div class="label">Toplam Siparis</div></div>
+                    <div class="stat-card"><div class="icon success"><i class="fas fa-check"></i></div><div class="value" id="orderStatCompleted">0</div><div class="label">Tamamlanan</div></div>
+                    <div class="stat-card"><div class="icon warning"><i class="fas fa-clock"></i></div><div class="value" id="orderStatPending">0</div><div class="label">Bekleyen</div></div>
+                    <div class="stat-card"><div class="icon primary"><i class="fas fa-turkish-lira-sign"></i></div><div class="value" id="orderStatRevenue">0 ₺</div><div class="label">Toplam Gelir</div></div>
                 </div>
                 <div class="card">
-                    <div class="card-header"><h3 class="card-title">Son Aktivasyonlar</h3></div>
                     <div class="table-container">
-                        <table><thead><tr><th>Lisans</th><th>Makine ID</th><th>Tarih</th><th>Durum</th></tr></thead><tbody id="recentActivations"></tbody></table>
+                        <table>
+                            <thead><tr><th>Siparis No</th><th>Musteri</th><th>Urun</th><th>Tutar</th><th>Durum</th><th>Tarih</th><th>Islemler</th></tr></thead>
+                            <tbody id="ordersTable"></tbody>
+                        </table>
                     </div>
                 </div>
             </section>
 
             <!-- Licenses -->
             <section class="page-section" id="page-licenses">
-                <div class="page-header"><h1>Lisans Yonetimi</h1><button class="btn btn-primary" onclick="showCreateLicenseModal()"><i class="fas fa-plus"></i> Yeni Lisans</button></div>
+                <div class="page-header">
+                    <h1>Lisans Yonetimi</h1>
+                    <div class="header-actions">
+                        <button class="btn btn-secondary" onclick="exportLicenses('csv')"><i class="fas fa-download"></i> CSV</button>
+                        <button class="btn btn-primary" onclick="showCreateLicenseModal()"><i class="fas fa-plus"></i> Yeni Lisans</button>
+                    </div>
+                </div>
                 <div class="card">
+                    <div class="filter-bar">
+                        <select id="licenseSourceFilter" onchange="filterLicenses()">
+                            <option value="">Tum Kaynaklar</option>
+                            <option value="purchase">Satin Alinan</option>
+                            <option value="manual">Manuel</option>
+                        </select>
+                        <select id="licenseStatusFilter" onchange="filterLicenses()">
+                            <option value="">Tum Durumlar</option>
+                            <option value="active">Aktif</option>
+                            <option value="inactive">Pasif</option>
+                        </select>
+                    </div>
                     <div class="table-container">
-                        <table><thead><tr><th>Lisans Anahtari</th><th>Musteri</th><th>Kullanici</th><th>Makine ID</th><th>Transfer</th><th>Durum</th><th>Islemler</th></tr></thead><tbody id="licensesTable"></tbody></table>
+                        <table>
+                            <thead><tr><th>Lisans Anahtari</th><th>Musteri</th><th>Kaynak</th><th>Fiyat</th><th>Makine ID</th><th>Transfer</th><th>Durum</th><th>Islemler</th></tr></thead>
+                            <tbody id="licensesTable"></tbody>
+                        </table>
                     </div>
                 </div>
             </section>
 
             <!-- Users -->
             <section class="page-section" id="page-users">
-                <div class="page-header"><h1>Kullanıcılar</h1></div>
+                <div class="page-header">
+                    <h1>Kullanicilar</h1>
+                    <div class="header-actions">
+                        <button class="btn btn-secondary" onclick="exportUsers('csv')"><i class="fas fa-download"></i> CSV</button>
+                    </div>
+                </div>
                 <div class="stats-grid" style="margin-bottom: 24px;">
-                    <div class="stat-card"><div class="icon info"><i class="fas fa-users"></i></div><div class="value" id="userStatTotal">0</div><div class="label">Toplam Kullanıcı</div></div>
-                    <div class="stat-card"><div class="icon success"><i class="fas fa-user-check"></i></div><div class="value" id="userStatVerified">0</div><div class="label">Doğrulanmış</div></div>
-                    <div class="stat-card"><div class="icon primary"><i class="fas fa-calendar-day"></i></div><div class="value" id="userStatToday">0</div><div class="label">Bugün Kayıt</div></div>
-                    <div class="stat-card"><div class="icon warning"><i class="fas fa-shopping-cart"></i></div><div class="value" id="userStatWithOrders">0</div><div class="label">Sipariş Veren</div></div>
+                    <div class="stat-card"><div class="icon info"><i class="fas fa-users"></i></div><div class="value" id="userStatTotal">0</div><div class="label">Toplam Kullanici</div></div>
+                    <div class="stat-card"><div class="icon success"><i class="fas fa-user-check"></i></div><div class="value" id="userStatVerified">0</div><div class="label">Dogrulanmis</div></div>
+                    <div class="stat-card"><div class="icon primary"><i class="fas fa-calendar-day"></i></div><div class="value" id="userStatToday">0</div><div class="label">Bugun Kayit</div></div>
+                    <div class="stat-card"><div class="icon warning"><i class="fas fa-shopping-cart"></i></div><div class="value" id="userStatWithOrders">0</div><div class="label">Siparis Veren</div></div>
                 </div>
                 <div class="card">
-                    <div class="card-header"><h3 class="card-title">Tüm Kullanıcılar</h3></div>
                     <div class="table-container">
                         <table>
-                            <thead><tr><th>ID</th><th>E-posta</th><th>Ad Soyad</th><th>Telefon</th><th>E-posta Doğrulama</th><th>Kayıt Tarihi</th><th>Son Giriş</th><th>İşlemler</th></tr></thead>
+                            <thead><tr><th>ID</th><th>E-posta</th><th>Ad Soyad</th><th>Telefon</th><th>Durum</th><th>Kayit</th><th>Islemler</th></tr></thead>
                             <tbody id="usersTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Sales Report -->
+            <section class="page-section" id="page-sales-report">
+                <div class="page-header">
+                    <h1>Satis Raporlari</h1>
+                    <div class="header-actions">
+                        <button class="btn btn-secondary" onclick="exportSalesReport()"><i class="fas fa-download"></i> Raporu Indir</button>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="filter-bar">
+                        <div class="form-group" style="margin: 0;">
+                            <label style="margin-bottom: 4px; font-size: 12px;">Baslangic</label>
+                            <input type="date" id="reportStartDate" onchange="loadSalesReport()">
+                        </div>
+                        <div class="form-group" style="margin: 0;">
+                            <label style="margin-bottom: 4px; font-size: 12px;">Bitis</label>
+                            <input type="date" id="reportEndDate" onchange="loadSalesReport()">
+                        </div>
+                        <button class="btn btn-primary" onclick="loadSalesReport()" style="align-self: flex-end;"><i class="fas fa-search"></i> Filtrele</button>
+                    </div>
+                </div>
+                <div class="stats-grid" id="salesReportStats"></div>
+                <div class="grid-2">
+                    <div class="card">
+                        <h3 class="card-title" style="margin-bottom: 16px;">Gunluk Dagilim</h3>
+                        <div class="chart-container">
+                            <canvas id="reportDailyChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3 class="card-title" style="margin-bottom: 16px;">Urun Dagilimi</h3>
+                        <div id="productBreakdown"></div>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3 class="card-title" style="margin-bottom: 16px;">Siparis Detaylari</h3>
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>Siparis No</th><th>Musteri</th><th>Urun</th><th>Tutar</th><th>Odeme</th><th>Tarih</th></tr></thead>
+                            <tbody id="salesReportTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Activity Log -->
+            <section class="page-section" id="page-activity">
+                <div class="page-header">
+                    <h1>Aktivite Logu</h1>
+                    <div class="header-actions">
+                        <select id="activityTypeFilter" onchange="loadActivity()">
+                            <option value="">Tum Aktiviteler</option>
+                            <option value="license_activation">Lisans Aktivasyonu</option>
+                            <option value="license_created">Lisans Olusturma</option>
+                            <option value="license_toggled">Lisans Degisikligi</option>
+                            <option value="order_completed">Siparis Tamamlama</option>
+                            <option value="user_registration">Kullanici Kaydi</option>
+                        </select>
+                        <button class="btn btn-secondary" onclick="loadActivity()"><i class="fas fa-sync-alt"></i> Yenile</button>
+                    </div>
+                </div>
+                <div class="card">
+                    <div id="activityStats" style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px;"></div>
+                    <div id="activityList"></div>
+                </div>
+            </section>
+
+            <!-- Demo Registrations -->
+            <section class="page-section" id="page-demo">
+                <div class="page-header"><h1>Demo Kayitlari</h1></div>
+                <div class="stats-grid" style="margin-bottom: 24px;">
+                    <div class="stat-card"><div class="icon info"><i class="fas fa-users"></i></div><div class="value" id="demoStatTotal">0</div><div class="label">Toplam Kayit</div></div>
+                    <div class="stat-card"><div class="icon primary"><i class="fas fa-calendar-day"></i></div><div class="value" id="demoStatToday">0</div><div class="label">Bugun</div></div>
+                    <div class="stat-card"><div class="icon warning"><i class="fas fa-calendar-week"></i></div><div class="value" id="demoStatWeek">0</div><div class="label">Bu Hafta</div></div>
+                    <div class="stat-card"><div class="icon success"><i class="fas fa-check-double"></i></div><div class="value" id="demoStatConvert">0</div><div class="label">Donusen</div></div>
+                </div>
+                <div class="card">
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>E-posta</th><th>IP</th><th>Tarih</th><th>Durum</th><th>Islemler</th></tr></thead>
+                            <tbody id="demoTable"></tbody>
                         </table>
                     </div>
                 </div>
@@ -235,26 +519,6 @@
                 <div class="card"><div class="items-list" id="messagesList"></div></div>
             </section>
 
-            <!-- Demo Registrations -->
-            <section class="page-section" id="page-demo">
-                <div class="page-header"><h1>Demo Kayıtları</h1></div>
-                <div class="stats-grid" style="margin-bottom: 24px;">
-                    <div class="stat-card"><div class="icon info"><i class="fas fa-users"></i></div><div class="value" id="demoStatTotal">0</div><div class="label">Toplam Kayit</div></div>
-                    <div class="stat-card"><div class="icon primary"><i class="fas fa-calendar-day"></i></div><div class="value" id="demoStatToday">0</div><div class="label">Bugun</div></div>
-                    <div class="stat-card"><div class="icon warning"><i class="fas fa-calendar-week"></i></div><div class="value" id="demoStatWeek">0</div><div class="label">Bu Hafta</div></div>
-                    <div class="stat-card"><div class="icon success"><i class="fas fa-check-double"></i></div><div class="value" id="demoStatConvert">0</div><div class="label">Donusen</div></div>
-                </div>
-                <div class="card">
-                    <div class="card-header"><h3 class="card-title">Son Demo Kayitlari</h3></div>
-                    <div class="table-container">
-                        <table>
-                            <thead><tr><th>E-posta</th><th>IP</th><th>Tarih</th><th>Indirme</th><th>Durum</th><th>Islemler</th></tr></thead>
-                            <tbody id="demoTable"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
-
             <!-- Site Settings -->
             <section class="page-section" id="page-site-settings">
                 <div class="page-header"><h1>Genel Ayarlar</h1><button class="btn btn-primary" onclick="saveSiteSettings()"><i class="fas fa-save"></i> Kaydet</button></div>
@@ -262,7 +526,7 @@
                     <div class="card">
                         <h3 class="card-title" style="margin-bottom: 20px;">Site Bilgileri</h3>
                         <div class="form-group"><label>Site Basligi</label><input type="text" id="setting_site_title" placeholder="TakibiEsasi"></div>
-                        <div class="form-group"><label>Site Aciklamasi (Meta)</label><textarea id="setting_site_description" placeholder="Hukuk burolari icin profesyonel dava takip sistemi"></textarea></div>
+                        <div class="form-group"><label>Site Aciklamasi</label><textarea id="setting_site_description" placeholder="Hukuk burolari icin profesyonel dava takip sistemi"></textarea></div>
                         <div class="form-group"><label>Logo URL</label><input type="text" id="setting_logo_url" placeholder="/media/logo.png"></div>
                     </div>
                     <div class="card">
@@ -270,14 +534,6 @@
                         <div class="form-group"><label>E-posta</label><input type="email" id="setting_contact_email" placeholder="info@takibiesasi.com"></div>
                         <div class="form-group"><label>Telefon</label><input type="text" id="setting_contact_phone" placeholder="+90 555 123 4567"></div>
                         <div class="form-group"><label>Adres</label><textarea id="setting_contact_address" placeholder="Istanbul, Turkiye"></textarea></div>
-                    </div>
-                </div>
-                <div class="card">
-                    <h3 class="card-title" style="margin-bottom: 20px;">Sosyal Medya</h3>
-                    <div class="grid-3">
-                        <div class="form-group"><label><i class="fab fa-twitter"></i> Twitter</label><input type="text" id="setting_social_twitter" placeholder="https://twitter.com/..."></div>
-                        <div class="form-group"><label><i class="fab fa-linkedin"></i> LinkedIn</label><input type="text" id="setting_social_linkedin" placeholder="https://linkedin.com/..."></div>
-                        <div class="form-group"><label><i class="fab fa-instagram"></i> Instagram</label><input type="text" id="setting_social_instagram" placeholder="https://instagram.com/..."></div>
                     </div>
                 </div>
             </section>
@@ -290,13 +546,13 @@
                         <h3 class="card-title" style="margin-bottom: 20px;">Basliklar</h3>
                         <div class="form-group"><label>Ust Etiket</label><input type="text" id="setting_hero_badge" placeholder="Yeni Surum Yayinda"></div>
                         <div class="form-group"><label>Ana Baslik</label><input type="text" id="setting_hero_title" placeholder="Hukuki Sureclerinizi Dijitallestirin"></div>
-                        <div class="form-group"><label>Alt Baslik</label><textarea id="setting_hero_subtitle" placeholder="Davalarinizi, muvekkillerinizi ve tum hukuki sureclerinizi tek platformda yonetin."></textarea></div>
+                        <div class="form-group"><label>Alt Baslik</label><textarea id="setting_hero_subtitle" placeholder="Davalarinizi tek platformda yonetin."></textarea></div>
                     </div>
                     <div class="card">
-                        <h3 class="card-title" style="margin-bottom: 20px;">Butonlar ve Gorsel</h3>
-                        <div class="form-group"><label>Birincil Buton Metni</label><input type="text" id="setting_hero_btn_primary" placeholder="Ucretsiz Dene"></div>
-                        <div class="form-group"><label>Ikincil Buton Metni</label><input type="text" id="setting_hero_btn_secondary" placeholder="Demo Izle"></div>
-                        <div class="form-group"><label>Hero Gorsel URL</label><input type="text" id="setting_hero_image" placeholder="/media/hero-image.png"><small>Onerilen boyut: 800x600px</small></div>
+                        <h3 class="card-title" style="margin-bottom: 20px;">Butonlar</h3>
+                        <div class="form-group"><label>Birincil Buton</label><input type="text" id="setting_hero_btn_primary" placeholder="Ucretsiz Dene"></div>
+                        <div class="form-group"><label>Ikincil Buton</label><input type="text" id="setting_hero_btn_secondary" placeholder="Demo Izle"></div>
+                        <div class="form-group"><label>Hero Gorsel URL</label><input type="text" id="setting_hero_image" placeholder="/media/hero-image.png"></div>
                     </div>
                 </div>
             </section>
@@ -338,14 +594,10 @@
                     <div class="upload-area" onclick="document.getElementById('mediaUpload').click()">
                         <i class="fas fa-cloud-upload-alt"></i>
                         <p>Gorsel yuklemek icin tiklayin</p>
-                        <small>JPG, PNG, GIF, WebP, SVG desteklenir</small>
                     </div>
                     <input type="file" id="mediaUpload" hidden accept="image/*" onchange="uploadMedia(this)">
                 </div>
-                <div class="card">
-                    <h3 class="card-title" style="margin-bottom: 20px;">Yuklenen Gorseller</h3>
-                    <div class="media-grid" id="mediaGrid"></div>
-                </div>
+                <div class="card"><div class="media-grid" id="mediaGrid"></div></div>
             </section>
 
             <!-- Announcements -->
@@ -367,13 +619,13 @@
                 <div class="card">
                     <div class="upload-area" onclick="document.getElementById('fileUpload').click()">
                         <i class="fas fa-file-upload"></i>
-                        <p>EXE dosyasi yuklemek icin tiklayin</p>
+                        <p>Dosya yuklemek icin tiklayin</p>
                     </div>
-                    <input type="file" id="fileUpload" hidden accept=".exe" onchange="uploadFile(this)">
+                    <input type="file" id="fileUpload" hidden onchange="uploadFile(this)">
                 </div>
                 <div class="card">
                     <div class="table-container">
-                        <table><thead><tr><th>Dosya Adi</th><th>Boyut</th><th>Tarih</th><th>URL</th><th>Islem</th></tr></thead><tbody id="filesTable"></tbody></table>
+                        <table><thead><tr><th>Dosya</th><th>Boyut</th><th>Tarih</th><th>URL</th><th>Islem</th></tr></thead><tbody id="filesTable"></tbody></table>
                     </div>
                 </div>
             </section>
@@ -392,11 +644,19 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="userDetailModal">
+        <div class="modal modal-lg">
+            <div class="modal-header"><h3>Kullanici Detayi</h3><button class="btn btn-icon btn-secondary" onclick="closeModal('userDetailModal')"><i class="fas fa-times"></i></button></div>
+            <div class="modal-body" id="userDetailContent"></div>
+            <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('userDetailModal')">Kapat</button></div>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="featureModal">
         <div class="modal">
             <div class="modal-header"><h3 id="featureModalTitle">Yeni Ozellik</h3><button class="btn btn-icon btn-secondary" onclick="closeModal('featureModal')"><i class="fas fa-times"></i></button></div>
             <div class="modal-body">
-                <div class="form-group"><label>Ikon</label><input type="text" id="featureIcon" placeholder="fa-rocket"><small>FontAwesome ikon adi (ornek: fa-rocket, fa-shield)</small></div>
+                <div class="form-group"><label>Ikon</label><input type="text" id="featureIcon" placeholder="fa-rocket"></div>
                 <div class="form-group"><label>Baslik</label><input type="text" id="featureTitle" placeholder="Ozellik basligi"></div>
                 <div class="form-group"><label>Aciklama</label><textarea id="featureDescription" placeholder="Ozellik aciklamasi"></textarea></div>
                 <div class="form-group"><label>Sira</label><input type="number" id="featureOrder" value="0" min="0"></div>
@@ -409,7 +669,7 @@
         <div class="modal">
             <div class="modal-header"><h3 id="screenshotModalTitle">Yeni Ekran Goruntusu</h3><button class="btn btn-icon btn-secondary" onclick="closeModal('screenshotModal')"><i class="fas fa-times"></i></button></div>
             <div class="modal-body">
-                <div class="form-group"><label>Baslik (Opsiyonel)</label><input type="text" id="screenshotTitle" placeholder="Ekran goruntusu basligi"></div>
+                <div class="form-group"><label>Baslik</label><input type="text" id="screenshotTitle" placeholder="Baslik"></div>
                 <div class="form-group"><label>Gorsel URL</label><input type="text" id="screenshotUrl" placeholder="/media/screenshot.png"></div>
                 <div class="form-group"><label>Sira</label><input type="number" id="screenshotOrder" value="0" min="0"></div>
             </div>
@@ -423,8 +683,8 @@
             <div class="modal-body">
                 <div class="form-group"><label>Plan Adi</label><input type="text" id="pricingName" placeholder="Profesyonel"></div>
                 <div class="form-group"><label>Fiyat (TL)</label><input type="number" id="pricingPrice" placeholder="499" min="0" step="0.01"></div>
-                <div class="form-group"><label>Periyot</label><input type="text" id="pricingPeriod" placeholder="aylik / yillik / tek seferlik"></div>
-                <div class="form-group"><label>Ozellikler (her satira bir ozellik)</label><textarea id="pricingFeatures" rows="5" placeholder="Sinirsiz dava&#10;7/24 destek"></textarea></div>
+                <div class="form-group"><label>Periyot</label><input type="text" id="pricingPeriod" placeholder="aylik / yillik"></div>
+                <div class="form-group"><label>Ozellikler (her satira bir)</label><textarea id="pricingFeatures" rows="5" placeholder="Ozellik 1&#10;Ozellik 2"></textarea></div>
                 <div class="form-group"><label><input type="checkbox" id="pricingPopular"> Populer Plan</label></div>
                 <div class="form-group"><label>Sira</label><input type="number" id="pricingOrder" value="0" min="0"></div>
             </div>
@@ -438,7 +698,7 @@
             <div class="modal-body">
                 <div class="form-group"><label>Isim</label><input type="text" id="testimonialName" placeholder="Av. Mehmet Yilmaz"></div>
                 <div class="form-group"><label>Unvan</label><input type="text" id="testimonialTitle" placeholder="Hukuk Burosu Sahibi"></div>
-                <div class="form-group"><label>Yorum</label><textarea id="testimonialContent" placeholder="Kullanici yorumu..."></textarea></div>
+                <div class="form-group"><label>Yorum</label><textarea id="testimonialContent" placeholder="Yorum..."></textarea></div>
                 <div class="form-group"><label>Puan (1-5)</label><input type="number" id="testimonialRating" value="5" min="1" max="5"></div>
             </div>
             <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('testimonialModal')">Iptal</button><button class="btn btn-primary" onclick="saveTestimonial()">Kaydet</button></div>
@@ -462,8 +722,8 @@
             <div class="modal-header"><h3>Yeni Duyuru</h3><button class="btn btn-icon btn-secondary" onclick="closeModal('announcementModal')"><i class="fas fa-times"></i></button></div>
             <div class="modal-body">
                 <div class="form-group"><label>Baslik</label><input type="text" id="announcementTitle" placeholder="Duyuru basligi"></div>
-                <div class="form-group"><label>Icerik</label><textarea id="announcementContent" rows="4" placeholder="Duyuru icerigi"></textarea></div>
-                <div class="form-group"><label>Tip</label><select id="announcementType"><option value="info">Bilgi</option><option value="warning">Uyari</option><option value="success">Basari</option><option value="error">Hata</option></select></div>
+                <div class="form-group"><label>Icerik</label><textarea id="announcementContent" rows="4" placeholder="Icerik"></textarea></div>
+                <div class="form-group"><label>Tip</label><select id="announcementType"><option value="info">Bilgi</option><option value="warning">Uyari</option><option value="success">Basari</option></select></div>
             </div>
             <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('announcementModal')">Iptal</button><button class="btn btn-primary" onclick="saveAnnouncement()">Kaydet</button></div>
         </div>
@@ -471,34 +731,30 @@
 
     <div class="modal-overlay" id="releaseModal">
         <div class="modal">
-            <div class="modal-header"><h3>Yeni Surum Yayinla</h3><button class="btn btn-icon btn-secondary" onclick="closeModal('releaseModal')"><i class="fas fa-times"></i></button></div>
+            <div class="modal-header"><h3>Yeni Surum</h3><button class="btn btn-icon btn-secondary" onclick="closeModal('releaseModal')"><i class="fas fa-times"></i></button></div>
             <div class="modal-body">
-                <div class="form-group"><label>Surum Numarasi</label><input type="text" id="releaseVersion" placeholder="1.0.0"></div>
-                <div class="form-group"><label>Indirme URL</label><input type="text" id="releaseUrl" placeholder="https://takibiesasi.com/download/setup.exe"></div>
-                <div class="form-group"><label>Degisiklik Notlari</label><textarea id="releaseNotes" rows="4" placeholder="Bu surumde neler degisti?"></textarea></div>
+                <div class="form-group"><label>Surum</label><input type="text" id="releaseVersion" placeholder="1.0.0"></div>
+                <div class="form-group"><label>Indirme URL</label><input type="text" id="releaseUrl" placeholder="https://..."></div>
+                <div class="form-group"><label>Notlar</label><textarea id="releaseNotes" rows="4" placeholder="Degisiklikler..."></textarea></div>
                 <div class="form-group"><label><input type="checkbox" id="releaseCritical"> Kritik Guncelleme</label></div>
             </div>
             <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('releaseModal')">Iptal</button><button class="btn btn-primary" onclick="publishRelease()">Yayinla</button></div>
         </div>
     </div>
 
-    <div class="modal-overlay" id="licenseDetailModal">
-        <div class="modal">
-            <div class="modal-header"><h3>Lisans Detayi</h3><button class="btn btn-icon btn-secondary" onclick="closeModal('licenseDetailModal')"><i class="fas fa-times"></i></button></div>
-            <div class="modal-body" id="licenseDetailContent"></div>
-            <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('licenseDetailModal')">Kapat</button></div>
-        </div>
-    </div>
-
     <script>
         const API_BASE = '/api';
         let authToken = localStorage.getItem('adminToken');
+        let monthlyChart = null;
+        let dailyChart = null;
+        let reportChart = null;
+        let allLicenses = [];
 
         function showToast(message, type = 'success') {
             const container = document.getElementById('toastContainer');
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
-            toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'times-circle'}"></i><span>${message}</span>`;
+            toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'times-circle' : 'info-circle'}"></i><span>${message}</span>`;
             container.appendChild(toast);
             setTimeout(() => toast.remove(), 3000);
         }
@@ -535,124 +791,211 @@
         function showApp() { document.getElementById('loginScreen').style.display = 'none'; document.getElementById('appContainer').style.display = 'block'; loadDashboard(); loadSettings(); }
         if (authToken) showApp();
 
+        function showPage(page) {
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.querySelector(`.nav-item[data-page="${page}"]`)?.classList.add('active');
+            document.querySelectorAll('.page-section').forEach(p => p.classList.remove('active'));
+            document.getElementById(`page-${page}`).classList.add('active');
+            loadPageData(page);
+        }
+
         document.querySelectorAll('.nav-item[data-page]').forEach(item => {
-            item.addEventListener('click', () => {
-                const page = item.dataset.page;
-                document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-                item.classList.add('active');
-                document.querySelectorAll('.page-section').forEach(p => p.classList.remove('active'));
-                document.getElementById(`page-${page}`).classList.add('active');
-                loadPageData(page);
-            });
+            item.addEventListener('click', () => showPage(item.dataset.page));
         });
 
         function loadPageData(page) {
-            const loaders = { dashboard: loadDashboard, licenses: loadLicenses, users: loadUsers, demo: loadDemo, messages: loadMessages, features: loadFeatures, screenshots: loadScreenshots, pricing: loadPricing, testimonials: loadTestimonials, faq: loadFaq, announcements: loadAnnouncements, media: loadMedia, releases: loadReleases, files: loadFiles };
+            const loaders = {
+                dashboard: loadDashboard, licenses: loadLicenses, users: loadUsers, orders: loadOrders,
+                'sales-report': loadSalesReport, activity: loadActivity, demo: loadDemo, messages: loadMessages,
+                features: loadFeatures, screenshots: loadScreenshots, pricing: loadPricing,
+                testimonials: loadTestimonials, faq: loadFaq, announcements: loadAnnouncements,
+                media: loadMedia, releases: loadReleases, files: loadFiles
+            };
             if (loaders[page]) loaders[page]();
         }
 
         function openModal(id) { document.getElementById(id).classList.add('active'); }
         function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+        function formatMoney(amount) { return new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 0 }).format(amount) + ' ₺'; }
+        function formatDate(dateStr) { return dateStr ? new Date(dateStr).toLocaleDateString('tr-TR') : '-'; }
+        function formatDateTime(dateStr) { return dateStr ? new Date(dateStr).toLocaleString('tr-TR') : '-'; }
 
+        // Dashboard
         async function loadDashboard() {
-            const data = await api('/admin/stats');
-            document.getElementById('statTotal').textContent = data.total_licenses || 0;
-            document.getElementById('statActive').textContent = data.active_licenses || 0;
-            document.getElementById('statToday').textContent = data.today_activations || 0;
-            document.getElementById('statVersion').textContent = data.current_version || '-';
-            document.getElementById('recentActivations').innerHTML = (data.recent_activations || []).map(r => `<tr><td><code>${r.license_key}</code></td><td><small>${r.machine_id ? r.machine_id.substring(0, 20) + '...' : '-'}</small></td><td>${r.activated_at ? new Date(r.activated_at).toLocaleDateString('tr-TR') : '-'}</td><td><span class="badge ${r.is_active ? 'badge-success' : 'badge-danger'}">${r.is_active ? 'Aktif' : 'Pasif'}</span></td></tr>`).join('');
-
-            // Demo stats
             try {
-                const demoStats = await api('/demo/stats');
-                document.getElementById('statDemoTotal').textContent = demoStats.total || 0;
-                document.getElementById('statDemoConverted').textContent = (demoStats.conversion_rate || 0) + '%';
-            } catch (e) { console.log('Demo stats not available'); }
+                const data = await api('/admin/dashboard');
+                if (!data.success) return;
+                const s = data.stats;
+
+                // Revenue stats
+                document.getElementById('statTotalRevenue').textContent = formatMoney(s.total_revenue || 0);
+                document.getElementById('statMonthRevenue').textContent = formatMoney(s.month_revenue || 0);
+                document.getElementById('statWeekRevenue').textContent = formatMoney(s.week_revenue || 0);
+                document.getElementById('statTodayRevenue').textContent = formatMoney(s.today_revenue || 0);
+
+                // License & user stats
+                document.getElementById('statTotalLicenses').textContent = s.total_licenses || 0;
+                document.getElementById('statActiveLicenses').textContent = s.active_licenses || 0;
+                document.getElementById('statPurchasedLicenses').textContent = s.purchased_licenses || 0;
+                document.getElementById('statTotalUsers').textContent = s.total_users || 0;
+                document.getElementById('statCompletedOrders').textContent = s.completed_orders || 0;
+                document.getElementById('statPendingOrders').textContent = s.pending_orders || 0;
+
+                // Monthly chart
+                const monthlyData = s.monthly_revenue || [];
+                if (monthlyChart) monthlyChart.destroy();
+                monthlyChart = new Chart(document.getElementById('monthlyRevenueChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: monthlyData.map(d => d.month),
+                        datasets: [{
+                            label: 'Gelir (₺)',
+                            data: monthlyData.map(d => d.revenue),
+                            backgroundColor: 'rgba(251, 191, 36, 0.8)',
+                            borderRadius: 6
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#2A2A3A' } }, x: { grid: { display: false } } } }
+                });
+
+                // Daily chart
+                const dailyData = s.daily_revenue || [];
+                if (dailyChart) dailyChart.destroy();
+                dailyChart = new Chart(document.getElementById('dailyRevenueChart'), {
+                    type: 'line',
+                    data: {
+                        labels: dailyData.map(d => d.date.slice(5)),
+                        datasets: [{
+                            label: 'Gelir (₺)',
+                            data: dailyData.map(d => d.revenue),
+                            borderColor: '#10B981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#2A2A3A' } }, x: { grid: { display: false } } } }
+                });
+
+                // Recent activity
+                const activityIcons = { license_activation: 'key', license_created: 'plus', order_completed: 'shopping-cart', user_registration: 'user-plus', license_toggled: 'toggle-on' };
+                const activityColors = { license_activation: 'success', license_created: 'primary', order_completed: 'info', user_registration: 'warning', license_toggled: 'danger' };
+                document.getElementById('recentActivity').innerHTML = (s.recent_activity || []).slice(0, 5).map(a => `
+                    <div class="activity-item">
+                        <div class="activity-icon icon ${activityColors[a.type] || 'info'}"><i class="fas fa-${activityIcons[a.type] || 'circle'}"></i></div>
+                        <div class="activity-content">
+                            <div class="title">${a.description}</div>
+                            <div class="time">${formatDateTime(a.created_at)}</div>
+                        </div>
+                    </div>
+                `).join('') || '<p style="color: var(--text-muted); text-align: center; padding: 20px;">Henuz aktivite yok</p>';
+
+                // Recent orders
+                document.getElementById('recentOrders').innerHTML = (s.recent_orders || []).slice(0, 5).map(o => `
+                    <tr>
+                        <td><code>${o.order_number}</code></td>
+                        <td>${o.user_name || o.user_email || '-'}</td>
+                        <td>${formatMoney(o.total)}</td>
+                        <td><span class="badge badge-${o.status === 'completed' ? 'success' : o.status === 'pending' ? 'warning' : 'danger'}">${o.status}</span></td>
+                    </tr>
+                `).join('') || '<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Henuz siparis yok</td></tr>';
+
+                // Recent licenses
+                document.getElementById('recentLicenses').innerHTML = (s.recent_licenses || []).slice(0, 5).map(l => `
+                    <tr>
+                        <td><code>${l.license_key}</code></td>
+                        <td>${l.customer_name || l.email || '-'}</td>
+                        <td><span class="badge badge-${l.source === 'purchase' ? 'success' : 'info'}">${l.source === 'purchase' ? 'Satin Alma' : 'Manuel'}</span></td>
+                        <td>${l.purchase_price ? formatMoney(l.purchase_price) : '-'}</td>
+                        <td><span class="badge badge-${l.is_active ? 'success' : 'danger'}">${l.is_active ? 'Aktif' : 'Pasif'}</span></td>
+                        <td>${formatDate(l.created_at)}</td>
+                    </tr>
+                `).join('') || '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Henuz lisans yok</td></tr>';
+
+            } catch (e) { console.error('Dashboard load error:', e); }
         }
 
-        async function loadUsers() {
+        // Orders
+        async function loadOrders() {
             try {
-                const data = await api('/admin/users');
-                if (data.success) {
-                    document.getElementById('userStatTotal').textContent = data.stats?.total || data.users?.length || 0;
-                    document.getElementById('userStatVerified').textContent = data.stats?.verified || 0;
-                    document.getElementById('userStatToday').textContent = data.stats?.today || 0;
-                    document.getElementById('userStatWithOrders').textContent = data.stats?.with_orders || 0;
-
-                    document.getElementById('usersTable').innerHTML = (data.users || []).length === 0
-                        ? '<tr><td colspan="8" style="text-align: center; color: var(--text-muted);">Henüz kullanıcı yok</td></tr>'
-                        : data.users.map(u => `
-                            <tr>
-                                <td>${u.id}</td>
-                                <td>${u.email}</td>
-                                <td>${u.full_name || '-'}</td>
-                                <td>${u.phone || '-'}</td>
-                                <td><span class="badge ${u.email_verified ? 'badge-success' : 'badge-warning'}">${u.email_verified ? 'Doğrulandı' : 'Bekliyor'}</span></td>
-                                <td>${u.created_at ? new Date(u.created_at).toLocaleDateString('tr-TR') : '-'}</td>
-                                <td>${u.last_login_at ? new Date(u.last_login_at).toLocaleDateString('tr-TR') : '-'}</td>
-                                <td>
-                                    <button class="btn btn-sm btn-secondary" onclick="viewUserDetails(${u.id})"><i class="fas fa-eye"></i></button>
-                                </td>
-                            </tr>
-                        `).join('');
+                const stats = await api('/admin/orders/stats');
+                if (stats.success) {
+                    document.getElementById('orderStatTotal').textContent = stats.stats.total_orders || 0;
+                    document.getElementById('orderStatCompleted').textContent = stats.stats.completed_orders || 0;
+                    document.getElementById('orderStatPending').textContent = stats.stats.pending_orders || 0;
+                    document.getElementById('orderStatRevenue').textContent = formatMoney(stats.stats.total_revenue || 0);
                 }
-            } catch (e) { console.log('Users load error:', e); }
+
+                const data = await api('/admin/orders');
+                document.getElementById('ordersTable').innerHTML = (data.orders || []).map(o => `
+                    <tr>
+                        <td><code>${o.order_number}</code></td>
+                        <td>${o.user_name || o.user_email || '-'}</td>
+                        <td>${o.product_name || '-'}</td>
+                        <td>${formatMoney(o.total_price / 100)}</td>
+                        <td><span class="badge badge-${o.payment_status === 'completed' ? 'success' : o.payment_status === 'pending' ? 'warning' : 'danger'}">${o.payment_status}</span></td>
+                        <td>${formatDate(o.created_at)}</td>
+                        <td><button class="btn btn-sm btn-secondary" onclick="viewOrderDetail(${o.id})"><i class="fas fa-eye"></i></button></td>
+                    </tr>
+                `).join('') || '<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">Henuz siparis yok</td></tr>';
+            } catch (e) { console.error('Orders load error:', e); }
         }
 
-        async function viewUserDetails(userId) {
-            showToast('Kullanıcı detayları yakında...', 'info');
-        }
+        function viewOrderDetail(id) { showToast('Siparis detayi yakinda...', 'info'); }
 
-        async function loadDemo() {
-            // Load demo stats
-            try {
-                const stats = await api('/demo/stats');
-                document.getElementById('demoStatTotal').textContent = stats.total || 0;
-                document.getElementById('demoStatToday').textContent = stats.today || 0;
-                document.getElementById('demoStatWeek').textContent = stats.this_week || 0;
-                document.getElementById('demoStatConvert').textContent = stats.converted || 0;
-            } catch (e) { console.log('Demo stats error:', e); }
-
-            // Load demo registrations
-            try {
-                const registrations = await api('/admin/demo-registrations');
-                document.getElementById('demoTable').innerHTML = (registrations || []).length === 0
-                    ? '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Henuz demo kaydi yok</td></tr>'
-                    : registrations.map(r => `
-                        <tr>
-                            <td><strong>${r.email}</strong></td>
-                            <td><small>${r.ip_address || '-'}</small></td>
-                            <td>${r.registered_at ? new Date(r.registered_at).toLocaleString('tr-TR') : '-'}</td>
-                            <td>${r.download_count || 0}</td>
-                            <td><span class="badge ${r.converted ? 'badge-success' : 'badge-info'}">${r.converted ? 'Donustu' : 'Demo'}</span></td>
-                            <td>
-                                ${!r.converted ? `<button class="btn btn-sm btn-secondary" onclick="convertDemo(${r.id})" title="Lisansa donustur"><i class="fas fa-exchange-alt"></i></button>` : ''}
-                                <button class="btn btn-sm btn-danger" onclick="deleteDemo(${r.id})"><i class="fas fa-trash"></i></button>
-                            </td>
-                        </tr>
-                    `).join('');
-            } catch (e) { console.log('Demo registrations error:', e); }
-        }
-
-        async function convertDemo(id) {
-            if (confirm('Bu demo kaydini lisansa donusmus olarak isaretlemek istiyor musunuz?')) {
-                await api(`/admin/demo-registrations/${id}/convert`, { method: 'POST' });
-                showToast('Demo kaydi guncellendi');
-                loadDemo();
+        async function exportOrders(format) {
+            const data = await api(`/admin/export/orders?format=${format}`);
+            if (data.success) {
+                if (format === 'csv') {
+                    downloadFile(data.data, 'siparisler.csv', 'text/csv');
+                } else {
+                    downloadFile(JSON.stringify(data.data, null, 2), 'siparisler.json', 'application/json');
+                }
+                showToast('Export basarili');
             }
         }
 
-        async function deleteDemo(id) {
-            if (confirm('Bu demo kaydini silmek istiyor musunuz?')) {
-                await api(`/admin/demo-registrations/${id}`, { method: 'DELETE' });
-                showToast('Demo kaydi silindi');
-                loadDemo();
-            }
-        }
-
+        // Licenses
         async function loadLicenses() {
             const data = await api('/admin/licenses');
-            document.getElementById('licensesTable').innerHTML = (data.licenses || []).map(l => `<tr><td><code style="cursor:pointer" onclick="showLicenseDetail('${l.license_key}')">${l.license_key}</code></td><td>${l.customer_name || '-'}</td><td>${l.user_name || '-'}</td><td><small>${l.machine_id ? l.machine_id.substring(0, 15) + '...' : '-'}</small></td><td>${l.transfer_count}/2</td><td><span class="badge ${l.is_active ? 'badge-success' : 'badge-danger'}">${l.is_active ? 'Aktif' : 'Pasif'}</span></td><td><button class="btn btn-sm btn-secondary" onclick="toggleLicense('${l.license_key}')"><i class="fas fa-power-off"></i></button> <button class="btn btn-sm btn-secondary" onclick="resetTransfer('${l.license_key}')"><i class="fas fa-redo"></i></button></td></tr>`).join('');
+            allLicenses = data.licenses || [];
+            renderLicenses(allLicenses);
+        }
+
+        function renderLicenses(licenses) {
+            document.getElementById('licensesTable').innerHTML = licenses.map(l => `
+                <tr>
+                    <td><code style="cursor:pointer" onclick="showLicenseDetail('${l.license_key}')">${l.license_key}</code></td>
+                    <td>${l.customer_name || '-'}</td>
+                    <td><span class="badge badge-${l.source === 'purchase' ? 'success' : 'info'}">${l.source === 'purchase' ? 'Satin Alma' : 'Manuel'}</span></td>
+                    <td>${l.purchase_price_cents ? formatMoney(l.purchase_price_cents / 100) : '-'}</td>
+                    <td><small>${l.machine_id ? l.machine_id.substring(0, 15) + '...' : '-'}</small></td>
+                    <td>${l.transfer_count}/2</td>
+                    <td><span class="badge badge-${l.is_active ? 'success' : 'danger'}">${l.is_active ? 'Aktif' : 'Pasif'}</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-secondary" onclick="toggleLicense('${l.license_key}')" title="Aktif/Pasif"><i class="fas fa-power-off"></i></button>
+                        <button class="btn btn-sm btn-secondary" onclick="resetTransfer('${l.license_key}')" title="Transfer Sifirla"><i class="fas fa-redo"></i></button>
+                    </td>
+                </tr>
+            `).join('') || '<tr><td colspan="8" style="text-align: center; color: var(--text-muted);">Lisans bulunamadi</td></tr>';
+        }
+
+        function filterLicenses() {
+            const source = document.getElementById('licenseSourceFilter').value;
+            const status = document.getElementById('licenseStatusFilter').value;
+            let filtered = allLicenses;
+            if (source) filtered = filtered.filter(l => l.source === source);
+            if (status === 'active') filtered = filtered.filter(l => l.is_active);
+            if (status === 'inactive') filtered = filtered.filter(l => !l.is_active);
+            renderLicenses(filtered);
+        }
+
+        async function exportLicenses(format) {
+            const data = await api(`/admin/export/licenses?format=${format}`);
+            if (data.success) {
+                downloadFile(format === 'csv' ? data.data : JSON.stringify(data.data, null, 2), `lisanslar.${format}`, format === 'csv' ? 'text/csv' : 'application/json');
+                showToast('Export basarili');
+            }
         }
 
         function showCreateLicenseModal() { document.getElementById('licenseCustomer').value = ''; document.getElementById('licenseEmail').value = ''; openModal('licenseModal'); }
@@ -661,34 +1004,242 @@
             if (result.success) { showToast(`Lisans olusturuldu: ${result.license_key}`); closeModal('licenseModal'); loadLicenses(); }
         }
         async function toggleLicense(key) { await api('/admin/license/toggle', { method: 'POST', body: JSON.stringify({ license_key: key }) }); showToast('Lisans durumu degistirildi'); loadLicenses(); }
-        async function resetTransfer(key) { if (confirm('Transfer sayacini sifirlamak istediginize emin misiniz?')) { await api('/admin/license/reset-transfer', { method: 'POST', body: JSON.stringify({ license_key: key }) }); showToast('Transfer sayaci sifirlandi'); loadLicenses(); } }
+        async function resetTransfer(key) { if (confirm('Transfer sayacini sifirlamak istiyor musunuz?')) { await api('/admin/license/reset-transfer', { method: 'POST', body: JSON.stringify({ license_key: key }) }); showToast('Transfer sayaci sifirlandi'); loadLicenses(); } }
+        function showLicenseDetail(key) { showToast('Lisans detayi: ' + key, 'info'); }
 
-        async function showLicenseDetail(key) {
-            const data = await api('/admin/licenses');
-            const license = (data.licenses || []).find(l => l.license_key === key);
-            if (!license) return;
-            document.getElementById('licenseDetailContent').innerHTML = `<div class="form-group"><label>Lisans Anahtari</label><input type="text" value="${license.license_key}" readonly></div><div class="form-group"><label>Kullanici Adi</label><input type="text" id="detailUserName" value="${license.user_name || ''}" placeholder="Kullanici adi girin"></div><div class="form-group"><label>Transfer Sayisi</label><input type="number" id="detailTransfer" value="${license.transfer_count}" min="0"></div><div style="margin-top: 20px;"><button class="btn btn-primary" onclick="updateLicenseDetail('${key}')">Kaydet</button></div>`;
-            openModal('licenseDetailModal');
+        // Users
+        async function loadUsers() {
+            try {
+                const data = await api('/admin/users');
+                if (data.success) {
+                    document.getElementById('userStatTotal').textContent = data.stats?.total || 0;
+                    document.getElementById('userStatVerified').textContent = data.stats?.verified || 0;
+                    document.getElementById('userStatToday').textContent = data.stats?.today || 0;
+                    document.getElementById('userStatWithOrders').textContent = data.stats?.with_orders || 0;
+
+                    document.getElementById('usersTable').innerHTML = (data.users || []).map(u => `
+                        <tr>
+                            <td>${u.id}</td>
+                            <td>${u.email}</td>
+                            <td>${u.full_name || '-'}</td>
+                            <td>${u.phone || '-'}</td>
+                            <td><span class="badge badge-${u.email_verified ? 'success' : 'warning'}">${u.email_verified ? 'Dogrulandi' : 'Bekliyor'}</span></td>
+                            <td>${formatDate(u.created_at)}</td>
+                            <td><button class="btn btn-sm btn-secondary" onclick="viewUserDetail(${u.id})"><i class="fas fa-eye"></i></button></td>
+                        </tr>
+                    `).join('') || '<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">Kullanici yok</td></tr>';
+                }
+            } catch (e) { console.error('Users load error:', e); }
         }
 
-        async function updateLicenseDetail(key) {
-            await api('/admin/license/set-username', { method: 'POST', body: JSON.stringify({ license_key: key, user_name: document.getElementById('detailUserName').value }) });
-            await api('/admin/license/set-transfer', { method: 'POST', body: JSON.stringify({ license_key: key, transfer_count: parseInt(document.getElementById('detailTransfer').value) }) });
-            showToast('Lisans guncellendi'); closeModal('licenseDetailModal'); loadLicenses();
+        async function viewUserDetail(userId) {
+            try {
+                const data = await api(`/admin/users/${userId}/detail`);
+                if (!data.success) { showToast('Kullanici bulunamadi', 'error'); return; }
+
+                const u = data.user;
+                const s = data.summary;
+                document.getElementById('userDetailContent').innerHTML = `
+                    <div class="user-detail-section">
+                        <h4>Kullanici Bilgileri</h4>
+                        <div class="detail-grid">
+                            <div class="detail-item"><div class="label">E-posta</div><div class="value">${u.email}</div></div>
+                            <div class="detail-item"><div class="label">Ad Soyad</div><div class="value">${u.full_name || '-'}</div></div>
+                            <div class="detail-item"><div class="label">Telefon</div><div class="value">${u.phone || '-'}</div></div>
+                            <div class="detail-item"><div class="label">Sirket</div><div class="value">${u.company_name || '-'}</div></div>
+                            <div class="detail-item"><div class="label">E-posta Durumu</div><div class="value"><span class="badge badge-${u.email_verified ? 'success' : 'warning'}">${u.email_verified ? 'Dogrulandi' : 'Bekliyor'}</span></div></div>
+                            <div class="detail-item"><div class="label">Kayit Tarihi</div><div class="value">${formatDateTime(u.created_at)}</div></div>
+                        </div>
+                    </div>
+                    <div class="user-detail-section">
+                        <h4>Ozet</h4>
+                        <div class="detail-grid">
+                            <div class="detail-item"><div class="label">Toplam Siparis</div><div class="value">${s.total_orders}</div></div>
+                            <div class="detail-item"><div class="label">Tamamlanan</div><div class="value">${s.completed_orders}</div></div>
+                            <div class="detail-item"><div class="label">Toplam Harcama</div><div class="value" style="color: var(--success);">${formatMoney(s.total_spent)}</div></div>
+                            <div class="detail-item"><div class="label">Lisans Sayisi</div><div class="value">${s.total_licenses}</div></div>
+                        </div>
+                    </div>
+                    ${data.licenses.length > 0 ? `
+                    <div class="user-detail-section">
+                        <h4>Lisanslar</h4>
+                        <div class="items-list">
+                            ${data.licenses.map(l => `<div class="item-card"><div class="item-info"><div class="item-title"><code>${l.license_key}</code></div><div class="item-desc">Kaynak: ${l.source || 'manuel'} | Fiyat: ${l.purchase_price ? formatMoney(l.purchase_price) : '-'}</div></div><span class="badge badge-${l.is_active ? 'success' : 'danger'}">${l.is_active ? 'Aktif' : 'Pasif'}</span></div>`).join('')}
+                        </div>
+                    </div>` : ''}
+                    ${data.orders.length > 0 ? `
+                    <div class="user-detail-section">
+                        <h4>Siparisler</h4>
+                        <div class="items-list">
+                            ${data.orders.map(o => `<div class="item-card"><div class="item-info"><div class="item-title">${o.order_number}</div><div class="item-desc">${o.product_name} - ${formatMoney(o.total)}</div></div><span class="badge badge-${o.status === 'completed' ? 'success' : 'warning'}">${o.status}</span></div>`).join('')}
+                        </div>
+                    </div>` : ''}
+                `;
+                openModal('userDetailModal');
+            } catch (e) { showToast('Hata olustu', 'error'); }
         }
 
+        async function exportUsers(format) {
+            const data = await api(`/admin/export/users?format=${format}`);
+            if (data.success) {
+                downloadFile(format === 'csv' ? data.data : JSON.stringify(data.data, null, 2), `kullanicilar.${format}`, format === 'csv' ? 'text/csv' : 'application/json');
+                showToast('Export basarili');
+            }
+        }
+
+        // Sales Report
+        async function loadSalesReport() {
+            const startDate = document.getElementById('reportStartDate').value;
+            const endDate = document.getElementById('reportEndDate').value;
+            let url = '/admin/sales/report';
+            const params = [];
+            if (startDate) params.push(`start_date=${startDate}`);
+            if (endDate) params.push(`end_date=${endDate}`);
+            if (params.length) url += '?' + params.join('&');
+
+            try {
+                const data = await api(url);
+                if (!data.success) return;
+                const s = data.summary;
+
+                document.getElementById('salesReportStats').innerHTML = `
+                    <div class="stat-card"><div class="icon primary"><i class="fas fa-shopping-cart"></i></div><div class="value">${s.total_orders}</div><div class="label">Siparis</div></div>
+                    <div class="stat-card revenue-highlight"><div class="icon primary"><i class="fas fa-turkish-lira-sign"></i></div><div class="value">${formatMoney(s.total_revenue)}</div><div class="label">Toplam Gelir</div></div>
+                    <div class="stat-card"><div class="icon info"><i class="fas fa-calculator"></i></div><div class="value">${formatMoney(s.avg_order_value)}</div><div class="label">Ort. Siparis</div></div>
+                    <div class="stat-card"><div class="icon success"><i class="fas fa-arrow-up"></i></div><div class="value">${formatMoney(s.max_order)}</div><div class="label">En Yuksek</div></div>
+                `;
+
+                // Daily chart
+                if (reportChart) reportChart.destroy();
+                const daily = data.daily_breakdown || [];
+                reportChart = new Chart(document.getElementById('reportDailyChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: daily.map(d => d.date),
+                        datasets: [{
+                            label: 'Gelir (₺)',
+                            data: daily.map(d => d.revenue),
+                            backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                            borderRadius: 6
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#2A2A3A' } }, x: { grid: { display: false } } } }
+                });
+
+                // Product breakdown
+                document.getElementById('productBreakdown').innerHTML = (data.product_breakdown || []).map(p => `
+                    <div class="item-card">
+                        <div class="item-info"><div class="item-title">${p.product}</div><div class="item-desc">${p.count} adet satis</div></div>
+                        <div style="font-weight: 600; color: var(--success);">${formatMoney(p.revenue)}</div>
+                    </div>
+                `).join('') || '<p style="color: var(--text-muted);">Veri yok</p>';
+
+                // Orders table
+                document.getElementById('salesReportTable').innerHTML = (data.orders || []).map(o => `
+                    <tr>
+                        <td><code>${o.order_number}</code></td>
+                        <td>${o.user_name || o.user_email || '-'}</td>
+                        <td>${o.product}</td>
+                        <td>${formatMoney(o.total)}</td>
+                        <td>${o.payment_method || '-'}</td>
+                        <td>${formatDateTime(o.paid_at)}</td>
+                    </tr>
+                `).join('') || '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Siparis yok</td></tr>';
+            } catch (e) { console.error('Sales report error:', e); }
+        }
+
+        function exportSalesReport() {
+            const startDate = document.getElementById('reportStartDate').value;
+            const endDate = document.getElementById('reportEndDate').value;
+            exportOrders('csv');
+        }
+
+        // Activity Log
+        async function loadActivity() {
+            const type = document.getElementById('activityTypeFilter').value;
+            let url = '/admin/activity?limit=100';
+            if (type) url += `&activity_type=${type}`;
+
+            try {
+                const data = await api(url);
+                if (!data.success) return;
+
+                // Stats
+                document.getElementById('activityStats').innerHTML = Object.entries(data.type_counts || {}).map(([type, count]) => `
+                    <span class="badge badge-info">${type}: ${count}</span>
+                `).join('');
+
+                // Activity list
+                const activityIcons = { license_activation: 'key', license_created: 'plus-circle', order_completed: 'shopping-cart', user_registration: 'user-plus', license_toggled: 'toggle-on' };
+                const activityColors = { license_activation: 'success', license_created: 'primary', order_completed: 'info', user_registration: 'warning', license_toggled: 'danger' };
+
+                document.getElementById('activityList').innerHTML = (data.activities || []).map(a => `
+                    <div class="activity-item">
+                        <div class="activity-icon icon ${activityColors[a.type] || 'info'}"><i class="fas fa-${activityIcons[a.type] || 'circle'}"></i></div>
+                        <div class="activity-content">
+                            <div class="title">${a.description}</div>
+                            <div class="desc">Tip: ${a.type}${a.license_key ? ' | Lisans: ' + a.license_key : ''}${a.ip_address ? ' | IP: ' + a.ip_address : ''}</div>
+                            <div class="time">${formatDateTime(a.created_at)}</div>
+                        </div>
+                    </div>
+                `).join('') || '<p style="color: var(--text-muted); text-align: center; padding: 40px;">Henuz aktivite yok</p>';
+            } catch (e) { console.error('Activity load error:', e); }
+        }
+
+        // Demo
+        async function loadDemo() {
+            try {
+                const stats = await api('/demo/stats');
+                document.getElementById('demoStatTotal').textContent = stats.total || 0;
+                document.getElementById('demoStatToday').textContent = stats.today || 0;
+                document.getElementById('demoStatWeek').textContent = stats.this_week || 0;
+                document.getElementById('demoStatConvert').textContent = stats.converted || 0;
+            } catch (e) {}
+
+            try {
+                const data = await api('/admin/demo-registrations');
+                document.getElementById('demoTable').innerHTML = (data || []).map(r => `
+                    <tr>
+                        <td>${r.email}</td>
+                        <td><small>${r.ip_address || '-'}</small></td>
+                        <td>${formatDateTime(r.registered_at)}</td>
+                        <td><span class="badge badge-${r.converted ? 'success' : 'info'}">${r.converted ? 'Donustu' : 'Demo'}</span></td>
+                        <td>
+                            ${!r.converted ? `<button class="btn btn-sm btn-secondary" onclick="convertDemo(${r.id})"><i class="fas fa-exchange-alt"></i></button>` : ''}
+                            <button class="btn btn-sm btn-danger" onclick="deleteDemo(${r.id})"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `).join('') || '<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Demo kaydi yok</td></tr>';
+            } catch (e) {}
+        }
+        async function convertDemo(id) { if (confirm('Lisansa donustur?')) { await api(`/admin/demo-registrations/${id}/convert`, { method: 'POST' }); showToast('Guncellendi'); loadDemo(); } }
+        async function deleteDemo(id) { if (confirm('Sil?')) { await api(`/admin/demo-registrations/${id}`, { method: 'DELETE' }); showToast('Silindi'); loadDemo(); } }
+
+        // Messages
         async function loadMessages() {
             const data = await api('/admin/messages');
             const messages = Array.isArray(data) ? data : [];
-            document.getElementById('messagesList').innerHTML = messages.length === 0 ? '<p style="color: var(--text-muted); text-align: center; padding: 40px;">Henuz mesaj yok</p>' : messages.map(m => `<div class="item-card"><div class="item-info"><div class="item-title">${m.name} <small style="color: var(--text-muted)">&lt;${m.email}&gt;</small></div><div class="item-desc">${m.message}</div><small style="color: var(--text-muted)">${new Date(m.created_at).toLocaleString('tr-TR')}</small></div><div class="item-actions"><span class="badge ${m.is_read ? 'badge-success' : 'badge-warning'}">${m.is_read ? 'Okundu' : 'Yeni'}</span><button class="btn btn-sm btn-danger" onclick="deleteMessage(${m.id})"><i class="fas fa-trash"></i></button></div></div>`).join('');
+            document.getElementById('messagesList').innerHTML = messages.length === 0 ? '<p style="color: var(--text-muted); text-align: center; padding: 40px;">Mesaj yok</p>' : messages.map(m => `
+                <div class="item-card">
+                    <div class="item-info">
+                        <div class="item-title">${m.name} <small>&lt;${m.email}&gt;</small></div>
+                        <div class="item-desc">${m.message}</div>
+                        <small style="color: var(--text-muted)">${formatDateTime(m.created_at)}</small>
+                    </div>
+                    <div class="item-actions">
+                        <span class="badge badge-${m.is_read ? 'success' : 'warning'}">${m.is_read ? 'Okundu' : 'Yeni'}</span>
+                        <button class="btn btn-sm btn-danger" onclick="deleteMessage(${m.id})"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+            `).join('');
         }
-        async function deleteMessage(id) { if (confirm('Mesaji silmek istediginize emin misiniz?')) { await api(`/admin/messages/${id}`, { method: 'DELETE' }); showToast('Mesaj silindi'); loadMessages(); } }
+        async function deleteMessage(id) { if (confirm('Sil?')) { await api(`/admin/messages/${id}`, { method: 'DELETE' }); showToast('Silindi'); loadMessages(); } }
 
+        // Settings
         async function loadSettings() {
             const data = await api('/admin/settings');
             Object.keys(data).forEach(key => { const el = document.getElementById(`setting_${key}`); if (el) el.value = data[key] || ''; });
         }
-
         async function saveSiteSettings() {
             const settings = {};
             document.querySelectorAll('[id^="setting_"]').forEach(el => { settings[el.id.replace('setting_', '')] = el.value; });
@@ -696,174 +1247,71 @@
             showToast('Ayarlar kaydedildi');
         }
 
-        let editingFeatureId = null;
+        // Features, Screenshots, Pricing, Testimonials, FAQ, Announcements (simplified)
+        let editingFeatureId = null, editingScreenshotId = null, editingPricingId = null;
+
         async function loadFeatures() {
             const data = await api('/admin/features');
-            const features = Array.isArray(data) ? data : [];
-            document.getElementById('featuresList').innerHTML = features.length === 0 ? '<p style="color: var(--text-muted); text-align: center; padding: 40px;">Henuz ozellik eklenmemis</p>' : features.map(f => `<div class="item-card"><div class="item-info"><div class="item-title"><i class="fas ${f.icon}"></i> ${f.title}</div><div class="item-desc">${f.description}</div></div><div class="item-actions"><button class="btn btn-sm btn-secondary" onclick="editFeature(${f.id})"><i class="fas fa-edit"></i></button><button class="btn btn-sm btn-danger" onclick="deleteFeature(${f.id})"><i class="fas fa-trash"></i></button></div></div>`).join('');
+            const items = Array.isArray(data) ? data : [];
+            document.getElementById('featuresList').innerHTML = items.length === 0 ? '<p style="color: var(--text-muted); text-align: center; padding: 40px;">Ozellik yok</p>' : items.map(f => `<div class="item-card"><div class="item-info"><div class="item-title"><i class="fas ${f.icon}"></i> ${f.title}</div><div class="item-desc">${f.description}</div></div><div class="item-actions"><button class="btn btn-sm btn-secondary" onclick="editFeature(${f.id})"><i class="fas fa-edit"></i></button><button class="btn btn-sm btn-danger" onclick="deleteFeature(${f.id})"><i class="fas fa-trash"></i></button></div></div>`).join('');
         }
         function showFeatureModal() { editingFeatureId = null; document.getElementById('featureModalTitle').textContent = 'Yeni Ozellik'; document.getElementById('featureIcon').value = ''; document.getElementById('featureTitle').value = ''; document.getElementById('featureDescription').value = ''; document.getElementById('featureOrder').value = '0'; openModal('featureModal'); }
-        async function editFeature(id) {
-            const data = await api('/admin/features');
-            const feature = (Array.isArray(data) ? data : []).find(f => f.id === id);
-            if (!feature) return;
-            editingFeatureId = id;
-            document.getElementById('featureModalTitle').textContent = 'Ozelligi Duzenle';
-            document.getElementById('featureIcon').value = feature.icon;
-            document.getElementById('featureTitle').value = feature.title;
-            document.getElementById('featureDescription').value = feature.description;
-            document.getElementById('featureOrder').value = feature.sort_order;
-            openModal('featureModal');
-        }
-        async function saveFeature() {
-            const data = { icon: document.getElementById('featureIcon').value, title: document.getElementById('featureTitle').value, description: document.getElementById('featureDescription').value, sort_order: parseInt(document.getElementById('featureOrder').value) || 0 };
-            if (editingFeatureId) await api(`/admin/features/update/${editingFeatureId}`, { method: 'POST', body: JSON.stringify(data) });
-            else await api('/admin/features/create', { method: 'POST', body: JSON.stringify(data) });
-            showToast('Ozellik kaydedildi'); closeModal('featureModal'); loadFeatures();
-        }
-        async function deleteFeature(id) { if (confirm('Ozelligi silmek istediginize emin misiniz?')) { await api(`/admin/features/${id}`, { method: 'DELETE' }); showToast('Ozellik silindi'); loadFeatures(); } }
+        async function editFeature(id) { const data = await api('/admin/features'); const f = (Array.isArray(data) ? data : []).find(x => x.id === id); if (!f) return; editingFeatureId = id; document.getElementById('featureModalTitle').textContent = 'Duzenle'; document.getElementById('featureIcon').value = f.icon; document.getElementById('featureTitle').value = f.title; document.getElementById('featureDescription').value = f.description; document.getElementById('featureOrder').value = f.sort_order; openModal('featureModal'); }
+        async function saveFeature() { const data = { icon: document.getElementById('featureIcon').value, title: document.getElementById('featureTitle').value, description: document.getElementById('featureDescription').value, sort_order: parseInt(document.getElementById('featureOrder').value) || 0 }; if (editingFeatureId) await api(`/admin/features/update/${editingFeatureId}`, { method: 'POST', body: JSON.stringify(data) }); else await api('/admin/features/create', { method: 'POST', body: JSON.stringify(data) }); showToast('Kaydedildi'); closeModal('featureModal'); loadFeatures(); }
+        async function deleteFeature(id) { if (confirm('Sil?')) { await api(`/admin/features/${id}`, { method: 'DELETE' }); showToast('Silindi'); loadFeatures(); } }
 
-        let editingScreenshotId = null;
-        async function loadScreenshots() {
-            const data = await api('/admin/screenshots');
-            const screenshots = Array.isArray(data) ? data : [];
-            document.getElementById('screenshotsList').innerHTML = screenshots.length === 0 ? '<p style="color: var(--text-muted); text-align: center; padding: 40px;">Henuz ekran goruntusu eklenmemis</p>' : screenshots.map(s => `<div class="item-card"><img src="${s.image_url}" style="width: 80px; height: 50px; object-fit: cover; border-radius: 6px;"><div class="item-info"><div class="item-title">${s.title || 'Basliksiz'}</div><div class="item-desc">${s.image_url}</div></div><div class="item-actions"><button class="btn btn-sm btn-secondary" onclick="editScreenshot(${s.id})"><i class="fas fa-edit"></i></button><button class="btn btn-sm btn-danger" onclick="deleteScreenshot(${s.id})"><i class="fas fa-trash"></i></button></div></div>`).join('');
-        }
-        function showScreenshotModal() { editingScreenshotId = null; document.getElementById('screenshotModalTitle').textContent = 'Yeni Ekran Goruntusu'; document.getElementById('screenshotTitle').value = ''; document.getElementById('screenshotUrl').value = ''; document.getElementById('screenshotOrder').value = '0'; openModal('screenshotModal'); }
-        async function editScreenshot(id) {
-            const data = await api('/admin/screenshots');
-            const screenshot = (Array.isArray(data) ? data : []).find(s => s.id === id);
-            if (!screenshot) return;
-            editingScreenshotId = id;
-            document.getElementById('screenshotModalTitle').textContent = 'Ekran Goruntusunu Duzenle';
-            document.getElementById('screenshotTitle').value = screenshot.title || '';
-            document.getElementById('screenshotUrl').value = screenshot.image_url;
-            document.getElementById('screenshotOrder').value = screenshot.sort_order;
-            openModal('screenshotModal');
-        }
-        async function saveScreenshot() {
-            const data = { title: document.getElementById('screenshotTitle').value || null, image_url: document.getElementById('screenshotUrl').value, sort_order: parseInt(document.getElementById('screenshotOrder').value) || 0 };
-            if (editingScreenshotId) await api(`/admin/screenshots/update/${editingScreenshotId}`, { method: 'POST', body: JSON.stringify(data) });
-            else await api('/admin/screenshots/create', { method: 'POST', body: JSON.stringify(data) });
-            showToast('Ekran goruntusu kaydedildi'); closeModal('screenshotModal'); loadScreenshots();
-        }
-        async function deleteScreenshot(id) { if (confirm('Ekran goruntusunu silmek istediginize emin misiniz?')) { await api(`/admin/screenshots/${id}`, { method: 'DELETE' }); showToast('Ekran goruntusu silindi'); loadScreenshots(); } }
+        async function loadScreenshots() { const data = await api('/admin/screenshots'); const items = Array.isArray(data) ? data : []; document.getElementById('screenshotsList').innerHTML = items.length === 0 ? '<p style="color: var(--text-muted); text-align: center; padding: 40px;">Goruntu yok</p>' : items.map(s => `<div class="item-card"><img src="${s.image_url}" style="width: 80px; height: 50px; object-fit: cover; border-radius: 6px;"><div class="item-info"><div class="item-title">${s.title || 'Basliksiz'}</div></div><div class="item-actions"><button class="btn btn-sm btn-secondary" onclick="editScreenshot(${s.id})"><i class="fas fa-edit"></i></button><button class="btn btn-sm btn-danger" onclick="deleteScreenshot(${s.id})"><i class="fas fa-trash"></i></button></div></div>`).join(''); }
+        function showScreenshotModal() { editingScreenshotId = null; document.getElementById('screenshotTitle').value = ''; document.getElementById('screenshotUrl').value = ''; document.getElementById('screenshotOrder').value = '0'; openModal('screenshotModal'); }
+        async function editScreenshot(id) { const data = await api('/admin/screenshots'); const s = (Array.isArray(data) ? data : []).find(x => x.id === id); if (!s) return; editingScreenshotId = id; document.getElementById('screenshotTitle').value = s.title || ''; document.getElementById('screenshotUrl').value = s.image_url; document.getElementById('screenshotOrder').value = s.sort_order; openModal('screenshotModal'); }
+        async function saveScreenshot() { const data = { title: document.getElementById('screenshotTitle').value || null, image_url: document.getElementById('screenshotUrl').value, sort_order: parseInt(document.getElementById('screenshotOrder').value) || 0 }; if (editingScreenshotId) await api(`/admin/screenshots/update/${editingScreenshotId}`, { method: 'POST', body: JSON.stringify(data) }); else await api('/admin/screenshots/create', { method: 'POST', body: JSON.stringify(data) }); showToast('Kaydedildi'); closeModal('screenshotModal'); loadScreenshots(); }
+        async function deleteScreenshot(id) { if (confirm('Sil?')) { await api(`/admin/screenshots/${id}`, { method: 'DELETE' }); showToast('Silindi'); loadScreenshots(); } }
 
-        let editingPricingId = null;
-        async function loadPricing() {
-            const data = await api('/admin/pricing');
-            const plans = Array.isArray(data) ? data : [];
-            document.getElementById('pricingList').innerHTML = plans.length === 0 ? '<p style="color: var(--text-muted); text-align: center; padding: 40px;">Henuz plan eklenmemis</p>' : plans.map(p => `<div class="item-card"><div class="item-info"><div class="item-title">${p.name} ${p.is_popular ? '<span class="badge badge-warning">Populer</span>' : ''}</div><div class="item-desc">${p.price} TL / ${p.period || 'tek seferlik'}</div></div><div class="item-actions"><button class="btn btn-sm btn-secondary" onclick="editPricing(${p.id})"><i class="fas fa-edit"></i></button><button class="btn btn-sm btn-danger" onclick="deletePricing(${p.id})"><i class="fas fa-trash"></i></button></div></div>`).join('');
-        }
-        function showPricingModal() { editingPricingId = null; document.getElementById('pricingModalTitle').textContent = 'Yeni Plan'; document.getElementById('pricingName').value = ''; document.getElementById('pricingPrice').value = ''; document.getElementById('pricingPeriod').value = ''; document.getElementById('pricingFeatures').value = ''; document.getElementById('pricingPopular').checked = false; document.getElementById('pricingOrder').value = '0'; openModal('pricingModal'); }
-        async function editPricing(id) {
-            const data = await api('/admin/pricing');
-            const plan = (Array.isArray(data) ? data : []).find(p => p.id === id);
-            if (!plan) return;
-            editingPricingId = id;
-            document.getElementById('pricingModalTitle').textContent = 'Plani Duzenle';
-            document.getElementById('pricingName').value = plan.name;
-            document.getElementById('pricingPrice').value = plan.price;
-            document.getElementById('pricingPeriod').value = plan.period || '';
-            document.getElementById('pricingFeatures').value = plan.features || '';
-            document.getElementById('pricingPopular').checked = plan.is_popular;
-            document.getElementById('pricingOrder').value = plan.sort_order;
-            openModal('pricingModal');
-        }
-        async function savePricing() {
-            const data = { name: document.getElementById('pricingName').value, price: parseFloat(document.getElementById('pricingPrice').value) || 0, period: document.getElementById('pricingPeriod').value || null, features: document.getElementById('pricingFeatures').value || null, is_popular: document.getElementById('pricingPopular').checked, sort_order: parseInt(document.getElementById('pricingOrder').value) || 0 };
-            if (editingPricingId) await api(`/admin/pricing/update/${editingPricingId}`, { method: 'POST', body: JSON.stringify(data) });
-            else await api('/admin/pricing/create', { method: 'POST', body: JSON.stringify(data) });
-            showToast('Plan kaydedildi'); closeModal('pricingModal'); loadPricing();
-        }
-        async function deletePricing(id) { if (confirm('Plani silmek istediginize emin misiniz?')) { await api(`/admin/pricing/${id}`, { method: 'DELETE' }); showToast('Plan silindi'); loadPricing(); } }
+        async function loadPricing() { const data = await api('/admin/pricing'); const items = Array.isArray(data) ? data : []; document.getElementById('pricingList').innerHTML = items.length === 0 ? '<p style="color: var(--text-muted); text-align: center; padding: 40px;">Plan yok</p>' : items.map(p => `<div class="item-card"><div class="item-info"><div class="item-title">${p.name} ${p.is_popular ? '<span class="badge badge-warning">Populer</span>' : ''}</div><div class="item-desc">${p.price} TL / ${p.period || 'tek seferlik'}</div></div><div class="item-actions"><button class="btn btn-sm btn-secondary" onclick="editPricing(${p.id})"><i class="fas fa-edit"></i></button><button class="btn btn-sm btn-danger" onclick="deletePricing(${p.id})"><i class="fas fa-trash"></i></button></div></div>`).join(''); }
+        function showPricingModal() { editingPricingId = null; document.getElementById('pricingName').value = ''; document.getElementById('pricingPrice').value = ''; document.getElementById('pricingPeriod').value = ''; document.getElementById('pricingFeatures').value = ''; document.getElementById('pricingPopular').checked = false; document.getElementById('pricingOrder').value = '0'; openModal('pricingModal'); }
+        async function editPricing(id) { const data = await api('/admin/pricing'); const p = (Array.isArray(data) ? data : []).find(x => x.id === id); if (!p) return; editingPricingId = id; document.getElementById('pricingName').value = p.name; document.getElementById('pricingPrice').value = p.price; document.getElementById('pricingPeriod').value = p.period || ''; document.getElementById('pricingFeatures').value = p.features || ''; document.getElementById('pricingPopular').checked = p.is_popular; document.getElementById('pricingOrder').value = p.sort_order; openModal('pricingModal'); }
+        async function savePricing() { const data = { name: document.getElementById('pricingName').value, price: parseFloat(document.getElementById('pricingPrice').value) || 0, period: document.getElementById('pricingPeriod').value || null, features: document.getElementById('pricingFeatures').value || null, is_popular: document.getElementById('pricingPopular').checked, sort_order: parseInt(document.getElementById('pricingOrder').value) || 0 }; if (editingPricingId) await api(`/admin/pricing/update/${editingPricingId}`, { method: 'POST', body: JSON.stringify(data) }); else await api('/admin/pricing/create', { method: 'POST', body: JSON.stringify(data) }); showToast('Kaydedildi'); closeModal('pricingModal'); loadPricing(); }
+        async function deletePricing(id) { if (confirm('Sil?')) { await api(`/admin/pricing/${id}`, { method: 'DELETE' }); showToast('Silindi'); loadPricing(); } }
 
-        async function loadTestimonials() {
-            const data = await api('/admin/testimonials');
-            const testimonials = Array.isArray(data) ? data : [];
-            document.getElementById('testimonialsList').innerHTML = testimonials.length === 0 ? '<p style="color: var(--text-muted); text-align: center; padding: 40px;">Henuz yorum eklenmemis</p>' : testimonials.map(t => `<div class="item-card"><div class="item-info"><div class="item-title">${t.name} <small style="color: var(--text-muted)">- ${t.title || ''}</small></div><div class="item-desc">${t.content}</div><small style="color: var(--primary);">${'★'.repeat(t.rating)}${'☆'.repeat(5-t.rating)}</small></div><div class="item-actions"><button class="btn btn-sm btn-danger" onclick="deleteTestimonial(${t.id})"><i class="fas fa-trash"></i></button></div></div>`).join('');
-        }
+        async function loadTestimonials() { const data = await api('/admin/testimonials'); const items = Array.isArray(data) ? data : []; document.getElementById('testimonialsList').innerHTML = items.length === 0 ? '<p style="color: var(--text-muted); text-align: center; padding: 40px;">Yorum yok</p>' : items.map(t => `<div class="item-card"><div class="item-info"><div class="item-title">${t.name}</div><div class="item-desc">${t.content}</div><small style="color: var(--primary);">${'★'.repeat(t.rating)}</small></div><div class="item-actions"><button class="btn btn-sm btn-danger" onclick="deleteTestimonial(${t.id})"><i class="fas fa-trash"></i></button></div></div>`).join(''); }
         function showTestimonialModal() { document.getElementById('testimonialName').value = ''; document.getElementById('testimonialTitle').value = ''; document.getElementById('testimonialContent').value = ''; document.getElementById('testimonialRating').value = '5'; openModal('testimonialModal'); }
-        async function saveTestimonial() {
-            await api('/admin/testimonials/create', { method: 'POST', body: JSON.stringify({ name: document.getElementById('testimonialName').value, title: document.getElementById('testimonialTitle').value || null, content: document.getElementById('testimonialContent').value, rating: parseInt(document.getElementById('testimonialRating').value) || 5 }) });
-            showToast('Yorum eklendi'); closeModal('testimonialModal'); loadTestimonials();
-        }
-        async function deleteTestimonial(id) { if (confirm('Yorumu silmek istediginize emin misiniz?')) { await api(`/admin/testimonials/${id}`, { method: 'DELETE' }); showToast('Yorum silindi'); loadTestimonials(); } }
+        async function saveTestimonial() { await api('/admin/testimonials/create', { method: 'POST', body: JSON.stringify({ name: document.getElementById('testimonialName').value, title: document.getElementById('testimonialTitle').value, content: document.getElementById('testimonialContent').value, rating: parseInt(document.getElementById('testimonialRating').value) || 5 }) }); showToast('Eklendi'); closeModal('testimonialModal'); loadTestimonials(); }
+        async function deleteTestimonial(id) { if (confirm('Sil?')) { await api(`/admin/testimonials/${id}`, { method: 'DELETE' }); showToast('Silindi'); loadTestimonials(); } }
 
-        async function loadFaq() {
-            const data = await api('/admin/faq');
-            const items = Array.isArray(data) ? data : [];
-            document.getElementById('faqList').innerHTML = items.length === 0 ? '<p style="color: var(--text-muted); text-align: center; padding: 40px;">Henuz soru eklenmemis</p>' : items.map(f => `<div class="item-card"><div class="item-info"><div class="item-title">${f.question}</div><div class="item-desc">${f.answer}</div></div><div class="item-actions"><button class="btn btn-sm btn-danger" onclick="deleteFaq(${f.id})"><i class="fas fa-trash"></i></button></div></div>`).join('');
-        }
+        async function loadFaq() { const data = await api('/admin/faq'); const items = Array.isArray(data) ? data : []; document.getElementById('faqList').innerHTML = items.length === 0 ? '<p style="color: var(--text-muted); text-align: center; padding: 40px;">Soru yok</p>' : items.map(f => `<div class="item-card"><div class="item-info"><div class="item-title">${f.question}</div><div class="item-desc">${f.answer}</div></div><div class="item-actions"><button class="btn btn-sm btn-danger" onclick="deleteFaq(${f.id})"><i class="fas fa-trash"></i></button></div></div>`).join(''); }
         function showFaqModal() { document.getElementById('faqQuestion').value = ''; document.getElementById('faqAnswer').value = ''; document.getElementById('faqOrder').value = '0'; openModal('faqModal'); }
-        async function saveFaq() {
-            await api('/admin/faq/create', { method: 'POST', body: JSON.stringify({ question: document.getElementById('faqQuestion').value, answer: document.getElementById('faqAnswer').value, sort_order: parseInt(document.getElementById('faqOrder').value) || 0 }) });
-            showToast('Soru eklendi'); closeModal('faqModal'); loadFaq();
-        }
-        async function deleteFaq(id) { if (confirm('Soruyu silmek istediginize emin misiniz?')) { await api(`/admin/faq/${id}`, { method: 'DELETE' }); showToast('Soru silindi'); loadFaq(); } }
+        async function saveFaq() { await api('/admin/faq/create', { method: 'POST', body: JSON.stringify({ question: document.getElementById('faqQuestion').value, answer: document.getElementById('faqAnswer').value, sort_order: parseInt(document.getElementById('faqOrder').value) || 0 }) }); showToast('Eklendi'); closeModal('faqModal'); loadFaq(); }
+        async function deleteFaq(id) { if (confirm('Sil?')) { await api(`/admin/faq/${id}`, { method: 'DELETE' }); showToast('Silindi'); loadFaq(); } }
 
-        async function loadAnnouncements() {
-            const data = await api('/admin/announcements');
-            const items = Array.isArray(data) ? data : [];
-            document.getElementById('announcementsList').innerHTML = items.length === 0 ? '<p style="color: var(--text-muted); text-align: center; padding: 40px;">Henuz duyuru eklenmemis</p>' : items.map(a => `<div class="item-card"><div class="item-info"><div class="item-title"><span class="badge badge-${a.announcement_type === 'error' ? 'danger' : a.announcement_type === 'warning' ? 'warning' : a.announcement_type === 'success' ? 'success' : 'info'}">${a.announcement_type}</span> ${a.title}</div><div class="item-desc">${a.content}</div></div><div class="item-actions"><button class="btn btn-sm btn-danger" onclick="deleteAnnouncement(${a.id})"><i class="fas fa-trash"></i></button></div></div>`).join('');
-        }
+        async function loadAnnouncements() { const data = await api('/admin/announcements'); const items = Array.isArray(data) ? data : []; document.getElementById('announcementsList').innerHTML = items.length === 0 ? '<p style="color: var(--text-muted); text-align: center; padding: 40px;">Duyuru yok</p>' : items.map(a => `<div class="item-card"><div class="item-info"><div class="item-title"><span class="badge badge-${a.announcement_type === 'warning' ? 'warning' : a.announcement_type === 'success' ? 'success' : 'info'}">${a.announcement_type}</span> ${a.title}</div><div class="item-desc">${a.content}</div></div><div class="item-actions"><button class="btn btn-sm btn-danger" onclick="deleteAnnouncement(${a.id})"><i class="fas fa-trash"></i></button></div></div>`).join(''); }
         function showAnnouncementModal() { document.getElementById('announcementTitle').value = ''; document.getElementById('announcementContent').value = ''; document.getElementById('announcementType').value = 'info'; openModal('announcementModal'); }
-        async function saveAnnouncement() {
-            await api('/admin/announcements/create', { method: 'POST', body: JSON.stringify({ title: document.getElementById('announcementTitle').value, content: document.getElementById('announcementContent').value, announcement_type: document.getElementById('announcementType').value }) });
-            showToast('Duyuru eklendi'); closeModal('announcementModal'); loadAnnouncements();
-        }
-        async function deleteAnnouncement(id) { if (confirm('Duyuruyu silmek istediginize emin misiniz?')) { await api(`/admin/announcements/${id}`, { method: 'DELETE' }); showToast('Duyuru silindi'); loadAnnouncements(); } }
+        async function saveAnnouncement() { await api('/admin/announcements/create', { method: 'POST', body: JSON.stringify({ title: document.getElementById('announcementTitle').value, content: document.getElementById('announcementContent').value, announcement_type: document.getElementById('announcementType').value }) }); showToast('Eklendi'); closeModal('announcementModal'); loadAnnouncements(); }
+        async function deleteAnnouncement(id) { if (confirm('Sil?')) { await api(`/admin/announcements/${id}`, { method: 'DELETE' }); showToast('Silindi'); loadAnnouncements(); } }
 
-        async function loadMedia() {
-            const data = await api('/admin/media');
-            const items = Array.isArray(data) ? data : [];
-            document.getElementById('mediaGrid').innerHTML = items.length === 0 ? '<p style="color: var(--text-muted); text-align: center; padding: 40px; grid-column: 1/-1;">Henuz gorsel yuklenmemis</p>' : items.map(m => `<div class="media-item" onclick="copyMediaUrl('${m.filename}')"><img src="/media/${m.filename}" alt="${m.original_name}"><button class="delete-btn" onclick="event.stopPropagation(); deleteMedia(${m.id})"><i class="fas fa-trash"></i></button></div>`).join('');
-        }
-        async function uploadMedia(input) {
-            const file = input.files[0];
-            if (!file) return;
-            const formData = new FormData();
-            formData.append('file', file);
-            try {
-                const response = await fetch(`${API_BASE}/admin/media/upload`, { method: 'POST', headers: { 'Authorization': `Bearer ${authToken}` }, body: formData });
-                const result = await response.json();
-                if (result.success) { showToast('Gorsel yuklendi'); loadMedia(); } else showToast(result.detail || 'Yukleme hatasi', 'error');
-            } catch (error) { showToast('Yukleme hatasi', 'error'); }
-            input.value = '';
-        }
-        function copyMediaUrl(filename) { navigator.clipboard.writeText(`https://takibiesasi.com/media/${filename}`); showToast('URL kopyalandi'); }
-        async function deleteMedia(id) { if (confirm('Gorseli silmek istediginize emin misiniz?')) { await api(`/admin/media/${id}`, { method: 'DELETE' }); showToast('Gorsel silindi'); loadMedia(); } }
+        // Media
+        async function loadMedia() { const data = await api('/admin/media'); const items = Array.isArray(data) ? data : []; document.getElementById('mediaGrid').innerHTML = items.length === 0 ? '<p style="color: var(--text-muted); text-align: center; padding: 40px; grid-column: 1/-1;">Gorsel yok</p>' : items.map(m => `<div class="media-item" onclick="copyMediaUrl('${m.filename}')"><img src="/media/${m.filename}" alt="${m.original_name}"><button class="delete-btn" onclick="event.stopPropagation(); deleteMedia(${m.id})"><i class="fas fa-trash"></i></button></div>`).join(''); }
+        async function uploadMedia(input) { const file = input.files[0]; if (!file) return; const formData = new FormData(); formData.append('file', file); try { const response = await fetch(`${API_BASE}/admin/media/upload`, { method: 'POST', headers: { 'Authorization': `Bearer ${authToken}` }, body: formData }); const result = await response.json(); if (result.success) { showToast('Yuklendi'); loadMedia(); } else showToast('Hata', 'error'); } catch (e) { showToast('Hata', 'error'); } input.value = ''; }
+        function copyMediaUrl(filename) { navigator.clipboard.writeText(`/media/${filename}`); showToast('URL kopyalandi'); }
+        async function deleteMedia(id) { if (confirm('Sil?')) { await api(`/admin/media/${id}`, { method: 'DELETE' }); showToast('Silindi'); loadMedia(); } }
 
-        async function loadReleases() {
-            const data = await api('/admin/releases');
-            document.getElementById('currentRelease').innerHTML = data.current ? `<div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;"><div class="stat-card" style="margin: 0;"><div class="icon success"><i class="fas fa-code-branch"></i></div><div class="value">${data.current.version}</div><div class="label">${data.current.release_date}</div></div><div style="flex: 1; min-width: 200px;"><p><strong>Indirme:</strong> <a href="${data.current.download_url}" target="_blank" style="color: var(--primary);">${data.current.download_url}</a></p><p><strong>Notlar:</strong> ${data.current.release_notes}</p>${data.current.is_critical ? '<span class="badge badge-danger">Kritik</span>' : ''}</div></div>` : '<p style="color: var(--text-muted);">Henuz surum yayinlanmamis</p>';
-            document.getElementById('releasesList').innerHTML = (data.releases || []).map(r => `<div class="item-card"><div class="item-info"><div class="item-title">v${r.version} ${r.is_critical ? '<span class="badge badge-danger">Kritik</span>' : ''}</div><div class="item-desc">${r.release_notes}</div><small style="color: var(--text-muted)">${r.release_date}</small></div><div class="item-actions"><button class="btn btn-sm btn-secondary" onclick="setCurrentRelease('${r.version}')"><i class="fas fa-check"></i> Aktif Yap</button></div></div>`).join('');
-        }
+        // Releases
+        async function loadReleases() { const data = await api('/admin/releases'); document.getElementById('currentRelease').innerHTML = data.current ? `<div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;"><div class="stat-card" style="margin: 0;"><div class="icon success"><i class="fas fa-code-branch"></i></div><div class="value">${data.current.version}</div><div class="label">${data.current.release_date}</div></div><div style="flex: 1;"><p><strong>URL:</strong> <a href="${data.current.download_url}" style="color: var(--primary);">${data.current.download_url}</a></p><p><strong>Notlar:</strong> ${data.current.release_notes}</p></div></div>` : '<p style="color: var(--text-muted);">Surum yok</p>'; document.getElementById('releasesList').innerHTML = (data.releases || []).map(r => `<div class="item-card"><div class="item-info"><div class="item-title">v${r.version} ${r.is_critical ? '<span class="badge badge-danger">Kritik</span>' : ''}</div><div class="item-desc">${r.release_notes}</div></div><div class="item-actions"><button class="btn btn-sm btn-secondary" onclick="setCurrentRelease('${r.version}')"><i class="fas fa-check"></i></button></div></div>`).join(''); }
         function showReleaseModal() { document.getElementById('releaseVersion').value = ''; document.getElementById('releaseUrl').value = ''; document.getElementById('releaseNotes').value = ''; document.getElementById('releaseCritical').checked = false; openModal('releaseModal'); }
-        async function publishRelease() {
-            await api('/admin/release/publish', { method: 'POST', body: JSON.stringify({ version: document.getElementById('releaseVersion').value, download_url: document.getElementById('releaseUrl').value, release_notes: document.getElementById('releaseNotes').value, is_critical: document.getElementById('releaseCritical').checked }) });
-            showToast('Surum yayinlandi'); closeModal('releaseModal'); loadReleases(); loadDashboard();
-        }
-        async function setCurrentRelease(version) { await api('/admin/release/set-current', { method: 'POST', body: JSON.stringify({ version }) }); showToast('Aktif surum degistirildi'); loadReleases(); loadDashboard(); }
+        async function publishRelease() { await api('/admin/release/publish', { method: 'POST', body: JSON.stringify({ version: document.getElementById('releaseVersion').value, download_url: document.getElementById('releaseUrl').value, release_notes: document.getElementById('releaseNotes').value, is_critical: document.getElementById('releaseCritical').checked }) }); showToast('Yayinlandi'); closeModal('releaseModal'); loadReleases(); }
+        async function setCurrentRelease(v) { await api('/admin/release/set-current', { method: 'POST', body: JSON.stringify({ version: v }) }); showToast('Guncellendi'); loadReleases(); }
 
-        async function loadFiles() {
-            const data = await api('/admin/files');
-            const files = data.files || [];
-            document.getElementById('filesTable').innerHTML = files.length === 0 ? '<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Henuz dosya yuklenmemis</td></tr>' : files.map(f => `<tr><td>${f.name}</td><td>${(f.size / 1024 / 1024).toFixed(2)} MB</td><td>${f.date}</td><td><a href="${f.url}" target="_blank" style="color: var(--primary);">${f.url}</a></td><td><button class="btn btn-sm btn-danger" onclick="deleteFile('${f.name}')"><i class="fas fa-trash"></i></button></td></tr>`).join('');
+        // Files
+        async function loadFiles() { const data = await api('/admin/files'); const files = data.files || []; document.getElementById('filesTable').innerHTML = files.length === 0 ? '<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Dosya yok</td></tr>' : files.map(f => `<tr><td>${f.name}</td><td>${(f.size / 1024 / 1024).toFixed(2)} MB</td><td>${f.date}</td><td><a href="${f.url}" style="color: var(--primary);">${f.url}</a></td><td><button class="btn btn-sm btn-danger" onclick="deleteFile('${f.name}')"><i class="fas fa-trash"></i></button></td></tr>`).join(''); }
+        async function uploadFile(input) { const file = input.files[0]; if (!file) return; const formData = new FormData(); formData.append('file', file); try { const response = await fetch(`${API_BASE}/admin/upload`, { method: 'POST', headers: { 'Authorization': `Bearer ${authToken}` }, body: formData }); const result = await response.json(); if (result.success) { showToast('Yuklendi'); loadFiles(); } else showToast('Hata', 'error'); } catch (e) { showToast('Hata', 'error'); } input.value = ''; }
+        async function deleteFile(name) { if (confirm('Sil?')) { await api('/admin/file/delete', { method: 'POST', body: JSON.stringify({ filename: name }) }); showToast('Silindi'); loadFiles(); } }
+
+        // Helper
+        function downloadFile(content, filename, type) {
+            const blob = new Blob([content], { type });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = filename; a.click();
+            URL.revokeObjectURL(url);
         }
-        async function uploadFile(input) {
-            const file = input.files[0];
-            if (!file) return;
-            const formData = new FormData();
-            formData.append('file', file);
-            try {
-                const response = await fetch(`${API_BASE}/admin/upload`, { method: 'POST', headers: { 'Authorization': `Bearer ${authToken}` }, body: formData });
-                const result = await response.json();
-                if (result.success) { showToast('Dosya yuklendi'); loadFiles(); } else showToast(result.detail || 'Yukleme hatasi', 'error');
-            } catch (error) { showToast('Yukleme hatasi', 'error'); }
-            input.value = '';
-        }
-        async function deleteFile(filename) { if (confirm('Dosyayi silmek istediginize emin misiniz?')) { await api('/admin/file/delete', { method: 'POST', body: JSON.stringify({ filename }) }); showToast('Dosya silindi'); loadFiles(); } }
     </script>
 </body>
 </html>
