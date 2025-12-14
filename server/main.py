@@ -2395,21 +2395,64 @@ async def list_demo_registrations(authorization: str = Header(None)):
 
 @app.post("/api/admin/demo-registrations/{reg_id}/convert")
 async def mark_demo_converted(reg_id: int, authorization: str = Header(None)):
-    """Mark a demo registration as converted to license"""
+    """Mark a demo registration as converted to license and create a license"""
     verify_admin_token(authorization)
 
     conn = get_db()
-    cur = conn.cursor()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
     try:
+        # Get demo registration info
+        cur.execute("SELECT * FROM demo_registrations WHERE id = %s", (reg_id,))
+        demo = cur.fetchone()
+
+        if not demo:
+            return {"success": False, "error": "Demo kaydı bulunamadı"}
+
+        if demo['converted_to_license']:
+            return {"success": False, "error": "Bu demo zaten lisansa dönüştürülmüş"}
+
+        # Generate a license key
+        license_key = generate_license_key()
+
+        # Create license entry
+        cur.execute("""
+            INSERT INTO licenses (
+                license_key, customer_name, email, is_active, source, created_at
+            ) VALUES (
+                %s, %s, %s, TRUE, 'demo_conversion', CURRENT_TIMESTAMP
+            )
+            RETURNING license_key
+        """, (license_key, demo['email'].split('@')[0], demo['email']))
+
+        new_license = cur.fetchone()
+
+        # Mark demo as converted
         cur.execute("""
             UPDATE demo_registrations
-            SET converted_to_license = TRUE
+            SET converted_to_license = TRUE, converted_at = CURRENT_TIMESTAMP
             WHERE id = %s
         """, (reg_id,))
+
         conn.commit()
 
-        return {"success": True, "message": "Demo kaydı lisansa dönüştürüldü olarak işaretlendi"}
+        # Log activity
+        log_activity(
+            activity_type="license_created",
+            description=f"Demo'dan lisans oluşturuldu: {license_key[:8]}... ({demo['email']})",
+            license_key=license_key,
+            metadata={"source": "demo_conversion", "demo_email": demo['email'], "demo_id": reg_id}
+        )
+
+        return {
+            "success": True,
+            "message": "Demo kaydı lisansa dönüştürüldü",
+            "license_key": license_key
+        }
+
+    except Exception as e:
+        conn.rollback()
+        return {"success": False, "error": f"Hata: {str(e)}"}
 
     finally:
         cur.close()
@@ -3582,6 +3625,60 @@ async def admin_get_orders(authorization: str = Header(None)):
         conn.close()
 
 
+@app.get("/api/admin/orders/stats")
+async def admin_order_stats(authorization: str = Header(None)):
+    """Get order statistics (admin only)"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        # Total orders
+        cur.execute("SELECT COUNT(*) as count FROM orders")
+        total_orders = cur.fetchone()['count']
+
+        # Completed orders
+        cur.execute("SELECT COUNT(*) as count FROM orders WHERE payment_status = 'completed'")
+        completed_orders = cur.fetchone()['count']
+
+        # Total revenue
+        cur.execute("SELECT COALESCE(SUM(total_price_cents), 0) as total FROM orders WHERE payment_status = 'completed'")
+        total_revenue = cur.fetchone()['total'] / 100
+
+        # Today's orders
+        cur.execute("SELECT COUNT(*) as count FROM orders WHERE DATE(created_at) = CURRENT_DATE")
+        today_orders = cur.fetchone()['count']
+
+        # Today's revenue
+        cur.execute("""
+            SELECT COALESCE(SUM(total_price_cents), 0) as total
+            FROM orders
+            WHERE DATE(paid_at) = CURRENT_DATE AND payment_status = 'completed'
+        """)
+        today_revenue = cur.fetchone()['total'] / 100
+
+        # Pending orders
+        cur.execute("SELECT COUNT(*) as count FROM orders WHERE payment_status = 'pending'")
+        pending_orders = cur.fetchone()['count']
+
+        return {
+            "success": True,
+            "stats": {
+                "total_orders": total_orders,
+                "completed_orders": completed_orders,
+                "pending_orders": pending_orders,
+                "total_revenue": total_revenue,
+                "today_orders": today_orders,
+                "today_revenue": today_revenue
+            }
+        }
+
+    finally:
+        cur.close()
+        conn.close()
+
+
 @app.get("/api/admin/orders/{order_id}")
 async def admin_get_order_detail(order_id: int, authorization: str = Header(None)):
     """Get order details (admin only)"""
@@ -3651,60 +3748,6 @@ async def admin_update_order_status(order_id: int, req: OrderStatusUpdateRequest
 
         conn.commit()
         return {"success": True, "message": f"Sipariş durumu '{req.status}' olarak güncellendi"}
-
-    finally:
-        cur.close()
-        conn.close()
-
-
-@app.get("/api/admin/orders/stats")
-async def admin_order_stats(authorization: str = Header(None)):
-    """Get order statistics (admin only)"""
-    verify_admin_token(authorization)
-
-    conn = get_db()
-    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-
-    try:
-        # Total orders
-        cur.execute("SELECT COUNT(*) as count FROM orders")
-        total_orders = cur.fetchone()['count']
-
-        # Completed orders
-        cur.execute("SELECT COUNT(*) as count FROM orders WHERE payment_status = 'completed'")
-        completed_orders = cur.fetchone()['count']
-
-        # Total revenue
-        cur.execute("SELECT COALESCE(SUM(total_price_cents), 0) as total FROM orders WHERE payment_status = 'completed'")
-        total_revenue = cur.fetchone()['total'] / 100
-
-        # Today's orders
-        cur.execute("SELECT COUNT(*) as count FROM orders WHERE DATE(created_at) = CURRENT_DATE")
-        today_orders = cur.fetchone()['count']
-
-        # Today's revenue
-        cur.execute("""
-            SELECT COALESCE(SUM(total_price_cents), 0) as total
-            FROM orders
-            WHERE DATE(paid_at) = CURRENT_DATE AND payment_status = 'completed'
-        """)
-        today_revenue = cur.fetchone()['total'] / 100
-
-        # Pending orders
-        cur.execute("SELECT COUNT(*) as count FROM orders WHERE payment_status = 'pending'")
-        pending_orders = cur.fetchone()['count']
-
-        return {
-            "success": True,
-            "stats": {
-                "total_orders": total_orders,
-                "completed_orders": completed_orders,
-                "pending_orders": pending_orders,
-                "total_revenue": total_revenue,
-                "today_orders": today_orders,
-                "today_revenue": today_revenue
-            }
-        }
 
     finally:
         cur.close()
