@@ -329,6 +329,36 @@ def init_db():
         )
     """)
 
+    # Email templates table
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS email_templates (
+            id SERIAL PRIMARY KEY,
+            template_key VARCHAR(50) UNIQUE NOT NULL,
+            template_name VARCHAR(100) NOT NULL,
+            subject VARCHAR(255) NOT NULL,
+            html_content TEXT NOT NULL,
+            description TEXT,
+            variables TEXT,
+            is_active BOOLEAN DEFAULT TRUE,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    # Email logs table
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS email_logs (
+            id SERIAL PRIMARY KEY,
+            template_key VARCHAR(50),
+            recipient_email VARCHAR(200) NOT NULL,
+            subject VARCHAR(255),
+            status VARCHAR(20) DEFAULT 'sent',
+            error_message TEXT,
+            metadata JSONB,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
     # Commit base tables first
     conn.commit()
 
@@ -373,6 +403,7 @@ def init_db():
 @app.on_event("startup")
 async def startup():
     init_db()
+    init_default_email_templates()
 
 # ============ MODELS ============
 
@@ -693,12 +724,29 @@ def save_release(release_data):
 
 # ============ EMAIL SYSTEM ============
 
-def send_email_async(to_email: str, subject: str, html_content: str, text_content: str = None):
+def log_email(template_key: str, recipient: str, subject: str, status: str = "sent", error: str = None, metadata: dict = None):
+    """Log email to database"""
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO email_logs (template_key, recipient_email, subject, status, error_message, metadata)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (template_key, recipient, subject, status, error, json.dumps(metadata) if metadata else None))
+        conn.commit()
+        cur.close()
+        conn.close()
+    except Exception as e:
+        print(f"Email log error: {e}")
+
+def send_email_async(to_email: str, subject: str, html_content: str, template_key: str = None, metadata: dict = None):
     """Send email asynchronously in background thread"""
     def _send():
         try:
-            send_email(to_email, subject, html_content, text_content)
+            success = send_email(to_email, subject, html_content)
+            log_email(template_key, to_email, subject, "sent" if success else "failed", None, metadata)
         except Exception as e:
+            log_email(template_key, to_email, subject, "failed", str(e), metadata)
             print(f"Email sending failed: {e}")
 
     thread = threading.Thread(target=_send)
@@ -733,6 +781,175 @@ def send_email(to_email: str, subject: str, html_content: str, text_content: str
     except Exception as e:
         print(f"Email error: {e}")
         return False
+
+def get_db_template(template_key: str) -> dict:
+    """Get email template from database"""
+    try:
+        conn = get_db()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        cur.execute("SELECT * FROM email_templates WHERE template_key = %s AND is_active = TRUE", (template_key,))
+        template = cur.fetchone()
+        cur.close()
+        conn.close()
+        return dict(template) if template else None
+    except:
+        return None
+
+def init_default_email_templates():
+    """Initialize default email templates if not exist"""
+    conn = get_db()
+    cur = conn.cursor()
+
+    templates = [
+        {
+            "key": "welcome",
+            "name": "Hoş Geldin E-postası",
+            "subject": "TakibiEsasi'na Hoş Geldiniz! 🎉",
+            "description": "Yeni kullanıcı kaydında gönderilir",
+            "variables": "{{name}} - Kullanıcı adı",
+            "content": """<h2 style="color:#fbbf24; margin-top:0;">Hoş Geldiniz, {{name}}! 🎉</h2>
+<p>TakibiEsasi ailesine katıldığınız için teşekkür ederiz.</p>
+<p>Artık hukuki takip işlemlerinizi kolayca yönetebilir, icra dosyalarınızı takip edebilir ve raporlarınızı oluşturabilirsiniz.</p>
+<div style="background:#1a1a2a; border-radius:10px; padding:20px; margin:20px 0;">
+    <h3 style="color:#fbbf24; margin-top:0;">Hızlı Başlangıç</h3>
+    <ul style="padding-left:20px; margin:0;">
+        <li style="margin-bottom:10px;">Hesabınıza giriş yapın</li>
+        <li style="margin-bottom:10px;">Lisans anahtarınızı etkinleştirin</li>
+        <li style="margin-bottom:10px;">İlk dosyanızı oluşturun</li>
+    </ul>
+</div>
+<p>Herhangi bir sorunuz olursa <a href="mailto:destek@takibiesasi.com" style="color:#fbbf24;">destek@takibiesasi.com</a> adresinden bize ulaşabilirsiniz.</p>
+<p style="margin-bottom:0;">İyi çalışmalar dileriz!</p>"""
+        },
+        {
+            "key": "purchase",
+            "name": "Satın Alma Onayı",
+            "subject": "Lisans Anahtarınız - Sipariş #{{order_number}}",
+            "description": "Ödeme tamamlandığında gönderilir",
+            "variables": "{{name}}, {{license_key}}, {{order_number}}, {{amount}}, {{date}}",
+            "content": """<h2 style="color:#fbbf24; margin-top:0;">Satın Alma Onayı ✅</h2>
+<p>Sayın {{name}},</p>
+<p>TakibiEsasi lisansınız başarıyla oluşturuldu. Aşağıda lisans bilgilerinizi bulabilirsiniz:</p>
+<div style="background:linear-gradient(135deg, #1a1a2a, #2a2a3a); border-radius:10px; padding:25px; margin:20px 0; border:1px solid #fbbf24;">
+    <p style="margin:0 0 10px; color:#888; font-size:12px; text-transform:uppercase;">Lisans Anahtarınız</p>
+    <p style="margin:0; font-size:24px; font-family:monospace; color:#fbbf24; letter-spacing:2px; word-break:break-all;">{{license_key}}</p>
+</div>
+<div style="background:#1a1a2a; border-radius:10px; padding:20px; margin:20px 0;">
+    <table width="100%" style="color:#e0e0e0;">
+        <tr><td style="padding:8px 0; color:#888;">Sipariş No:</td><td style="padding:8px 0; text-align:right;">{{order_number}}</td></tr>
+        <tr><td style="padding:8px 0; color:#888;">Tutar:</td><td style="padding:8px 0; text-align:right; color:#fbbf24; font-weight:bold;">{{amount}} TL</td></tr>
+        <tr><td style="padding:8px 0; color:#888;">Tarih:</td><td style="padding:8px 0; text-align:right;">{{date}}</td></tr>
+    </table>
+</div>
+<p><strong>Önemli:</strong> Bu lisans anahtarını güvenli bir yerde saklayınız.</p>"""
+        },
+        {
+            "key": "demo_welcome",
+            "name": "Demo Hoş Geldin",
+            "subject": "TakibiEsasi Demo Sürümüne Hoş Geldiniz!",
+            "description": "Demo indirme kaydında gönderilir",
+            "variables": "Yok",
+            "content": """<h2 style="color:#fbbf24; margin-top:0;">Demo Sürümüne Hoş Geldiniz! 🎯</h2>
+<p>TakibiEsasi demo sürümünü indirdiğiniz için teşekkür ederiz.</p>
+<div style="background:#1a1a2a; border-radius:10px; padding:20px; margin:20px 0;">
+    <h3 style="color:#fbbf24; margin-top:0;">Demo Sürümü Özellikleri</h3>
+    <ul style="padding-left:20px; margin:0;">
+        <li style="margin-bottom:10px;">14 gün ücretsiz kullanım</li>
+        <li style="margin-bottom:10px;">Tüm temel özelliklere erişim</li>
+        <li style="margin-bottom:10px;">Sınırlı dosya oluşturma</li>
+    </ul>
+</div>
+<div style="text-align:center; margin:30px 0;">
+    <a href="https://takibiesasi.com/#pricing" style="display:inline-block; background:linear-gradient(135deg, #fbbf24, #f59e0b); color:#000; text-decoration:none; padding:15px 40px; border-radius:8px; font-weight:bold; font-size:16px;">Tam Sürümü Satın Al</a>
+</div>
+<p>Demo süreniz dolmadan önce size hatırlatma e-postası göndereceğiz.</p>"""
+        },
+        {
+            "key": "demo_expiring",
+            "name": "Demo Süresi Doluyor",
+            "subject": "Demo Süreniz {{days_left}} Gün İçinde Doluyor!",
+            "description": "Demo bitmeden 3 ve 1 gün önce gönderilir",
+            "variables": "{{days_left}} - Kalan gün sayısı",
+            "content": """<h2 style="color:#fbbf24; margin-top:0;">Demo Süreniz Dolmak Üzere ⏰</h2>
+<p>TakibiEsasi demo sürenizin bitmesine <strong style="color:#fbbf24;">{{days_left}} gün</strong> kaldı.</p>
+<p>Demo süreniz sona erdikten sonra uygulamayı kullanmaya devam edemezsiniz. Çalışmalarınızın kesintiye uğramaması için hemen tam sürüme geçin!</p>
+<div style="background:#1a1a2a; border-radius:10px; padding:20px; margin:20px 0;">
+    <h3 style="color:#fbbf24; margin-top:0;">Tam Sürüm Avantajları</h3>
+    <ul style="padding-left:20px; margin:0;">
+        <li style="margin-bottom:10px;">Sınırsız dosya oluşturma</li>
+        <li style="margin-bottom:10px;">Tüm premium özellikler</li>
+        <li style="margin-bottom:10px;">Öncelikli destek</li>
+        <li style="margin-bottom:10px;">Otomatik güncellemeler</li>
+    </ul>
+</div>
+<div style="text-align:center; margin:30px 0;">
+    <a href="https://takibiesasi.com/#pricing" style="display:inline-block; background:linear-gradient(135deg, #fbbf24, #f59e0b); color:#000; text-decoration:none; padding:15px 40px; border-radius:8px; font-weight:bold; font-size:16px;">Hemen Satın Al</a>
+</div>"""
+        },
+        {
+            "key": "demo_expired",
+            "name": "Demo Süresi Doldu",
+            "subject": "Demo Süreniz Doldu - Özel İndirim Fırsatı!",
+            "description": "Demo süresi dolduğunda gönderilir",
+            "variables": "Yok",
+            "content": """<h2 style="color:#ef4444; margin-top:0;">Demo Süreniz Doldu 😢</h2>
+<p>TakibiEsasi demo süreniz sona erdi.</p>
+<p>Endişelenmeyin! Verileriniz hala güvende ve tam sürüme geçtiğinizde kaldığınız yerden devam edebilirsiniz.</p>
+<div style="background:linear-gradient(135deg, #1a1a2a, #2a2a3a); border-radius:10px; padding:25px; margin:20px 0; border:1px solid #fbbf24; text-align:center;">
+    <p style="margin:0 0 15px; font-size:18px;">Özel Teklif: <strong style="color:#fbbf24;">%20 İndirim!</strong></p>
+    <p style="margin:0; color:#888; font-size:14px;">Kod: <span style="color:#fbbf24; font-family:monospace;">DEMO20</span></p>
+</div>
+<div style="text-align:center; margin:30px 0;">
+    <a href="https://takibiesasi.com/#pricing" style="display:inline-block; background:linear-gradient(135deg, #fbbf24, #f59e0b); color:#000; text-decoration:none; padding:15px 40px; border-radius:8px; font-weight:bold; font-size:16px;">İndirimli Satın Al</a>
+</div>
+<p>Sorularınız için <a href="mailto:destek@takibiesasi.com" style="color:#fbbf24;">destek@takibiesasi.com</a> adresinden bize ulaşabilirsiniz.</p>"""
+        },
+        {
+            "key": "password_reset",
+            "name": "Şifre Sıfırlama",
+            "subject": "Şifre Sıfırlama Talebi",
+            "description": "Şifremi unuttum talebinde gönderilir",
+            "variables": "{{reset_url}} - Sıfırlama linki",
+            "content": """<h2 style="color:#fbbf24; margin-top:0;">Şifre Sıfırlama 🔐</h2>
+<p>Hesabınız için şifre sıfırlama talebinde bulunuldu.</p>
+<div style="text-align:center; margin:30px 0;">
+    <a href="{{reset_url}}" style="display:inline-block; background:linear-gradient(135deg, #fbbf24, #f59e0b); color:#000; text-decoration:none; padding:15px 40px; border-radius:8px; font-weight:bold; font-size:16px;">Şifremi Sıfırla</a>
+</div>
+<p style="color:#888; font-size:14px;">Bu link 1 saat içinde geçerliliğini yitirecektir.</p>
+<p>Eğer bu talebi siz yapmadıysanız, bu e-postayı görmezden gelebilirsiniz. Hesabınız güvende.</p>"""
+        },
+        {
+            "key": "license_activated",
+            "name": "Lisans Aktivasyonu",
+            "subject": "Lisansınız Etkinleştirildi",
+            "description": "Lisans aktive edildiğinde gönderilir",
+            "variables": "{{license_key}}, {{machine_name}}, {{date}}",
+            "content": """<h2 style="color:#fbbf24; margin-top:0;">Lisans Etkinleştirildi ✅</h2>
+<p>TakibiEsasi lisansınız başarıyla etkinleştirildi.</p>
+<div style="background:#1a1a2a; border-radius:10px; padding:20px; margin:20px 0;">
+    <table width="100%" style="color:#e0e0e0;">
+        <tr><td style="padding:8px 0; color:#888;">Lisans:</td><td style="padding:8px 0; text-align:right; font-family:monospace;">{{license_key}}</td></tr>
+        <tr><td style="padding:8px 0; color:#888;">Cihaz:</td><td style="padding:8px 0; text-align:right;">{{machine_name}}</td></tr>
+        <tr><td style="padding:8px 0; color:#888;">Tarih:</td><td style="padding:8px 0; text-align:right;">{{date}}</td></tr>
+    </table>
+</div>
+<p>Eğer bu aktivasyonu siz yapmadıysanız, lütfen hemen bizimle iletişime geçin.</p>"""
+        }
+    ]
+
+    for t in templates:
+        try:
+            cur.execute("""
+                INSERT INTO email_templates (template_key, template_name, subject, html_content, description, variables)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                ON CONFLICT (template_key) DO NOTHING
+            """, (t["key"], t["name"], t["subject"], t["content"], t["description"], t["variables"]))
+        except:
+            pass
+
+    conn.commit()
+    cur.close()
+    conn.close()
 
 # Email Templates
 def get_email_template(content: str, title: str = "TakibiEsasi") -> str:
@@ -780,169 +997,76 @@ def get_email_template(content: str, title: str = "TakibiEsasi") -> str:
     </html>
     """
 
+def render_template(template_key: str, variables: dict) -> tuple:
+    """Render email template with variables, returns (subject, html_content)"""
+    template = get_db_template(template_key)
+    if not template:
+        return None, None
+
+    subject = template['subject']
+    content = template['html_content']
+
+    # Replace variables
+    for key, value in variables.items():
+        subject = subject.replace(f"{{{{{key}}}}}", str(value))
+        content = content.replace(f"{{{{{key}}}}}", str(value))
+
+    return subject, get_email_template(content)
+
 def send_welcome_email(email: str, full_name: str):
     """Send welcome email to new user"""
-    content = f"""
-    <h2 style="color:#fbbf24; margin-top:0;">Hoş Geldiniz, {full_name}! 🎉</h2>
-    <p>TakibiEsasi ailesine katıldığınız için teşekkür ederiz.</p>
-    <p>Artık hukuki takip işlemlerinizi kolayca yönetebilir, icra dosyalarınızı takip edebilir ve raporlarınızı oluşturabilirsiniz.</p>
-
-    <div style="background:#1a1a2a; border-radius:10px; padding:20px; margin:20px 0;">
-        <h3 style="color:#fbbf24; margin-top:0;">Hızlı Başlangıç</h3>
-        <ul style="padding-left:20px; margin:0;">
-            <li style="margin-bottom:10px;">Hesabınıza giriş yapın</li>
-            <li style="margin-bottom:10px;">Lisans anahtarınızı etkinleştirin</li>
-            <li style="margin-bottom:10px;">İlk dosyanızı oluşturun</li>
-        </ul>
-    </div>
-
-    <p>Herhangi bir sorunuz olursa <a href="mailto:destek@takibiesasi.com" style="color:#fbbf24;">destek@takibiesasi.com</a> adresinden bize ulaşabilirsiniz.</p>
-
-    <p style="margin-bottom:0;">İyi çalışmalar dileriz!</p>
-    """
-
-    send_email_async(email, "TakibiEsasi'na Hoş Geldiniz! 🎉", get_email_template(content))
+    subject, html = render_template("welcome", {"name": full_name})
+    if subject and html:
+        send_email_async(email, subject, html, "welcome", {"name": full_name})
 
 def send_purchase_email(email: str, name: str, license_key: str, order_number: str, amount: float):
     """Send purchase confirmation email with license key"""
-    content = f"""
-    <h2 style="color:#fbbf24; margin-top:0;">Satın Alma Onayı ✅</h2>
-    <p>Sayın {name},</p>
-    <p>TakibiEsasi lisansınız başarıyla oluşturuldu. Aşağıda lisans bilgilerinizi bulabilirsiniz:</p>
-
-    <div style="background:linear-gradient(135deg, #1a1a2a, #2a2a3a); border-radius:10px; padding:25px; margin:20px 0; border:1px solid #fbbf24;">
-        <p style="margin:0 0 10px; color:#888; font-size:12px; text-transform:uppercase;">Lisans Anahtarınız</p>
-        <p style="margin:0; font-size:24px; font-family:monospace; color:#fbbf24; letter-spacing:2px; word-break:break-all;">{license_key}</p>
-    </div>
-
-    <div style="background:#1a1a2a; border-radius:10px; padding:20px; margin:20px 0;">
-        <table width="100%" style="color:#e0e0e0;">
-            <tr><td style="padding:8px 0; color:#888;">Sipariş No:</td><td style="padding:8px 0; text-align:right;">{order_number}</td></tr>
-            <tr><td style="padding:8px 0; color:#888;">Tutar:</td><td style="padding:8px 0; text-align:right; color:#fbbf24; font-weight:bold;">{amount:.2f} TL</td></tr>
-            <tr><td style="padding:8px 0; color:#888;">Tarih:</td><td style="padding:8px 0; text-align:right;">{datetime.now().strftime('%d.%m.%Y %H:%M')}</td></tr>
-        </table>
-    </div>
-
-    <h3 style="color:#fbbf24;">Lisans Aktivasyonu</h3>
-    <ol style="padding-left:20px;">
-        <li style="margin-bottom:10px;">TakibiEsasi uygulamasını açın</li>
-        <li style="margin-bottom:10px;">Lisans bölümüne gidin</li>
-        <li style="margin-bottom:10px;">Yukarıdaki lisans anahtarını girin</li>
-        <li style="margin-bottom:10px;">"Etkinleştir" butonuna tıklayın</li>
-    </ol>
-
-    <p><strong>Önemli:</strong> Bu lisans anahtarını güvenli bir yerde saklayınız.</p>
-    """
-
-    send_email_async(email, f"Lisans Anahtarınız - Sipariş #{order_number}", get_email_template(content))
+    variables = {
+        "name": name,
+        "license_key": license_key,
+        "order_number": order_number,
+        "amount": f"{amount:.2f}",
+        "date": datetime.now().strftime('%d.%m.%Y %H:%M')
+    }
+    subject, html = render_template("purchase", variables)
+    if subject and html:
+        send_email_async(email, subject, html, "purchase", variables)
 
 def send_demo_welcome_email(email: str):
     """Send demo welcome email"""
-    content = f"""
-    <h2 style="color:#fbbf24; margin-top:0;">Demo Sürümüne Hoş Geldiniz! 🎯</h2>
-    <p>TakibiEsasi demo sürümünü indirdiğiniz için teşekkür ederiz.</p>
-
-    <div style="background:#1a1a2a; border-radius:10px; padding:20px; margin:20px 0;">
-        <h3 style="color:#fbbf24; margin-top:0;">Demo Sürümü Özellikleri</h3>
-        <ul style="padding-left:20px; margin:0;">
-            <li style="margin-bottom:10px;">7 gün ücretsiz kullanım</li>
-            <li style="margin-bottom:10px;">Tüm temel özelliklere erişim</li>
-            <li style="margin-bottom:10px;">Sınırlı dosya oluşturma</li>
-        </ul>
-    </div>
-
-    <div style="text-align:center; margin:30px 0;">
-        <a href="https://takibiesasi.com/#pricing" style="display:inline-block; background:linear-gradient(135deg, #fbbf24, #f59e0b); color:#000; text-decoration:none; padding:15px 40px; border-radius:8px; font-weight:bold; font-size:16px;">Tam Sürümü Satın Al</a>
-    </div>
-
-    <p>Demo süreniz dolmadan önce size hatırlatma e-postası göndereceğiz.</p>
-    """
-
-    send_email_async(email, "TakibiEsasi Demo Sürümüne Hoş Geldiniz!", get_email_template(content))
+    subject, html = render_template("demo_welcome", {})
+    if subject and html:
+        send_email_async(email, subject, html, "demo_welcome", {"email": email})
 
 def send_demo_expiring_email(email: str, days_left: int):
     """Send demo expiration warning email"""
-    content = f"""
-    <h2 style="color:#fbbf24; margin-top:0;">Demo Süreniz Dolmak Üzere ⏰</h2>
-    <p>TakibiEsasi demo sürenizin bitmesine <strong style="color:#fbbf24;">{days_left} gün</strong> kaldı.</p>
-
-    <p>Demo süreniz sona erdikten sonra uygulamayı kullanmaya devam edemezsiniz. Çalışmalarınızın kesintiye uğramaması için hemen tam sürüme geçin!</p>
-
-    <div style="background:#1a1a2a; border-radius:10px; padding:20px; margin:20px 0;">
-        <h3 style="color:#fbbf24; margin-top:0;">Tam Sürüm Avantajları</h3>
-        <ul style="padding-left:20px; margin:0;">
-            <li style="margin-bottom:10px;">Sınırsız dosya oluşturma</li>
-            <li style="margin-bottom:10px;">Tüm premium özellikler</li>
-            <li style="margin-bottom:10px;">Öncelikli destek</li>
-            <li style="margin-bottom:10px;">Otomatik güncellemeler</li>
-        </ul>
-    </div>
-
-    <div style="text-align:center; margin:30px 0;">
-        <a href="https://takibiesasi.com/#pricing" style="display:inline-block; background:linear-gradient(135deg, #fbbf24, #f59e0b); color:#000; text-decoration:none; padding:15px 40px; border-radius:8px; font-weight:bold; font-size:16px;">Hemen Satın Al</a>
-    </div>
-    """
-
-    send_email_async(email, f"Demo Süreniz {days_left} Gün İçinde Doluyor!", get_email_template(content))
+    subject, html = render_template("demo_expiring", {"days_left": str(days_left)})
+    if subject and html:
+        send_email_async(email, subject, html, "demo_expiring", {"days_left": days_left})
 
 def send_demo_expired_email(email: str):
     """Send demo expired email"""
-    content = f"""
-    <h2 style="color:#ef4444; margin-top:0;">Demo Süreniz Doldu 😢</h2>
-    <p>TakibiEsasi demo süreniz sona erdi.</p>
-
-    <p>Endişelenmeyin! Verileriniz hala güvende ve tam sürüme geçtiğinizde kaldığınız yerden devam edebilirsiniz.</p>
-
-    <div style="background:linear-gradient(135deg, #1a1a2a, #2a2a3a); border-radius:10px; padding:25px; margin:20px 0; border:1px solid #fbbf24; text-align:center;">
-        <p style="margin:0 0 15px; font-size:18px;">Özel Teklif: <strong style="color:#fbbf24;">%20 İndirim!</strong></p>
-        <p style="margin:0; color:#888; font-size:14px;">Kod: <span style="color:#fbbf24; font-family:monospace;">DEMO20</span></p>
-    </div>
-
-    <div style="text-align:center; margin:30px 0;">
-        <a href="https://takibiesasi.com/#pricing" style="display:inline-block; background:linear-gradient(135deg, #fbbf24, #f59e0b); color:#000; text-decoration:none; padding:15px 40px; border-radius:8px; font-weight:bold; font-size:16px;">İndirimli Satın Al</a>
-    </div>
-
-    <p>Sorularınız için <a href="mailto:destek@takibiesasi.com" style="color:#fbbf24;">destek@takibiesasi.com</a> adresinden bize ulaşabilirsiniz.</p>
-    """
-
-    send_email_async(email, "Demo Süreniz Doldu - Özel İndirim Fırsatı!", get_email_template(content))
+    subject, html = render_template("demo_expired", {})
+    if subject and html:
+        send_email_async(email, subject, html, "demo_expired", {"email": email})
 
 def send_password_reset_email(email: str, reset_token: str):
     """Send password reset email"""
     reset_url = f"https://takibiesasi.com/reset-password?token={reset_token}"
-    content = f"""
-    <h2 style="color:#fbbf24; margin-top:0;">Şifre Sıfırlama 🔐</h2>
-    <p>Hesabınız için şifre sıfırlama talebinde bulunuldu.</p>
-
-    <div style="text-align:center; margin:30px 0;">
-        <a href="{reset_url}" style="display:inline-block; background:linear-gradient(135deg, #fbbf24, #f59e0b); color:#000; text-decoration:none; padding:15px 40px; border-radius:8px; font-weight:bold; font-size:16px;">Şifremi Sıfırla</a>
-    </div>
-
-    <p style="color:#888; font-size:14px;">Bu link 1 saat içinde geçerliliğini yitirecektir.</p>
-
-    <p>Eğer bu talebi siz yapmadıysanız, bu e-postayı görmezden gelebilirsiniz. Hesabınız güvende.</p>
-    """
-
-    send_email_async(email, "Şifre Sıfırlama Talebi", get_email_template(content))
+    subject, html = render_template("password_reset", {"reset_url": reset_url})
+    if subject and html:
+        send_email_async(email, subject, html, "password_reset", {"email": email})
 
 def send_license_activated_email(email: str, license_key: str, machine_name: str = None):
     """Send license activation confirmation email"""
-    content = f"""
-    <h2 style="color:#fbbf24; margin-top:0;">Lisans Etkinleştirildi ✅</h2>
-    <p>TakibiEsasi lisansınız başarıyla etkinleştirildi.</p>
-
-    <div style="background:#1a1a2a; border-radius:10px; padding:20px; margin:20px 0;">
-        <table width="100%" style="color:#e0e0e0;">
-            <tr><td style="padding:8px 0; color:#888;">Lisans:</td><td style="padding:8px 0; text-align:right; font-family:monospace;">{license_key[:8]}...{license_key[-4:]}</td></tr>
-            <tr><td style="padding:8px 0; color:#888;">Cihaz:</td><td style="padding:8px 0; text-align:right;">{machine_name or 'Bilinmiyor'}</td></tr>
-            <tr><td style="padding:8px 0; color:#888;">Tarih:</td><td style="padding:8px 0; text-align:right;">{datetime.now().strftime('%d.%m.%Y %H:%M')}</td></tr>
-        </table>
-    </div>
-
-    <p>Eğer bu aktivasyonu siz yapmadıysanız, lütfen hemen bizimle iletişime geçin.</p>
-    """
-
-    send_email_async(email, "Lisansınız Etkinleştirildi", get_email_template(content))
+    variables = {
+        "license_key": f"{license_key[:8]}...{license_key[-4:]}",
+        "machine_name": machine_name or "Bilinmiyor",
+        "date": datetime.now().strftime('%d.%m.%Y %H:%M')
+    }
+    subject, html = render_template("license_activated", variables)
+    if subject and html:
+        send_email_async(email, subject, html, "license_activated", variables)
 
 # ============ USER AUTH HELPERS ============
 
@@ -5046,6 +5170,333 @@ async def admin_export_users(format: str = "json", authorization: str = Header(N
             })
 
         return {"success": True, "format": "json", "data": users}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+# ============ EMAIL MANAGEMENT API ============
+
+class EmailTemplateUpdateRequest(BaseModel):
+    subject: str
+    html_content: str
+    is_active: Optional[bool] = True
+
+@app.get("/api/admin/email/templates")
+async def admin_get_email_templates(authorization: str = Header(None)):
+    """Get all email templates"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        cur.execute("""
+            SELECT id, template_key, template_name, subject, html_content,
+                   description, variables, is_active, updated_at, created_at
+            FROM email_templates
+            ORDER BY template_name
+        """)
+
+        templates = []
+        for row in cur.fetchall():
+            templates.append({
+                "id": row['id'],
+                "key": row['template_key'],
+                "name": row['template_name'],
+                "subject": row['subject'],
+                "content": row['html_content'],
+                "description": row['description'],
+                "variables": row['variables'],
+                "is_active": row['is_active'],
+                "updated_at": row['updated_at'].isoformat() if row['updated_at'] else None,
+                "created_at": row['created_at'].isoformat() if row['created_at'] else None
+            })
+
+        return {"success": True, "templates": templates}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.get("/api/admin/email/templates/{template_key}")
+async def admin_get_email_template(template_key: str, authorization: str = Header(None)):
+    """Get single email template"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        cur.execute("SELECT * FROM email_templates WHERE template_key = %s", (template_key,))
+        row = cur.fetchone()
+
+        if not row:
+            return {"success": False, "error": "Şablon bulunamadı"}
+
+        return {
+            "success": True,
+            "template": {
+                "id": row['id'],
+                "key": row['template_key'],
+                "name": row['template_name'],
+                "subject": row['subject'],
+                "content": row['html_content'],
+                "description": row['description'],
+                "variables": row['variables'],
+                "is_active": row['is_active']
+            }
+        }
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.put("/api/admin/email/templates/{template_key}")
+async def admin_update_email_template(template_key: str, req: EmailTemplateUpdateRequest, authorization: str = Header(None)):
+    """Update email template"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    try:
+        cur.execute("""
+            UPDATE email_templates
+            SET subject = %s, html_content = %s, is_active = %s, updated_at = CURRENT_TIMESTAMP
+            WHERE template_key = %s
+            RETURNING id
+        """, (req.subject, req.html_content, req.is_active, template_key))
+
+        result = cur.fetchone()
+        conn.commit()
+
+        if not result:
+            return {"success": False, "error": "Şablon bulunamadı"}
+
+        return {"success": True, "message": "Şablon güncellendi"}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.post("/api/admin/email/templates/{template_key}/toggle")
+async def admin_toggle_email_template(template_key: str, authorization: str = Header(None)):
+    """Toggle email template active status"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    try:
+        cur.execute("""
+            UPDATE email_templates
+            SET is_active = NOT is_active, updated_at = CURRENT_TIMESTAMP
+            WHERE template_key = %s
+            RETURNING is_active
+        """, (template_key,))
+
+        result = cur.fetchone()
+        conn.commit()
+
+        if not result:
+            return {"success": False, "error": "Şablon bulunamadı"}
+
+        return {"success": True, "is_active": result[0]}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.post("/api/admin/email/preview")
+async def admin_preview_email(template_key: str, authorization: str = Header(None)):
+    """Preview email template with sample data"""
+    verify_admin_token(authorization)
+
+    sample_data = {
+        "welcome": {"name": "Mehmet Yılmaz"},
+        "purchase": {"name": "Mehmet Yılmaz", "license_key": "XXXX-YYYY-ZZZZ-1234", "order_number": "ORD-20241214-0001", "amount": "2499.00", "date": "14.12.2024 15:30"},
+        "demo_welcome": {},
+        "demo_expiring": {"days_left": "3"},
+        "demo_expired": {},
+        "password_reset": {"reset_url": "https://takibiesasi.com/reset-password?token=sample"},
+        "license_activated": {"license_key": "XXXX...1234", "machine_name": "DESKTOP-ABC", "date": "14.12.2024 15:30"}
+    }
+
+    variables = sample_data.get(template_key, {})
+    subject, html = render_template(template_key, variables)
+
+    if not html:
+        return {"success": False, "error": "Şablon bulunamadı"}
+
+    return {"success": True, "subject": subject, "html": html}
+
+
+@app.post("/api/admin/email/test")
+async def admin_send_test_email(template_key: str, test_email: str, authorization: str = Header(None)):
+    """Send test email"""
+    verify_admin_token(authorization)
+
+    sample_data = {
+        "welcome": {"name": "Test Kullanıcı"},
+        "purchase": {"name": "Test Kullanıcı", "license_key": "TEST-XXXX-YYYY-ZZZZ", "order_number": "ORD-TEST-0001", "amount": "2499.00", "date": datetime.now().strftime('%d.%m.%Y %H:%M')},
+        "demo_welcome": {},
+        "demo_expiring": {"days_left": "3"},
+        "demo_expired": {},
+        "password_reset": {"reset_url": "https://takibiesasi.com/reset-password?token=test"},
+        "license_activated": {"license_key": "TEST...XXXX", "machine_name": "TEST-PC", "date": datetime.now().strftime('%d.%m.%Y %H:%M')}
+    }
+
+    variables = sample_data.get(template_key, {})
+    subject, html = render_template(template_key, variables)
+
+    if not html:
+        return {"success": False, "error": "Şablon bulunamadı"}
+
+    try:
+        success = send_email(test_email, f"[TEST] {subject}", html)
+        if success:
+            log_email(template_key, test_email, f"[TEST] {subject}", "sent", None, {"test": True})
+            return {"success": True, "message": f"Test e-postası {test_email} adresine gönderildi"}
+        else:
+            return {"success": False, "error": "E-posta gönderilemedi"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/admin/email/logs")
+async def admin_get_email_logs(
+    page: int = 1,
+    limit: int = 50,
+    template_key: str = None,
+    status: str = None,
+    authorization: str = Header(None)
+):
+    """Get email logs with pagination"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        offset = (page - 1) * limit
+        where_clauses = []
+        params = []
+
+        if template_key:
+            where_clauses.append("e.template_key = %s")
+            params.append(template_key)
+
+        if status:
+            where_clauses.append("e.status = %s")
+            params.append(status)
+
+        where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
+
+        cur.execute(f"SELECT COUNT(*) FROM email_logs e WHERE {where_sql}", params)
+        total = cur.fetchone()[0]
+
+        cur.execute(f"""
+            SELECT e.*, t.template_name
+            FROM email_logs e
+            LEFT JOIN email_templates t ON e.template_key = t.template_key
+            WHERE {where_sql}
+            ORDER BY e.created_at DESC
+            LIMIT %s OFFSET %s
+        """, params + [limit, offset])
+
+        logs = []
+        for row in cur.fetchall():
+            logs.append({
+                "id": row['id'],
+                "template_key": row['template_key'],
+                "template_name": row['template_name'],
+                "recipient": row['recipient_email'],
+                "subject": row['subject'],
+                "status": row['status'],
+                "error": row['error_message'],
+                "metadata": row['metadata'],
+                "created_at": row['created_at'].isoformat() if row['created_at'] else None
+            })
+
+        return {
+            "success": True,
+            "logs": logs,
+            "total": total,
+            "page": page,
+            "pages": (total + limit - 1) // limit
+        }
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.get("/api/admin/email/stats")
+async def admin_get_email_stats(authorization: str = Header(None)):
+    """Get email statistics"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        cur.execute("SELECT COUNT(*) FROM email_logs WHERE status = 'sent'")
+        total_sent = cur.fetchone()[0]
+
+        cur.execute("SELECT COUNT(*) FROM email_logs WHERE status = 'failed'")
+        total_failed = cur.fetchone()[0]
+
+        cur.execute("SELECT COUNT(*) FROM email_logs WHERE status = 'sent' AND DATE(created_at) = CURRENT_DATE")
+        today_sent = cur.fetchone()[0]
+
+        cur.execute("""
+            SELECT e.template_key, t.template_name, COUNT(*) as count
+            FROM email_logs e
+            LEFT JOIN email_templates t ON e.template_key = t.template_key
+            WHERE e.status = 'sent'
+            GROUP BY e.template_key, t.template_name
+            ORDER BY count DESC
+        """)
+
+        by_template = []
+        for row in cur.fetchall():
+            by_template.append({
+                "key": row['template_key'],
+                "name": row['template_name'],
+                "count": row['count']
+            })
+
+        cur.execute("""
+            SELECT DATE(created_at) as date, COUNT(*) as count
+            FROM email_logs
+            WHERE created_at >= CURRENT_DATE - INTERVAL '7 days'
+            GROUP BY DATE(created_at)
+            ORDER BY date
+        """)
+
+        daily = []
+        for row in cur.fetchall():
+            daily.append({
+                "date": row['date'].isoformat(),
+                "count": row['count']
+            })
+
+        return {
+            "success": True,
+            "stats": {
+                "total_sent": total_sent,
+                "total_failed": total_failed,
+                "today_sent": today_sent,
+                "by_template": by_template,
+                "daily": daily
+            }
+        }
 
     finally:
         cur.close()

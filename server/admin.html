@@ -197,6 +197,7 @@
                 </div>
                 <div class="nav-section">
                     <div class="nav-section-title">Site Yonetimi</div>
+                    <div class="nav-item" data-page="email"><i class="fas fa-mail-bulk"></i> E-posta Yonetimi</div>
                     <div class="nav-item" data-page="site-settings"><i class="fas fa-cog"></i> Genel Ayarlar</div>
                     <div class="nav-item" data-page="hero"><i class="fas fa-star"></i> Hero Bolumu</div>
                     <div class="nav-item" data-page="features"><i class="fas fa-rocket"></i> Ozellikler</div>
@@ -519,6 +520,109 @@
                 <div class="card"><div class="items-list" id="messagesList"></div></div>
             </section>
 
+            <!-- Email Management -->
+            <section class="page-section" id="page-email">
+                <div class="page-header">
+                    <h1>E-posta Yonetimi</h1>
+                </div>
+                <div class="tabs" id="emailTabs">
+                    <div class="tab active" data-tab="templates">Sablonlar</div>
+                    <div class="tab" data-tab="logs">Gonderim Kayitlari</div>
+                    <div class="tab" data-tab="stats">Istatistikler</div>
+                </div>
+
+                <!-- Templates Tab -->
+                <div id="emailTemplatesTab">
+                    <div class="stats-grid" style="margin-bottom: 24px;">
+                        <div class="stat-card"><div class="icon primary"><i class="fas fa-file-alt"></i></div><div class="value" id="emailStatTemplates">0</div><div class="label">Toplam Sablon</div></div>
+                        <div class="stat-card"><div class="icon success"><i class="fas fa-paper-plane"></i></div><div class="value" id="emailStatSent">0</div><div class="label">Gonderilen</div></div>
+                        <div class="stat-card"><div class="icon info"><i class="fas fa-calendar-day"></i></div><div class="value" id="emailStatToday">0</div><div class="label">Bugun</div></div>
+                        <div class="stat-card"><div class="icon danger"><i class="fas fa-exclamation-triangle"></i></div><div class="value" id="emailStatFailed">0</div><div class="label">Basarisiz</div></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><h3 class="card-title">E-posta Sablonlari</h3></div>
+                        <div class="table-container">
+                            <table>
+                                <thead><tr><th>Sablon Adi</th><th>Konu</th><th>Aciklama</th><th>Durum</th><th>Son Guncelleme</th><th>Islemler</th></tr></thead>
+                                <tbody id="emailTemplatesTable"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Logs Tab -->
+                <div id="emailLogsTab" style="display:none;">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Gonderim Kayitlari</h3>
+                            <div class="filter-bar">
+                                <select id="emailLogTemplateFilter" onchange="loadEmailLogs()">
+                                    <option value="">Tum Sablonlar</option>
+                                </select>
+                                <select id="emailLogStatusFilter" onchange="loadEmailLogs()">
+                                    <option value="">Tum Durumlar</option>
+                                    <option value="sent">Gonderildi</option>
+                                    <option value="failed">Basarisiz</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="table-container">
+                            <table>
+                                <thead><tr><th>Tarih</th><th>Sablon</th><th>Alici</th><th>Konu</th><th>Durum</th></tr></thead>
+                                <tbody id="emailLogsTable"></tbody>
+                            </table>
+                        </div>
+                        <div id="emailLogsPagination" style="margin-top: 16px; display: flex; justify-content: center; gap: 8px;"></div>
+                    </div>
+                </div>
+
+                <!-- Stats Tab -->
+                <div id="emailStatsTab" style="display:none;">
+                    <div class="grid-2">
+                        <div class="card">
+                            <h3 class="card-title" style="margin-bottom: 20px;">Sablon Bazli Gonderim</h3>
+                            <div id="emailByTemplateList"></div>
+                        </div>
+                        <div class="card">
+                            <h3 class="card-title" style="margin-bottom: 20px;">Son 7 Gun</h3>
+                            <div class="chart-container"><canvas id="emailDailyChart"></canvas></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Email Template Edit Modal -->
+            <div class="modal-overlay" id="emailTemplateModal">
+                <div class="modal modal-lg">
+                    <div class="modal-header"><h3 id="emailTemplateModalTitle">Sablon Duzenle</h3><button class="btn btn-icon btn-secondary" onclick="closeModal('emailTemplateModal')"><i class="fas fa-times"></i></button></div>
+                    <div class="modal-body">
+                        <input type="hidden" id="editTemplateKey">
+                        <div class="form-group"><label>Sablon Adi</label><input type="text" id="editTemplateName" disabled></div>
+                        <div class="form-group"><label>Degiskenler</label><input type="text" id="editTemplateVars" disabled style="color:#fbbf24;"></div>
+                        <div class="form-group"><label>Konu</label><input type="text" id="editTemplateSubject"></div>
+                        <div class="form-group"><label>HTML Icerik</label><textarea id="editTemplateContent" rows="15" style="font-family: monospace; font-size: 12px;"></textarea></div>
+                        <div class="form-group"><label><input type="checkbox" id="editTemplateActive" checked> Aktif</label></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="previewEmailTemplate()"><i class="fas fa-eye"></i> Onizleme</button>
+                        <button class="btn btn-info" onclick="sendTestEmail()"><i class="fas fa-paper-plane"></i> Test Gonder</button>
+                        <button class="btn btn-primary" onclick="saveEmailTemplate()"><i class="fas fa-save"></i> Kaydet</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Email Preview Modal -->
+            <div class="modal-overlay" id="emailPreviewModal">
+                <div class="modal modal-lg">
+                    <div class="modal-header"><h3>E-posta Onizlemesi</h3><button class="btn btn-icon btn-secondary" onclick="closeModal('emailPreviewModal')"><i class="fas fa-times"></i></button></div>
+                    <div class="modal-body">
+                        <div style="background:#fff; border-radius:8px; overflow:hidden;">
+                            <iframe id="emailPreviewFrame" style="width:100%; height:500px; border:none;"></iframe>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Site Settings -->
             <section class="page-section" id="page-site-settings">
                 <div class="page-header"><h1>Genel Ayarlar</h1><button class="btn btn-primary" onclick="saveSiteSettings()"><i class="fas fa-save"></i> Kaydet</button></div>
@@ -811,7 +915,7 @@
                 'sales-report': loadSalesReport, activity: loadActivity, demo: loadDemo, messages: loadMessages,
                 features: loadFeatures, screenshots: loadScreenshots, pricing: loadPricing,
                 testimonials: loadTestimonials, faq: loadFaq, announcements: loadAnnouncements,
-                media: loadMedia, releases: loadReleases, files: loadFiles
+                media: loadMedia, releases: loadReleases, files: loadFiles, email: loadEmailManagement
             };
             if (loaders[page]) loaders[page]();
         }
@@ -1237,6 +1341,220 @@
                     </div>
                 `).join('') || '<p style="color: var(--text-muted); text-align: center; padding: 40px;">Henuz aktivite yok</p>';
             } catch (e) { console.error('Activity load error:', e); }
+        }
+
+        // Email Management
+        let allEmailTemplates = [];
+        let emailLogsPage = 1;
+        let emailDailyChart = null;
+
+        async function loadEmailManagement() {
+            // Setup tabs
+            document.querySelectorAll('#emailTabs .tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('#emailTabs .tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    document.getElementById('emailTemplatesTab').style.display = tab.dataset.tab === 'templates' ? 'block' : 'none';
+                    document.getElementById('emailLogsTab').style.display = tab.dataset.tab === 'logs' ? 'block' : 'none';
+                    document.getElementById('emailStatsTab').style.display = tab.dataset.tab === 'stats' ? 'block' : 'none';
+                    if (tab.dataset.tab === 'logs') loadEmailLogs();
+                    if (tab.dataset.tab === 'stats') loadEmailStats();
+                });
+            });
+
+            await loadEmailTemplates();
+            await loadEmailStats();
+        }
+
+        async function loadEmailTemplates() {
+            try {
+                const data = await api('/admin/email/templates');
+                allEmailTemplates = data.templates || [];
+                document.getElementById('emailStatTemplates').textContent = allEmailTemplates.length;
+
+                // Populate filter dropdown
+                const filterSelect = document.getElementById('emailLogTemplateFilter');
+                filterSelect.innerHTML = '<option value="">Tum Sablonlar</option>' +
+                    allEmailTemplates.map(t => `<option value="${t.key}">${t.name}</option>`).join('');
+
+                document.getElementById('emailTemplatesTable').innerHTML = allEmailTemplates.map(t => `
+                    <tr>
+                        <td><strong>${t.name}</strong></td>
+                        <td><code style="font-size:12px;">${t.subject}</code></td>
+                        <td style="color:var(--text-muted); font-size:13px;">${t.description || '-'}</td>
+                        <td><span class="badge badge-${t.is_active ? 'success' : 'danger'}">${t.is_active ? 'Aktif' : 'Pasif'}</span></td>
+                        <td style="font-size:13px;">${formatDateTime(t.updated_at)}</td>
+                        <td>
+                            <button class="btn btn-sm btn-secondary" onclick="editEmailTemplate('${t.key}')"><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-sm btn-${t.is_active ? 'warning' : 'success'}" onclick="toggleEmailTemplate('${t.key}')"><i class="fas fa-${t.is_active ? 'pause' : 'play'}"></i></button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (e) { console.error('Email templates load error:', e); }
+        }
+
+        async function loadEmailLogs() {
+            try {
+                const templateKey = document.getElementById('emailLogTemplateFilter').value;
+                const status = document.getElementById('emailLogStatusFilter').value;
+                let url = `/admin/email/logs?page=${emailLogsPage}&limit=30`;
+                if (templateKey) url += `&template_key=${templateKey}`;
+                if (status) url += `&status=${status}`;
+
+                const data = await api(url);
+                document.getElementById('emailLogsTable').innerHTML = (data.logs || []).map(l => `
+                    <tr>
+                        <td style="font-size:13px;">${formatDateTime(l.created_at)}</td>
+                        <td><span class="badge badge-primary">${l.template_name || l.template_key || '-'}</span></td>
+                        <td>${l.recipient}</td>
+                        <td style="font-size:13px;">${l.subject || '-'}</td>
+                        <td><span class="badge badge-${l.status === 'sent' ? 'success' : 'danger'}">${l.status === 'sent' ? 'Gonderildi' : 'Basarisiz'}</span></td>
+                    </tr>
+                `).join('') || '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Henuz kayit yok</td></tr>';
+
+                // Pagination
+                const pages = data.pages || 1;
+                let pagination = '';
+                for (let i = 1; i <= Math.min(pages, 10); i++) {
+                    pagination += `<button class="btn btn-sm ${i === data.page ? 'btn-primary' : 'btn-secondary'}" onclick="emailLogsPage=${i};loadEmailLogs()">${i}</button>`;
+                }
+                document.getElementById('emailLogsPagination').innerHTML = pagination;
+            } catch (e) { console.error('Email logs load error:', e); }
+        }
+
+        async function loadEmailStats() {
+            try {
+                const data = await api('/admin/email/stats');
+                if (data.success) {
+                    document.getElementById('emailStatSent').textContent = data.stats.total_sent || 0;
+                    document.getElementById('emailStatToday').textContent = data.stats.today_sent || 0;
+                    document.getElementById('emailStatFailed').textContent = data.stats.total_failed || 0;
+
+                    // Template breakdown
+                    document.getElementById('emailByTemplateList').innerHTML = (data.stats.by_template || []).map(t => `
+                        <div style="display:flex; justify-content:space-between; padding:12px 0; border-bottom:1px solid var(--border);">
+                            <span>${t.name || t.key}</span>
+                            <strong style="color:var(--primary);">${t.count}</strong>
+                        </div>
+                    `).join('') || '<p style="color:var(--text-muted);">Henuz veri yok</p>';
+
+                    // Daily chart
+                    const ctx = document.getElementById('emailDailyChart').getContext('2d');
+                    if (emailDailyChart) emailDailyChart.destroy();
+                    emailDailyChart = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: (data.stats.daily || []).map(d => d.date),
+                            datasets: [{
+                                label: 'Gonderilen E-posta',
+                                data: (data.stats.daily || []).map(d => d.count),
+                                backgroundColor: 'rgba(251, 191, 36, 0.5)',
+                                borderColor: '#fbbf24',
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: {
+                                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.1)' } },
+                                x: { grid: { display: false } }
+                            }
+                        }
+                    });
+                }
+            } catch (e) { console.error('Email stats load error:', e); }
+        }
+
+        function editEmailTemplate(key) {
+            const template = allEmailTemplates.find(t => t.key === key);
+            if (!template) return;
+
+            document.getElementById('editTemplateKey').value = key;
+            document.getElementById('editTemplateName').value = template.name;
+            document.getElementById('editTemplateVars').value = template.variables || 'Yok';
+            document.getElementById('editTemplateSubject').value = template.subject;
+            document.getElementById('editTemplateContent').value = template.content;
+            document.getElementById('editTemplateActive').checked = template.is_active;
+            document.getElementById('emailTemplateModalTitle').textContent = 'Sablon Duzenle: ' + template.name;
+            openModal('emailTemplateModal');
+        }
+
+        async function saveEmailTemplate() {
+            const key = document.getElementById('editTemplateKey').value;
+            const data = {
+                subject: document.getElementById('editTemplateSubject').value,
+                html_content: document.getElementById('editTemplateContent').value,
+                is_active: document.getElementById('editTemplateActive').checked
+            };
+
+            try {
+                const result = await fetch(`${API_BASE}/admin/email/templates/${key}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                    body: JSON.stringify(data)
+                }).then(r => r.json());
+
+                if (result.success) {
+                    showToast('Sablon kaydedildi');
+                    closeModal('emailTemplateModal');
+                    loadEmailTemplates();
+                } else {
+                    showToast(result.error || 'Hata olustu', 'error');
+                }
+            } catch (e) { showToast('Kayit hatasi', 'error'); }
+        }
+
+        async function toggleEmailTemplate(key) {
+            try {
+                const result = await fetch(`${API_BASE}/admin/email/templates/${key}/toggle`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                }).then(r => r.json());
+
+                if (result.success) {
+                    showToast(result.is_active ? 'Sablon aktif edildi' : 'Sablon pasif edildi');
+                    loadEmailTemplates();
+                }
+            } catch (e) { showToast('Hata olustu', 'error'); }
+        }
+
+        async function previewEmailTemplate() {
+            const key = document.getElementById('editTemplateKey').value;
+            try {
+                const result = await fetch(`${API_BASE}/admin/email/preview?template_key=${key}`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                }).then(r => r.json());
+
+                if (result.success && result.html) {
+                    const iframe = document.getElementById('emailPreviewFrame');
+                    iframe.srcdoc = result.html;
+                    openModal('emailPreviewModal');
+                } else {
+                    showToast('Onizleme olusturulamadi', 'error');
+                }
+            } catch (e) { showToast('Onizleme hatasi', 'error'); }
+        }
+
+        async function sendTestEmail() {
+            const key = document.getElementById('editTemplateKey').value;
+            const email = prompt('Test e-postasi gonderilecek adres:', 'destek@takibiesasi.com');
+            if (!email) return;
+
+            try {
+                const result = await fetch(`${API_BASE}/admin/email/test?template_key=${key}&test_email=${encodeURIComponent(email)}`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                }).then(r => r.json());
+
+                if (result.success) {
+                    showToast(result.message);
+                } else {
+                    showToast(result.error || 'Gonderim hatasi', 'error');
+                }
+            } catch (e) { showToast('Gonderim hatasi', 'error'); }
         }
 
         // Demo
