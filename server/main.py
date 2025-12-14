@@ -2479,6 +2479,24 @@ async def purchase_page():
             return f.read()
     return "<h1>Purchase page not found</h1>"
 
+@app.get("/sifremi-unuttum", response_class=HTMLResponse)
+async def forgot_password_page():
+    """Serve forgot password page"""
+    html_path = "/var/www/takibiesasi/sifremi-unuttum.html"
+    if os.path.exists(html_path):
+        with open(html_path, 'r', encoding='utf-8') as f:
+            return f.read()
+    return "<h1>Forgot password page not found</h1>"
+
+@app.get("/reset-password", response_class=HTMLResponse)
+async def reset_password_page():
+    """Serve reset password page"""
+    html_path = "/var/www/takibiesasi/reset-password.html"
+    if os.path.exists(html_path):
+        with open(html_path, 'r', encoding='utf-8') as f:
+            return f.read()
+    return "<h1>Reset password page not found</h1>"
+
 # ============ DEMO REGISTRATION API ============
 
 class DemoRegisterRequest(BaseModel):
