@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Giriş Yap - TakibiEsasi</title>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="192x192" href="/logo.png">
+    <link rel="apple-touch-icon" href="/logo.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -43,16 +45,12 @@
         .login-header .logo {
             width: 50px;
             height: 50px;
-            background: linear-gradient(135deg, #f59e0b, #d97706);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
         }
 
-        .login-header .logo i {
-            color: #0a0a0f;
-            font-size: 24px;
+        .login-header .logo img {
+            width: 50px;
+            height: 50px;
+            object-fit: contain;
         }
 
         .login-header h1 {
@@ -257,7 +255,7 @@
         <div class="login-header">
             <a href="/">
                 <div class="logo">
-                    <i class="fas fa-balance-scale"></i>
+                    <img src="/logo.png" alt="TakibiEsasi Logo">
                 </div>
                 <h1>TakibiEsasi</h1>
             </a>
