@@ -1996,6 +1996,44 @@ async def submit_contact(req: ContactMessageRequest):
 
     return {"success": True}
 
+
+class NotifyRequest(BaseModel):
+    email: str
+
+
+@app.post("/api/notify/buro")
+async def notify_buro(req: NotifyRequest):
+    """Subscribe to Büro Yönetim Sistemi notification list"""
+    conn = get_db()
+    cur = conn.cursor()
+
+    try:
+        # Create table if not exists
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS notify_subscribers (
+                id SERIAL PRIMARY KEY,
+                email VARCHAR(255) UNIQUE NOT NULL,
+                feature VARCHAR(50) DEFAULT 'buro',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        # Insert subscriber
+        cur.execute("""
+            INSERT INTO notify_subscribers (email, feature)
+            VALUES (%s, 'buro')
+            ON CONFLICT (email) DO NOTHING
+        """, (req.email,))
+
+        conn.commit()
+        return {"success": True, "message": "E-posta kaydedildi"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+    finally:
+        cur.close()
+        conn.close()
+
+
 @app.get("/api/admin/messages")
 async def admin_get_messages(authorization: str = Header(None)):
     """Get all contact messages"""
