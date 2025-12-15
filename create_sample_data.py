@@ -7,12 +7,17 @@ gerçekçi Türk hukuk verisi oluşturur.
 
 import sqlite3
 import os
+import sys
 import random
 from datetime import datetime, timedelta
 from pathlib import Path
 
+# app klasörünü path'e ekle
+SCRIPT_DIR = Path(__file__).parent
+sys.path.insert(0, str(SCRIPT_DIR))
+
 # Veritabanı yolu
-DB_PATH = Path(__file__).parent / "data" / "takibiesasi.db"
+DB_PATH = SCRIPT_DIR / "data" / "takibiesasi.db"
 
 # ============================================
 # ÖRNEK VERİ HAVUZLARI
@@ -121,6 +126,197 @@ def get_db_connection():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
+
+
+def create_tables_manually(db_path):
+    """Tabloları manuel olarak oluştur (app.db import edilemezse)"""
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    # Dosyalar tablosu
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS dosyalar (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            buro_takip_no INTEGER UNIQUE,
+            dosya_esas_no TEXT,
+            muvekkil_adi TEXT,
+            muvekkil_rolu TEXT,
+            karsi_taraf TEXT,
+            dosya_konusu TEXT,
+            mahkeme_adi TEXT,
+            dava_acilis_tarihi DATE,
+            durusma_tarihi DATE,
+            dava_durumu TEXT,
+            is_tarihi DATE,
+            aciklama TEXT,
+            tekrar_dava_durumu_2 TEXT,
+            is_tarihi_2 DATE,
+            aciklama_2 TEXT,
+            is_archived INTEGER DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    # Finans tablosu
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS finans (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            dosya_id INTEGER UNIQUE,
+            sozlesme_ucreti REAL,
+            sozlesme_yuzdesi REAL,
+            sozlesme_ucreti_cents INTEGER,
+            tahsil_hedef_cents INTEGER NOT NULL DEFAULT 0,
+            tahsil_edilen_cents INTEGER NOT NULL DEFAULT 0,
+            masraf_toplam_cents INTEGER NOT NULL DEFAULT 0,
+            masraf_tahsil_cents INTEGER NOT NULL DEFAULT 0,
+            notlar TEXT,
+            yuzde_is_sonu INTEGER NOT NULL DEFAULT 0,
+            son_guncelleme DATETIME,
+            FOREIGN KEY(dosya_id) REFERENCES dosyalar(id) ON DELETE CASCADE
+        )
+    """)
+
+    # Taksitler tablosu
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS taksitler (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            finans_id INTEGER NOT NULL,
+            sira INTEGER,
+            tutar_cents INTEGER NOT NULL,
+            vade_tarihi DATE,
+            odendi INTEGER DEFAULT 0,
+            odeme_tarihi DATE,
+            FOREIGN KEY(finans_id) REFERENCES finans(id) ON DELETE CASCADE
+        )
+    """)
+
+    # Masraflar tablosu
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS masraflar (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            finans_id INTEGER NOT NULL,
+            kalem TEXT NOT NULL,
+            tutar_cents INTEGER NOT NULL,
+            tarih DATE,
+            odeme_kaynagi TEXT NOT NULL DEFAULT 'Büro',
+            tahsil_durumu TEXT NOT NULL DEFAULT 'Bekliyor',
+            tahsil_tarihi DATE,
+            aciklama TEXT,
+            FOREIGN KEY(finans_id) REFERENCES finans(id) ON DELETE CASCADE
+        )
+    """)
+
+    # Tebligatlar tablosu
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS tebligatlar (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            dosya_no TEXT,
+            kurum TEXT,
+            tebligat_tarihi DATE,
+            teslim_tarihi DATE,
+            is_son_gunu DATE,
+            icerik TEXT,
+            notlar TEXT
+        )
+    """)
+
+    # Arabuluculuk tablosu
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS arabuluculuk (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            davaci TEXT,
+            davali TEXT,
+            arabulucu TEXT,
+            konu TEXT,
+            toplanti_tarihi DATE,
+            toplanti_saati TEXT,
+            durum TEXT,
+            notlar TEXT
+        )
+    """)
+
+    # Görevler tablosu
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS gorevler (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            tarih TEXT,
+            konu TEXT NOT NULL,
+            aciklama TEXT,
+            tamamlandi INTEGER DEFAULT 0,
+            tamamlanma_tarihi DATETIME,
+            dosya_id INTEGER,
+            atanan_kullanici TEXT,
+            kaynak TEXT DEFAULT 'manuel',
+            FOREIGN KEY(dosya_id) REFERENCES dosyalar(id) ON DELETE SET NULL
+        )
+    """)
+
+    # Müvekkil kasası tablosu
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS muvekkil_kasasi (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            muvekkil_adi TEXT,
+            islem_tipi TEXT,
+            tutar_cents INTEGER,
+            tarih DATE,
+            aciklama TEXT
+        )
+    """)
+
+    # Users tablosu
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE,
+            password_hash TEXT,
+            role TEXT DEFAULT 'Kullanıcı',
+            is_active INTEGER DEFAULT 1
+        )
+    """)
+
+    # Statuses tablosu
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS statuses (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ad TEXT UNIQUE,
+            color_hex TEXT,
+            sira INTEGER
+        )
+    """)
+
+    # Custom tabs tablosu
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS custom_tabs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT UNIQUE NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    # Custom tabs - dosyalar ilişki tablosu
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS custom_tabs_dosyalar (
+            custom_tab_id INTEGER NOT NULL,
+            dosya_id INTEGER NOT NULL,
+            PRIMARY KEY (custom_tab_id, dosya_id),
+            FOREIGN KEY (custom_tab_id) REFERENCES custom_tabs(id) ON DELETE CASCADE,
+            FOREIGN KEY (dosya_id) REFERENCES dosyalar(id) ON DELETE CASCADE
+        )
+    """)
+
+    # Ayarlar tablosu
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS ayarlar (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            key TEXT UNIQUE,
+            value TEXT
+        )
+    """)
+
+    conn.commit()
+    conn.close()
+    print("  ✓ Tablolar manuel olarak oluşturuldu")
 
 
 def random_date(start_year=2023, end_year=2025):
@@ -457,12 +653,25 @@ def main():
         shutil.copy(DB_PATH, backup_path)
         print()
 
+    # Veritabanı klasörünü oluştur
+    os.makedirs(DB_PATH.parent, exist_ok=True)
+
+    # Önce tabloları oluştur (app/db.py'den init_db çağır)
+    print("Veritabanı tabloları oluşturuluyor...")
+    try:
+        from app.db import init_db
+        init_db(str(DB_PATH))
+        print("  ✓ Tablolar oluşturuldu")
+        print()
+    except ImportError as e:
+        print(f"  ⚠ app.db import edilemedi: {e}")
+        print("  → Tabloları manuel oluşturmayı deniyorum...")
+        create_tables_manually(DB_PATH)
+        print()
+
     conn = get_db_connection()
 
     try:
-        # Tabloları oluştur (db.py'deki init fonksiyonu çağrılmalı)
-        # Burada sadece veri ekliyoruz
-
         # Verileri oluştur
         create_users(conn)
         create_statuses(conn)
