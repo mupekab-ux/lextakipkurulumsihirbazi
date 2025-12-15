@@ -6499,6 +6499,12 @@ class MainWindow(QMainWindow):
 
     def refresh_table(self):
         """Verileri yeniden yükler."""
+        # Açık editörleri kapat (commitData hatasını önlemek için)
+        for view in [self.table_view, self.archive_table_view, self.finance_table_view]:
+            if view.state() == QAbstractItemView.State.EditingState:
+                current_idx = view.currentIndex()
+                view.setCurrentIndex(current_idx)  # Editörü commit et
+                view.clearFocus()  # Editörü kapat
         filters = self._collect_filters()
         hex6 = filters["hex6"]
         raw_search_text = filters["search_text"] or ""
