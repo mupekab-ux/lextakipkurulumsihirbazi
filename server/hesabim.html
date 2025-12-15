@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hesabım - TakibiEsasi</title>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="192x192" href="/logo.png">
+    <link rel="apple-touch-icon" href="/logo.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -669,7 +671,7 @@
                         <h3><i class="fas fa-download"></i> Uygulamayı İndir</h3>
                     </div>
                     <div class="card-body download-section">
-                        <p class="version">En son sürüm: <strong id="latestVersion">v1.0.0</strong></p>
+                        <p class="version">En son sürüm: <strong id="latestVersion">Yükleniyor...</strong></p>
                         <a href="/download" class="btn btn-primary btn-download">
                             <i class="fas fa-download"></i>
                             Windows için İndir
@@ -879,8 +881,26 @@
                 // Aktivite listesini güncelle
                 updateActivityList();
 
+                // En son sürümü yükle
+                loadLatestVersion();
+
             } catch (err) {
                 console.error('Dashboard data load error:', err);
+            }
+        }
+
+        // En son sürümü yükle
+        async function loadLatestVersion() {
+            try {
+                const response = await fetch(API_BASE + '/api/releases/latest');
+                if (response.ok) {
+                    const release = await response.json();
+                    if (release && release.version) {
+                        document.getElementById('latestVersion').textContent = 'v' + release.version;
+                    }
+                }
+            } catch (err) {
+                console.error('Version load error:', err);
             }
         }
 
