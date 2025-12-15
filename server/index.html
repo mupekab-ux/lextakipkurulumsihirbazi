@@ -1705,13 +1705,6 @@
                     </div>
                 </div>
 
-                <p style="font-size: 15px; color: var(--text-gray); margin-bottom: 20px;">Çıkış tarihinden haberdar olmak için e-posta bırakın</p>
-                <form class="notify-form" id="notifyForm">
-                    <input type="email" placeholder="E-posta adresiniz" required>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-bell"></i> Haberdar Ol
-                    </button>
-                </form>
             </div>
         </div>
     </section>
@@ -2213,42 +2206,6 @@
                 }
             } catch (e) { console.log('FAQ load error'); }
         }
-
-        // Notify form (Büro Yönetim Sistemi)
-        document.getElementById('notifyForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = e.target.querySelector('input').value;
-            const btn = e.target.querySelector('button');
-            const originalText = btn.innerHTML;
-
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Kaydediliyor...';
-            btn.disabled = true;
-
-            try {
-                const response = await fetch(API_BASE + '/api/notify/buro', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email })
-                });
-
-                if (response.ok) {
-                    btn.innerHTML = '<i class="fas fa-check"></i> Kaydedildi!';
-                    btn.style.background = 'linear-gradient(135deg, #10B981, #059669)';
-                    e.target.querySelector('input').value = '';
-                    setTimeout(() => {
-                        btn.innerHTML = originalText;
-                        btn.style.background = '';
-                        btn.disabled = false;
-                    }, 3000);
-                } else {
-                    throw new Error('Failed');
-                }
-            } catch (error) {
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-                alert('Bir hata oluştu. Lütfen tekrar deneyin.');
-            }
-        });
 
         // Load all
         loadPricing();
