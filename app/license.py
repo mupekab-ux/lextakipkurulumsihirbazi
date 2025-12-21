@@ -519,7 +519,11 @@ def is_activated() -> bool:
     stored_machine_id = license_data.get("machine_id", "")
 
     if current_machine_id != stored_machine_id:
-        logger.warning("Makine ID eşleşmiyor")
+        logger.warning(
+            f"Makine ID eşleşmiyor! "
+            f"Yerel dosyadaki: {stored_machine_id[:16]}... vs "
+            f"Mevcut: {current_machine_id[:16]}..."
+        )
         return False
 
     # Online doğrulama dene
