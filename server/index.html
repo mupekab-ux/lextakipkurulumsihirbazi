@@ -744,7 +744,7 @@
 
         .screenshot-gallery {
             position: relative;
-            max-width: 95vw;
+            max-width: 1100px;
             margin: 0 auto;
             display: flex;
             align-items: center;
@@ -757,7 +757,7 @@
             border-radius: 20px;
             background: var(--bg-card);
             border: 1px solid rgba(255, 255, 255, 0.08);
-            min-height: 200px;
+            box-shadow: 0 50px 120px rgba(0, 0, 0, 0.5);
         }
 
         .gallery-track {
@@ -767,27 +767,26 @@
 
         .gallery-slide {
             min-width: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
-            box-sizing: border-box;
+            position: relative;
         }
 
         .gallery-slide img {
+            width: 100%;
+            height: auto;
             display: block;
-            border-radius: 8px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            aspect-ratio: 16/9;
+            object-fit: cover;
         }
 
         .slide-caption {
-            margin-top: 15px;
-            padding: 10px 20px;
-            background: rgba(251, 191, 36, 0.1);
-            border: 1px solid rgba(251, 191, 36, 0.25);
-            border-radius: 20px;
-            color: var(--gold-medium);
-            font-size: 14px;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 20px 30px;
+            background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+            color: white;
+            font-size: 18px;
             font-weight: 500;
         }
 
@@ -823,11 +822,12 @@
         }
 
         .thumb-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
+            width: 120px;
+            height: 70px;
+            border-radius: 10px;
+            overflow: hidden;
             cursor: pointer;
+            border: 2px solid transparent;
             opacity: 0.5;
             transition: all 0.3s ease;
         }
@@ -838,42 +838,14 @@
 
         .thumb-item.active {
             opacity: 1;
-        }
-
-        .thumb-img {
-            width: 140px;
-            height: 85px;
-            border-radius: 10px;
-            overflow: hidden;
-            border: 2px solid transparent;
-            transition: all 0.3s ease;
-        }
-
-        .thumb-item.active .thumb-img {
             border-color: var(--gold-medium);
             box-shadow: 0 0 20px rgba(251, 191, 36, 0.3);
         }
 
-        .thumb-img img {
+        .thumb-item img {
             width: 100%;
             height: 100%;
             object-fit: cover;
-        }
-
-        .thumb-title {
-            font-size: 12px;
-            color: var(--text-muted);
-            text-align: center;
-            max-width: 140px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            transition: color 0.3s ease;
-        }
-
-        .thumb-item.active .thumb-title {
-            color: var(--gold-medium);
-            font-weight: 500;
         }
 
         .gallery-dots {
@@ -2366,10 +2338,7 @@
             // Render thumbnails
             thumbs.innerHTML = screenshotData.map((s, i) => `
                 <div class="thumb-item ${i === 0 ? 'active' : ''}" onclick="goToSlide(${i})">
-                    <div class="thumb-img">
-                        <img src="${s.image_url}" alt="${s.title || 'Thumbnail'}">
-                    </div>
-                    <div class="thumb-title">${s.title || 'Görüntü ' + (i + 1)}</div>
+                    <img src="${s.image_url}" alt="${s.title || 'Thumbnail'}">
                 </div>
             `).join('');
 
