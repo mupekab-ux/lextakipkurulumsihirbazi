@@ -246,8 +246,30 @@ def save_offline_token(token: str, expires_at: str) -> bool:
         encoded = _encode_license_data(token_data)
         token_file = _get_token_file_path()
 
-        with open(token_file, 'w', encoding='utf-8') as f:
-            f.write(encoded)
+        # Windows'ta önce hidden attribute'u kaldır (varsa)
+        if platform.system() == "Windows" and token_file.exists():
+            try:
+                subprocess.run(
+                    ["attrib", "-H", str(token_file)],
+                    capture_output=True,
+                    creationflags=subprocess.CREATE_NO_WINDOW
+                )
+            except Exception:
+                pass
+
+        # Dosyayı yazmayı dene
+        try:
+            with open(token_file, 'w', encoding='utf-8') as f:
+                f.write(encoded)
+        except PermissionError:
+            # Dosya kilitliyse silip tekrar dene
+            try:
+                token_file.unlink()
+                with open(token_file, 'w', encoding='utf-8') as f:
+                    f.write(encoded)
+            except Exception as e2:
+                logger.error(f"Token dosyası yazılamadı (retry): {e2}")
+                return False
 
         # Dosyayı gizli yap (Windows)
         if platform.system() == "Windows":
@@ -399,8 +421,30 @@ def save_license(license_key: str, activation_date: str, machine_id: str,
         encoded = _encode_license_data(license_data)
         license_file = _get_license_file_path()
 
-        with open(license_file, 'w', encoding='utf-8') as f:
-            f.write(encoded)
+        # Windows'ta önce hidden attribute'u kaldır (varsa)
+        if platform.system() == "Windows" and license_file.exists():
+            try:
+                subprocess.run(
+                    ["attrib", "-H", str(license_file)],
+                    capture_output=True,
+                    creationflags=subprocess.CREATE_NO_WINDOW
+                )
+            except Exception:
+                pass
+
+        # Dosyayı yazmayı dene
+        try:
+            with open(license_file, 'w', encoding='utf-8') as f:
+                f.write(encoded)
+        except PermissionError:
+            # Dosya kilitliyse silip tekrar dene
+            try:
+                license_file.unlink()
+                with open(license_file, 'w', encoding='utf-8') as f:
+                    f.write(encoded)
+            except Exception as e2:
+                logger.error(f"Lisans dosyası yazılamadı (retry): {e2}")
+                return False
 
         # Dosyayı gizli yap (Windows)
         if platform.system() == "Windows":
