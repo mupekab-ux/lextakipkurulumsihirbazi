@@ -95,16 +95,21 @@
     <link rel="icon" type="image/png" sizes="192x192" href="/logo.png">
     <link rel="apple-touch-icon" href="/logo.png">
 
-    <!-- Fonts -->
+    <!-- Preconnect to external resources -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=Instrument+Serif&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="preconnect" href="https://unpkg.com" crossorigin>
 
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Critical Fonts - with display swap -->
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- AOS Animation -->
-    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <!-- Non-critical CSS - load async -->
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
+
+    <link rel="preload" href="https://unpkg.com/aos@2.3.1/dist/aos.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css"></noscript>
 
     <style>
         :root {
@@ -526,10 +531,12 @@
 
         @keyframes pulse-glow {
             0%, 100% {
-                box-shadow: 0 0 20px rgba(251, 191, 36, 0.2);
+                opacity: 1;
+                transform: scale(1);
             }
             50% {
-                box-shadow: 0 0 30px rgba(251, 191, 36, 0.4);
+                opacity: 0.85;
+                transform: scale(1.02);
             }
         }
 
@@ -1846,7 +1853,7 @@
         <div class="container">
             <a href="#" class="logo">
                 <div class="logo-icon">
-                    <img src="/logo.png" alt="TakibiEsasi Logo">
+                    <img src="/logo.png" alt="TakibiEsasi Logo" width="48" height="48">
                 </div>
                 <span class="logo-text">TakibiEsasi</span>
             </a>
@@ -1918,7 +1925,7 @@
             </div>
 
             <div class="hero-image" data-aos="fade-up" data-aos-delay="200">
-                <img src="/media/2eaf7b61418315599be4018dc087e1f8.png" alt="TakibiEsasi Dashboard">
+                <img src="/media/2eaf7b61418315599be4018dc087e1f8.png" alt="TakibiEsasi Dashboard" width="950" height="550" style="width:100%;height:auto;">
             </div>
 
             <div class="hero-stats" data-aos="fade-up" data-aos-delay="400">
@@ -2410,7 +2417,7 @@
                 <div class="footer-brand">
                     <a href="#" class="logo">
                         <div class="logo-icon">
-                            <img src="/logo.png" alt="TakibiEsasi Logo" loading="lazy">
+                            <img src="/logo.png" alt="TakibiEsasi Logo" width="48" height="48" loading="lazy">
                         </div>
                         <span class="logo-text">TakibiEsasi</span>
                     </a>
