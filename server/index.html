@@ -5,10 +5,79 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="TakibiEsasi - Avukatlar ve hukuk büroları için profesyonel hukuki takip yazılımı. Dava takibi, icra takibi ve tüm hukuki süreçlerinizi tek uygulamadan yönetin.">
     <meta name="keywords" content="avukat yazılımı, dava takip, icra takip, hukuk bürosu, vekalet yönetimi, hukuki takip">
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://takibiesasi.com/">
+
+    <!-- Open Graph -->
     <meta property="og:title" content="TakibiEsasi - Hukuki Takip Yazılımı">
     <meta property="og:description" content="Dava takibi, icra takibi ve tüm hukuki süreçlerinizi tek masaüstü uygulamasından profesyonelce yönetin.">
     <meta property="og:type" content="website">
+    <meta property="og:url" content="https://takibiesasi.com/">
+    <meta property="og:image" content="https://takibiesasi.com/media/4a82ae7d81f02bb33ed5877a7baacd2a.png">
+    <meta property="og:image:width" content="512">
+    <meta property="og:image:height" content="512">
+    <meta property="og:image:alt" content="TakibiEsasi Logo">
+    <meta property="og:site_name" content="TakibiEsasi">
+    <meta property="og:locale" content="tr_TR">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="TakibiEsasi - Hukuki Takip Yazılımı">
+    <meta name="twitter:description" content="Avukatlar için profesyonel dava ve icra takip yazılımı.">
+    <meta name="twitter:image" content="https://takibiesasi.com/media/4a82ae7d81f02bb33ed5877a7baacd2a.png">
+
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#FBBF24">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="TakibiEsasi">
+    <link rel="apple-touch-icon" href="/media/fe9116e3aebc757020656c9e373d440b.png">
+
     <title>TakibiEsasi - Hukuki Takip Yazılımı</title>
+
+    <!-- Schema.org Structured Data (Google için) -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "TakibiEsasi",
+        "url": "https://takibiesasi.com",
+        "logo": "https://takibiesasi.com/media/4a82ae7d81f02bb33ed5877a7baacd2a.png",
+        "description": "Avukatlar ve hukuk büroları için profesyonel hukuki takip yazılımı",
+        "foundingDate": "2024",
+        "contactPoint": {
+            "@type": "ContactPoint",
+            "contactType": "customer service",
+            "email": "destek@takibiesasi.com"
+        },
+        "sameAs": []
+    }
+    </script>
+
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "TakibiEsasi",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Windows",
+        "description": "Avukatlar için dava takip, icra takip ve hukuki süreç yönetim yazılımı",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "TRY",
+            "description": "14 günlük ücretsiz deneme"
+        },
+        "screenshot": "https://takibiesasi.com/media/2eaf7b61418315599be4018dc087e1f8.png",
+        "softwareVersion": "1.0",
+        "author": {
+            "@type": "Organization",
+            "name": "TakibiEsasi"
+        }
+    }
+    </script>
 
     <!-- Google Analytics - ID güncellenecek -->
     <!--
@@ -22,19 +91,25 @@
     -->
 
     <!-- Favicon -->
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-    <link rel="apple-touch-icon" href="/favicon.svg">
+    <link rel="icon" type="image/png" sizes="48x48" href="/media/c5589bc11a58a6b27306b96373324630.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/media/fe9116e3aebc757020656c9e373d440b.png">
+    <link rel="apple-touch-icon" href="/media/fe9116e3aebc757020656c9e373d440b.png">
 
-    <!-- Fonts -->
+    <!-- Preconnect to external resources -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=Instrument+Serif&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="preconnect" href="https://unpkg.com" crossorigin>
 
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Critical Fonts - with display swap -->
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- AOS Animation -->
-    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <!-- Non-critical CSS - load async -->
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></noscript>
+
+    <link rel="preload" href="https://unpkg.com/aos@2.3.1/dist/aos.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css"></noscript>
 
     <style>
         :root {
@@ -233,9 +308,10 @@
             justify-content: center;
         }
 
-        .logo-icon svg {
+        .logo-icon img {
             width: 44px;
             height: 44px;
+            object-fit: contain;
         }
 
         .logo-text {
@@ -455,10 +531,12 @@
 
         @keyframes pulse-glow {
             0%, 100% {
-                box-shadow: 0 0 20px rgba(251, 191, 36, 0.2);
+                opacity: 1;
+                transform: scale(1);
             }
             50% {
-                box-shadow: 0 0 30px rgba(251, 191, 36, 0.4);
+                opacity: 0.85;
+                transform: scale(1.02);
             }
         }
 
@@ -589,6 +667,67 @@
             gap: 28px;
         }
 
+        .features-wrapper {
+            position: relative;
+            max-height: 520px;
+            overflow: hidden;
+            transition: max-height 0.6s ease;
+        }
+
+        .features-wrapper.expanded {
+            max-height: 3000px;
+        }
+
+        .features-wrapper::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 120px;
+            background: linear-gradient(transparent, var(--bg-black));
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .features-wrapper.expanded::after {
+            opacity: 0;
+        }
+
+        .features-toggle {
+            display: flex;
+            justify-content: center;
+            margin-top: 30px;
+        }
+
+        .features-toggle-btn {
+            background: transparent;
+            border: 1px solid var(--gold-medium);
+            color: var(--gold-medium);
+            padding: 14px 36px;
+            border-radius: 50px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .features-toggle-btn:hover {
+            background: var(--gold-medium);
+            color: var(--bg-black);
+        }
+
+        .features-toggle-btn i {
+            transition: transform 0.3s ease;
+        }
+
+        .features-toggle-btn.expanded i {
+            transform: rotate(180deg);
+        }
+
         .feature-card {
             background: linear-gradient(145deg, var(--bg-panel) 0%, var(--bg-card) 100%);
             border: 1px solid rgba(255, 255, 255, 0.06);
@@ -679,49 +818,155 @@
             background: linear-gradient(180deg, transparent 0%, rgba(18, 18, 24, 0.6) 50%, transparent 100%);
         }
 
-        .screenshots-tabs {
+        .screenshot-gallery {
+            position: relative;
+            max-width: 1100px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .gallery-container {
+            flex: 1;
+            overflow: hidden;
+            border-radius: 20px;
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 50px 120px rgba(0, 0, 0, 0.5);
+        }
+
+        .gallery-track {
+            display: flex;
+            transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .gallery-slide {
+            min-width: 100%;
+            position: relative;
+        }
+
+        .gallery-slide img {
+            width: 100%;
+            height: auto;
+            display: block;
+            aspect-ratio: 16/9;
+            object-fit: cover;
+        }
+
+        .slide-caption {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 20px 30px;
+            background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+            color: white;
+            font-size: 18px;
+            font-weight: 500;
+        }
+
+        .gallery-nav {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(26, 26, 36, 0.9);
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 12px;
-            margin-bottom: 50px;
+            flex-shrink: 0;
+        }
+
+        .gallery-nav:hover {
+            background: var(--gold-medium);
+            color: var(--bg-black);
+            border-color: var(--gold-medium);
+            transform: scale(1.1);
+        }
+
+        .screenshot-thumbs {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 30px;
             flex-wrap: wrap;
         }
 
-        .tab-btn {
-            padding: 14px 28px;
-            background: transparent;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 50px;
-            color: var(--text-gray);
-            font-size: 15px;
-            font-weight: 500;
+        .thumb-item {
+            width: 120px;
+            height: 70px;
+            border-radius: 10px;
+            overflow: hidden;
+            cursor: pointer;
+            border: 2px solid transparent;
+            opacity: 0.5;
+            transition: all 0.3s ease;
+        }
+
+        .thumb-item:hover {
+            opacity: 0.8;
+        }
+
+        .thumb-item.active {
+            opacity: 1;
+            border-color: var(--gold-medium);
+            box-shadow: 0 0 20px rgba(251, 191, 36, 0.3);
+        }
+
+        .thumb-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .gallery-dots {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 25px;
+        }
+
+        .gallery-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
             cursor: pointer;
             transition: all 0.3s ease;
-            font-family: inherit;
         }
 
-        .tab-btn:hover {
-            background: rgba(255, 255, 255, 0.05);
+        .gallery-dot:hover {
+            background: rgba(255, 255, 255, 0.4);
         }
 
-        .tab-btn.active {
-            background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold-dark) 100%);
-            color: var(--bg-black);
-            border-color: transparent;
+        .gallery-dot.active {
+            background: var(--gold-medium);
+            transform: scale(1.2);
         }
 
-        .screenshot-display {
-            position: relative;
-            max-width: 1000px;
-            margin: 0 auto;
-        }
+        @media (max-width: 768px) {
+            .gallery-nav {
+                display: none;
+            }
 
-        .screenshot-display img {
-            width: 100%;
-            border-radius: 20px;
-            box-shadow: 0 50px 120px rgba(0, 0, 0, 0.5);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            .screenshot-gallery {
+                touch-action: pan-x;
+            }
+
+            .thumb-item {
+                width: 80px;
+                height: 50px;
+            }
+
+            .slide-caption {
+                font-size: 14px;
+                padding: 15px 20px;
+            }
         }
 
         /* ==================== PRICING ==================== */
@@ -835,6 +1080,184 @@
         .pricing-card.coming-soon .btn {
             pointer-events: none;
             opacity: 0.6;
+        }
+
+        /* ==================== COMING SOON SECTION ==================== */
+        .coming-soon-section {
+            padding: 100px 0;
+            background: linear-gradient(180deg, rgba(251, 191, 36, 0.03) 0%, transparent 50%, rgba(251, 191, 36, 0.03) 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .coming-soon-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(251, 191, 36, 0.3), transparent);
+        }
+
+        .coming-soon-section::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(251, 191, 36, 0.3), transparent);
+        }
+
+        .coming-soon-card {
+            background: linear-gradient(145deg, var(--bg-panel) 0%, var(--bg-card) 100%);
+            border: 2px solid rgba(251, 191, 36, 0.3);
+            border-radius: 24px;
+            padding: 60px;
+            text-align: center;
+            position: relative;
+            max-width: 900px;
+            margin: 0 auto;
+            box-shadow: 0 20px 60px rgba(251, 191, 36, 0.1);
+        }
+
+        .coming-soon-badge-large {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 28px;
+            background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold-dark) 100%);
+            border-radius: 50px;
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--bg-black);
+            margin-bottom: 28px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+
+        .coming-soon-card h2 {
+            font-size: 36px;
+            margin-bottom: 16px;
+        }
+
+        .coming-soon-card > p {
+            font-size: 18px;
+            color: var(--text-gray);
+            max-width: 600px;
+            margin: 0 auto 40px;
+            line-height: 1.7;
+        }
+
+        .coming-features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+
+        .coming-feature-item {
+            padding: 20px;
+            background: rgba(251, 191, 36, 0.05);
+            border-radius: 12px;
+            border: 1px solid rgba(251, 191, 36, 0.1);
+        }
+
+        .coming-feature-item i {
+            font-size: 28px;
+            color: var(--gold-light);
+            margin-bottom: 12px;
+        }
+
+        .coming-feature-item h4 {
+            font-size: 16px;
+            margin-bottom: 6px;
+        }
+
+        .coming-feature-item p {
+            font-size: 13px;
+            color: var(--text-gray);
+        }
+
+        .notify-form {
+            display: flex;
+            gap: 12px;
+            max-width: 450px;
+            margin: 0 auto;
+        }
+
+        .notify-form input {
+            flex: 1;
+            padding: 16px 20px;
+            background: var(--bg-black);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: var(--text-white);
+            font-size: 15px;
+        }
+
+        .notify-form input:focus {
+            outline: none;
+            border-color: var(--gold-medium);
+        }
+
+        .notify-form button {
+            white-space: nowrap;
+        }
+
+        @media (max-width: 768px) {
+            .coming-features-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+            }
+
+            .coming-feature-item {
+                padding: 16px 12px;
+            }
+
+            .coming-feature-item i {
+                font-size: 22px;
+                margin-bottom: 8px;
+            }
+
+            .coming-feature-item h4 {
+                font-size: 13px;
+            }
+
+            .coming-feature-item p {
+                font-size: 11px;
+            }
+
+            .notify-form {
+                flex-direction: column;
+            }
+
+            .coming-soon-card {
+                padding: 30px 16px;
+            }
+
+            .coming-soon-card h2 {
+                font-size: 24px;
+            }
+
+            .coming-soon-card > p {
+                font-size: 14px;
+                margin-bottom: 24px;
+            }
+
+            .coming-soon-badge-large {
+                padding: 10px 20px;
+                font-size: 12px;
+                letter-spacing: 1px;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .coming-features-grid {
+                grid-template-columns: 1fr;
+            }
         }
 
         /* ==================== TESTIMONIALS ==================== */
@@ -1224,6 +1647,10 @@
                 grid-template-columns: 1fr;
             }
 
+            .features-wrapper {
+                max-height: 480px;
+            }
+
             .testimonial-text {
                 font-size: 20px;
             }
@@ -1248,6 +1675,114 @@
 
             .features, .screenshots, .pricing, .testimonials, .faq, .contact {
                 padding: 80px 0;
+            }
+
+            .container {
+                padding: 0 16px;
+            }
+
+            .section-header h2 {
+                font-size: 28px;
+            }
+
+            .section-header p {
+                font-size: 14px;
+            }
+
+            .hero-image img {
+                border-radius: 12px;
+            }
+
+            .screenshot-gallery {
+                flex-direction: column;
+                padding: 0 10px;
+            }
+
+            .gallery-container {
+                border-radius: 12px;
+            }
+
+            .screenshot-thumbs {
+                gap: 8px;
+                padding: 0 10px;
+            }
+
+            .thumb-item {
+                width: 60px;
+                height: 38px;
+            }
+
+            .gallery-dots {
+                margin-top: 15px;
+            }
+
+            .faq-question {
+                font-size: 15px;
+                padding: 18px 16px;
+            }
+
+            .faq-answer {
+                font-size: 14px;
+                padding: 0 16px 18px;
+            }
+
+            .contact-form {
+                padding: 30px 20px;
+            }
+
+            .btn {
+                padding: 14px 24px;
+                font-size: 14px;
+            }
+
+            .btn-lg {
+                padding: 16px 28px;
+            }
+        }
+
+        /* Extra small devices */
+        @media (max-width: 480px) {
+            .hero h1 {
+                font-size: 28px;
+            }
+
+            .hero p {
+                font-size: 15px;
+            }
+
+            .hero-stats {
+                flex-direction: column;
+                gap: 24px;
+            }
+
+            .stat-number {
+                font-size: 32px;
+            }
+
+            .pricing-card {
+                padding: 30px 20px;
+            }
+
+            .pricing-card .price {
+                font-size: 40px;
+            }
+
+            .testimonial-text {
+                font-size: 18px;
+            }
+
+            .feature-card {
+                padding: 28px 20px;
+            }
+
+            .thumb-item {
+                width: 50px;
+                height: 32px;
+            }
+
+            .gallery-dot {
+                width: 8px;
+                height: 8px;
             }
         }
 
@@ -1318,34 +1853,7 @@
         <div class="container">
             <a href="#" class="logo">
                 <div class="logo-icon">
-                    <svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <!-- Hexagon -->
-                        <defs>
-                            <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" style="stop-color:#FBBF24"/>
-                                <stop offset="100%" style="stop-color:#D97706"/>
-                            </linearGradient>
-                        </defs>
-                        <path d="M30 2L54.5 16V44L30 58L5.5 44V16L30 2Z" fill="url(#goldGradient)"/>
-                        <!-- Scales of Justice -->
-                        <g fill="#0A0A0F">
-                            <!-- Center pole -->
-                            <rect x="28" y="16" width="4" height="26" rx="1"/>
-                            <!-- Top beam -->
-                            <rect x="14" y="18" width="32" height="3" rx="1"/>
-                            <!-- Left scale pan -->
-                            <path d="M14 22L10 34H22L18 22H14Z"/>
-                            <ellipse cx="16" cy="35" rx="7" ry="2"/>
-                            <!-- Right scale pan -->
-                            <path d="M42 22L38 32H50L46 22H42Z"/>
-                            <ellipse cx="44" cy="33" rx="7" ry="2"/>
-                            <!-- Base -->
-                            <path d="M22 42H38L36 44H24L22 42Z"/>
-                            <ellipse cx="30" cy="45" rx="10" ry="2"/>
-                        </g>
-                        <!-- TES text -->
-                        <text x="30" y="52" text-anchor="middle" font-family="Sora, sans-serif" font-size="6" font-weight="700" fill="#0A0A0F">TES</text>
-                    </svg>
+                    <img src="/media/c5589bc11a58a6b27306b96373324630.png" alt="TakibiEsasi Logo" width="48" height="48">
                 </div>
                 <span class="logo-text">TakibiEsasi</span>
             </a>
@@ -1417,7 +1925,7 @@
             </div>
 
             <div class="hero-image" data-aos="fade-up" data-aos-delay="200">
-                <img src="https://placehold.co/950x550/1A1A24/FBBF24?text=TakibiEsasi+Dashboard" alt="TakibiEsasi Dashboard">
+                <img src="/media/2eaf7b61418315599be4018dc087e1f8.png" alt="TakibiEsasi Dashboard" width="950" height="550" style="width:100%;height:auto;">
             </div>
 
             <div class="hero-stats" data-aos="fade-up" data-aos-delay="400">
@@ -1446,54 +1954,207 @@
                 <p class="section-desc">İşinizi kolaylaştıran, zamanınızı değerli kılan profesyonel özellikler</p>
             </div>
 
-            <div class="features-grid">
-                <div class="feature-card" data-aos="fade-up" data-aos-delay="0">
+            <div class="features-wrapper" id="featuresWrapper">
+                <div class="features-grid">
+                    <div class="feature-card" data-aos="fade-up" data-aos-delay="0">
                     <div class="feature-icon">
                         <i class="fas fa-gavel"></i>
                     </div>
-                    <h3>Dava Takibi</h3>
-                    <p>Hukuk ve ceza davalarınızı detaylı şekilde takip edin. Esas numarası, mahkeme bilgisi, taraflar ve duruşma süreçleri tek ekranda.</p>
+                    <h3>İcra & Dava Takibi</h3>
+                    <p>Tüm icra ve dava dosyalarınızı tek ekrandan yönetin. Dosya durumu, taraflar, mahkeme bilgileri ve süreçleri anlık takip edin.</p>
                 </div>
 
                 <div class="feature-card" data-aos="fade-up" data-aos-delay="100">
                     <div class="feature-icon">
-                        <i class="fas fa-file-invoice-dollar"></i>
+                        <i class="fas fa-calendar-check"></i>
                     </div>
-                    <h3>İcra Takibi</h3>
-                    <p>İcra dosyalarınızı profesyonelce yönetin. Borçlu bilgileri, takip aşamaları ve tahsilat süreçlerini anlık izleyin.</p>
+                    <h3>Süre & Hatırlatıcı</h3>
+                    <p>Kritik tarihleri asla kaçırmayın. Otomatik süre hesaplama, tebligat süreleri ve duruşma tarihlerini takvimde görüntüleyin.</p>
                 </div>
 
                 <div class="feature-card" data-aos="fade-up" data-aos-delay="200">
                     <div class="feature-icon">
-                        <i class="fas fa-chart-pie"></i>
+                        <i class="fas fa-coins"></i>
                     </div>
-                    <h3>Raporlama ve İstatistikler</h3>
-                    <p>Dava ve icra dosyalarınızın detaylı raporlarını alın. Grafik ve istatistiklerle iş yükünüzü analiz edin.</p>
+                    <h3>Mali Takip & Taksit</h3>
+                    <p>Dosya bazlı gelir-gider takibi, taksitli ödeme planları, tahsilat durumu ve finansal raporlar tek ekranda.</p>
                 </div>
 
                 <div class="feature-card" data-aos="fade-up" data-aos-delay="300">
                     <div class="feature-icon">
-                        <i class="fas fa-file-signature"></i>
+                        <i class="fas fa-envelope-open-text"></i>
                     </div>
-                    <h3>Vekalet Yönetimi</h3>
-                    <p>Vekaletnamelerinizi dijital ortamda saklayın. Vekalet türü, tarih ve ilişkili davaları kolayca takip edin.</p>
+                    <h3>Tebligat Takibi</h3>
+                    <p>Tebligat gönderim ve teslim tarihlerini kaydedin. Yasal süreleri otomatik hesaplayın, gecikmeleri önleyin.</p>
                 </div>
 
                 <div class="feature-card" data-aos="fade-up" data-aos-delay="400">
                     <div class="feature-icon">
-                        <i class="fas fa-calendar-check"></i>
+                        <i class="fas fa-handshake"></i>
                     </div>
-                    <h3>Takvim ve Hatırlatıcılar</h3>
-                    <p>Duruşma tarihleri, randevular ve önemli süreleri takvimde görün. Otomatik hatırlatıcılar ile hiçbir şeyi kaçırmayın.</p>
+                    <h3>Arabuluculuk Modülü</h3>
+                    <p>Arabuluculuk dosyalarınızı ayrı sekmede yönetin. Toplantı tarihleri, taraf bilgileri ve süreç takibi.</p>
                 </div>
 
                 <div class="feature-card" data-aos="fade-up" data-aos-delay="500">
                     <div class="feature-icon">
-                        <i class="fas fa-sync-alt"></i>
+                        <i class="fas fa-paperclip"></i>
                     </div>
-                    <h3>Bilgisayar Transferi</h3>
-                    <p>Tüm verilerinizi tek tıkla yeni bilgisayarınıza taşıyın. Davalar, müvekiller ve ayarlarınız güvenle aktarılır.</p>
+                    <h3>Evrak Yönetimi</h3>
+                    <p>Dosyalarınıza sınırsız belge ekleyin. PDF, Word, görseller - tüm evraklar dosyaya bağlı ve düzenli.</p>
                 </div>
+
+                <div class="feature-card" data-aos="fade-up" data-aos-delay="600">
+                    <div class="feature-icon">
+                        <i class="fas fa-database"></i>
+                    </div>
+                    <h3>Yedekleme & Geri Yükleme</h3>
+                    <p>Verilerinizi kaybetmeyin. Tek tıkla yedekleme, farklı konumlara kaydetme ve yedekten geri yükleme.</p>
+                </div>
+
+                <div class="feature-card" data-aos="fade-up" data-aos-delay="700">
+                    <div class="feature-icon">
+                        <i class="fas fa-exchange-alt"></i>
+                    </div>
+                    <h3>Lisans Aktarım Hakkı</h3>
+                    <p>Bilgisayar değiştirdiğinizde lisansınızı yeni cihaza taşıyın. Eski cihazdan kaldırıp yenisinde aktive edin.</p>
+                </div>
+
+                <div class="feature-card" data-aos="fade-up" data-aos-delay="800">
+                    <div class="feature-icon">
+                        <i class="fas fa-file-export"></i>
+                    </div>
+                    <h3>Raporlama & Dışa Aktarım</h3>
+                    <p>Excel, Word ve CSV formatında detaylı raporlar. Tek tıkla dışa aktarım, profesyonel çıktılar.</p>
+                </div>
+
+                <div class="feature-card" data-aos="fade-up" data-aos-delay="900">
+                    <div class="feature-icon">
+                        <i class="fas fa-laptop"></i>
+                    </div>
+                    <h3>Tek Lisans - Tek Bilgisayar</h3>
+                    <p>Her lisans yalnızca bir bilgisayarda çalışır. Bilgisayar değiştirirseniz lisansınızı yeni cihaza aktarabilirsiniz.</p>
+                </div>
+
+                <div class="feature-card" data-aos="fade-up" data-aos-delay="1000">
+                    <div class="feature-icon">
+                        <i class="fas fa-user-shield"></i>
+                    </div>
+                    <h3>Rol Bazlı Yetkilendirme</h3>
+                    <p>Admin, Yönetici Avukat ve Kullanıcı rolleri. Her rol için farklı erişim yetkileri tanımlayın.</p>
+                </div>
+
+                <div class="feature-card" data-aos="fade-up" data-aos-delay="1100">
+                    <div class="feature-icon">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <h3>Takvim Görünümü</h3>
+                    <p>Tüm görevlerinizi ve duruşmalarınızı görsel takvimde görün. Renk kodlu gösterim ile tarihleri kaçırmayın.</p>
+                </div>
+
+                <div class="feature-card" data-aos="fade-up" data-aos-delay="1200">
+                    <div class="feature-icon">
+                        <i class="fas fa-tasks"></i>
+                    </div>
+                    <h3>Yapılacaklar Listesi</h3>
+                    <p>Görev oluşturun, atayın ve takip edin. Tamamlanan işleri işaretleyin, hiçbir şeyi unutmayın.</p>
+                </div>
+
+                <div class="feature-card" data-aos="fade-up" data-aos-delay="1300">
+                    <div class="feature-icon">
+                        <i class="fas fa-wallet"></i>
+                    </div>
+                    <h3>Müvekkil Kasası</h3>
+                    <p>Müvekkil emanet hesaplarını yönetin. Giriş-çıkış hareketleri, bakiye takibi ve detaylı kayıtlar.</p>
+                </div>
+
+                <div class="feature-card" data-aos="fade-up" data-aos-delay="1400">
+                    <div class="feature-icon">
+                        <i class="fas fa-folder-plus"></i>
+                    </div>
+                    <h3>Özel Sekmeler</h3>
+                    <p>Kendi kategorilerinizi oluşturun. Dosyaları özel sekmelere atayarak istediğiniz gibi organize edin.</p>
+                </div>
+
+                <div class="feature-card" data-aos="fade-up" data-aos-delay="1500">
+                    <div class="feature-icon">
+                        <i class="fas fa-palette"></i>
+                    </div>
+                    <h3>Tema Seçenekleri</h3>
+                    <p>Farklı renk temaları arasından seçim yapın. Göz yormayan arayüzle rahatça çalışın.</p>
+                </div>
+
+                <div class="feature-card" data-aos="fade-up" data-aos-delay="1600">
+                    <div class="feature-icon">
+                        <i class="fas fa-list-check"></i>
+                    </div>
+                    <h3>60+ Hazır Durum Seçeneği</h3>
+                    <p>Dosya durumları için 60'tan fazla hazır tanım. Renk kodlu görselleştirme ile anlık durum takibi.</p>
+                </div>
+
+                    <div class="feature-card" data-aos="fade-up" data-aos-delay="1700">
+                        <div class="feature-icon">
+                            <i class="fas fa-wifi-slash"></i>
+                        </div>
+                        <h3>Çevrimdışı Çalışma</h3>
+                        <p>İnternet bağlantısı gerektirmez. Tüm verileriniz bilgisayarınızda, her zaman erişilebilir.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="features-toggle">
+                <button class="features-toggle-btn" id="featuresToggleBtn" onclick="toggleFeatures()">
+                    <span>Tüm Özellikleri Gör</span>
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Coming Soon: Büro Yönetim Sistemi -->
+    <section class="coming-soon-section" id="buro">
+        <div class="container">
+            <div class="coming-soon-card" data-aos="fade-up">
+                <div class="coming-soon-badge-large">
+                    <i class="fas fa-rocket"></i>
+                    Yakında
+                </div>
+                <h2>Büro Yönetim Sistemi</h2>
+                <p>Hukuk bürolarının tüm ihtiyaçlarını karşılayacak kapsamlı yönetim modülü geliyor. Çoklu avukat desteği, müvekkil portföyü ve çok daha fazlası.</p>
+
+                <div class="coming-features-grid">
+                    <div class="coming-feature-item">
+                        <i class="fas fa-user-tie"></i>
+                        <h4>Avukat & Personel Yönetimi</h4>
+                        <p>Büro çalışanlarını yönetin</p>
+                    </div>
+                    <div class="coming-feature-item">
+                        <i class="fas fa-users"></i>
+                        <h4>Müvekkil Portföyü</h4>
+                        <p>Tüm müvekkiller tek ekranda</p>
+                    </div>
+                    <div class="coming-feature-item">
+                        <i class="fas fa-tasks"></i>
+                        <h4>Görev Atama & Takibi</h4>
+                        <p>İş dağılımını kolayca yapın</p>
+                    </div>
+                    <div class="coming-feature-item">
+                        <i class="fas fa-chart-line"></i>
+                        <h4>Performans Raporları</h4>
+                        <p>Detaylı istatistikler</p>
+                    </div>
+                    <div class="coming-feature-item">
+                        <i class="fas fa-comments"></i>
+                        <h4>Büro İçi Mesajlaşma</h4>
+                        <p>Anlık iletişim</p>
+                    </div>
+                    <div class="coming-feature-item">
+                        <i class="fas fa-calendar-alt"></i>
+                        <h4>Ortak Takvim & Randevu</h4>
+                        <p>Koordineli çalışma</p>
+                    </div>
+                </div>
+
             </div>
         </div>
     </section>
@@ -1507,17 +2168,34 @@
                 <p class="section-desc">Modern ve kullanıcı dostu arayüz tasarımı</p>
             </div>
 
-            <div class="screenshots-tabs" data-aos="fade-up" data-aos-delay="100">
-                <button class="tab-btn active" data-tab="dashboard">Ana Panel</button>
-                <button class="tab-btn" data-tab="cases">Davalar</button>
-                <button class="tab-btn" data-tab="icra">İcra Dosyaları</button>
-                <button class="tab-btn" data-tab="vekaletler">Vekaletler</button>
-                <button class="tab-btn" data-tab="takvim">Takvim</button>
+            <!-- Screenshot Gallery -->
+            <div class="screenshot-gallery" data-aos="fade-up" data-aos-delay="100">
+                <button class="gallery-nav gallery-prev" onclick="prevScreenshot()">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+
+                <div class="gallery-container">
+                    <div class="gallery-track" id="galleryTrack">
+                        <!-- Screenshots will be loaded dynamically -->
+                        <div class="gallery-slide">
+                            <img src="https://placehold.co/1200x700/1A1A24/FBBF24?text=Yukleniyor..." alt="Yükleniyor...">
+                            <div class="slide-caption">Yükleniyor...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="gallery-nav gallery-next" onclick="nextScreenshot()">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
             </div>
 
-            <div class="screenshot-display" data-aos="fade-up" data-aos-delay="200">
-                <img id="screenshotImg" src="https://placehold.co/1000x600/1A1A24/FBBF24?text=Dashboard+Ekrani" alt="TakibiEsasi Dashboard">
+            <!-- Thumbnail Navigation -->
+            <div class="screenshot-thumbs" id="screenshotThumbs" data-aos="fade-up" data-aos-delay="200">
+                <!-- Thumbnails will be loaded dynamically -->
             </div>
+
+            <!-- Dots Navigation -->
+            <div class="gallery-dots" id="galleryDots"></div>
         </div>
     </section>
 
@@ -1651,6 +2329,16 @@
                         <p>E-posta, telefon veya canlı destek üzerinden bize ulaşabilirsiniz. Profesyonel paket kullanıcıları öncelikli destek alır.</p>
                     </div>
                 </div>
+
+                <div class="faq-item">
+                    <button class="faq-question">
+                        UYAP entegrasyonu var mı?
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Hayır, TakibiEsasi bağımsız bir masaüstü uygulamasıdır ve UYAP ile entegrasyonu yoktur. Dosya bilgilerinizi kendiniz manuel olarak girersiniz. Bu sayede internet bağlantısı gerektirmeden çalışabilir ve tüm verileriniz kendi bilgisayarınızda güvenle saklanır.</p>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
@@ -1729,26 +2417,7 @@
                 <div class="footer-brand">
                     <a href="#" class="logo">
                         <div class="logo-icon">
-                            <svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <defs>
-                                    <linearGradient id="goldGradient2" x1="0%" y1="0%" x2="100%" y2="100%">
-                                        <stop offset="0%" style="stop-color:#FBBF24"/>
-                                        <stop offset="100%" style="stop-color:#D97706"/>
-                                    </linearGradient>
-                                </defs>
-                                <path d="M30 2L54.5 16V44L30 58L5.5 44V16L30 2Z" fill="url(#goldGradient2)"/>
-                                <g fill="#0A0A0F">
-                                    <rect x="28" y="16" width="4" height="26" rx="1"/>
-                                    <rect x="14" y="18" width="32" height="3" rx="1"/>
-                                    <path d="M14 22L10 34H22L18 22H14Z"/>
-                                    <ellipse cx="16" cy="35" rx="7" ry="2"/>
-                                    <path d="M42 22L38 32H50L46 22H42Z"/>
-                                    <ellipse cx="44" cy="33" rx="7" ry="2"/>
-                                    <path d="M22 42H38L36 44H24L22 42Z"/>
-                                    <ellipse cx="30" cy="45" rx="10" ry="2"/>
-                                </g>
-                                <text x="30" y="52" text-anchor="middle" font-family="Sora, sans-serif" font-size="6" font-weight="700" fill="#0A0A0F">TES</text>
-                            </svg>
+                            <img src="/media/c5589bc11a58a6b27306b96373324630.png" alt="TakibiEsasi Logo" width="48" height="48" loading="lazy">
                         </div>
                         <span class="logo-text">TakibiEsasi</span>
                     </a>
@@ -1809,6 +2478,15 @@
             offset: 100
         });
 
+        // Toggle features section
+        function toggleFeatures() {
+            const wrapper = document.getElementById('featuresWrapper');
+            const btn = document.getElementById('featuresToggleBtn');
+            const isExpanded = wrapper.classList.toggle('expanded');
+            btn.classList.toggle('expanded', isExpanded);
+            btn.querySelector('span').textContent = isExpanded ? 'Daha Az Göster' : 'Tüm Özellikleri Gör';
+        }
+
         // Header scroll effect
         const header = document.getElementById('header');
         window.addEventListener('scroll', () => {
@@ -1849,22 +2527,131 @@
         const statsSection = document.querySelector('.hero-stats');
         if (statsSection) statsObserver.observe(statsSection);
 
-        // Screenshot tabs
-        const screenshots = {
-            dashboard: 'https://placehold.co/1000x600/1A1A24/FBBF24?text=Ana+Panel',
-            cases: 'https://placehold.co/1000x600/1A1A24/FBBF24?text=Dava+Listesi',
-            icra: 'https://placehold.co/1000x600/1A1A24/FBBF24?text=Icra+Dosyalari',
-            vekaletler: 'https://placehold.co/1000x600/1A1A24/FBBF24?text=Vekaletler',
-            takvim: 'https://placehold.co/1000x600/1A1A24/FBBF24?text=Takvim'
-        };
+        // Screenshot Gallery
+        let screenshotData = [];
+        let currentSlide = 0;
+        let autoSlideInterval = null;
 
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                document.getElementById('screenshotImg').src = screenshots[btn.dataset.tab];
-            });
+        // Load screenshots from API
+        async function loadScreenshots() {
+            try {
+                const response = await fetch(API_BASE + '/api/site/screenshots');
+                if (response.ok) {
+                    screenshotData = await response.json();
+                    if (screenshotData.length > 0) {
+                        renderGallery();
+                        startAutoSlide();
+                    } else {
+                        // No screenshots, show default
+                        showDefaultScreenshots();
+                    }
+                } else {
+                    showDefaultScreenshots();
+                }
+            } catch (error) {
+                console.error('Screenshots load error:', error);
+                showDefaultScreenshots();
+            }
+        }
+
+        function showDefaultScreenshots() {
+            // Default placeholder screenshots
+            screenshotData = [
+                { id: 1, title: 'Ana Panel', image_url: 'https://placehold.co/1200x700/1A1A24/FBBF24?text=Ana+Panel' },
+                { id: 2, title: 'Dava Listesi', image_url: 'https://placehold.co/1200x700/1A1A24/FBBF24?text=Dava+Listesi' },
+                { id: 3, title: 'İcra Takibi', image_url: 'https://placehold.co/1200x700/1A1A24/FBBF24?text=Icra+Takibi' },
+                { id: 4, title: 'Takvim', image_url: 'https://placehold.co/1200x700/1A1A24/FBBF24?text=Takvim' },
+                { id: 5, title: 'Finans', image_url: 'https://placehold.co/1200x700/1A1A24/FBBF24?text=Finans' }
+            ];
+            renderGallery();
+            startAutoSlide();
+        }
+
+        function renderGallery() {
+            const track = document.getElementById('galleryTrack');
+            const thumbs = document.getElementById('screenshotThumbs');
+            const dots = document.getElementById('galleryDots');
+
+            // Render slides
+            track.innerHTML = screenshotData.map((s, i) => `
+                <div class="gallery-slide">
+                    <img src="${s.image_url}" alt="${s.title || 'Ekran Görüntüsü'}" loading="lazy">
+                    ${s.title ? `<div class="slide-caption">${s.title}</div>` : ''}
+                </div>
+            `).join('');
+
+            // Render thumbnails
+            thumbs.innerHTML = screenshotData.map((s, i) => `
+                <div class="thumb-item ${i === 0 ? 'active' : ''}" onclick="goToSlide(${i})">
+                    <img src="${s.image_url}" alt="${s.title || 'Thumbnail'}" loading="lazy">
+                </div>
+            `).join('');
+
+            // Render dots
+            dots.innerHTML = screenshotData.map((_, i) => `
+                <div class="gallery-dot ${i === 0 ? 'active' : ''}" onclick="goToSlide(${i})"></div>
+            `).join('');
+        }
+
+        function updateGallery() {
+            const track = document.getElementById('galleryTrack');
+            const thumbs = document.querySelectorAll('.thumb-item');
+            const dots = document.querySelectorAll('.gallery-dot');
+
+            // Move track
+            track.style.transform = `translateX(-${currentSlide * 100}%)`;
+
+            // Update active states
+            thumbs.forEach((t, i) => t.classList.toggle('active', i === currentSlide));
+            dots.forEach((d, i) => d.classList.toggle('active', i === currentSlide));
+        }
+
+        function nextScreenshot() {
+            currentSlide = (currentSlide + 1) % screenshotData.length;
+            updateGallery();
+            resetAutoSlide();
+        }
+
+        function prevScreenshot() {
+            currentSlide = (currentSlide - 1 + screenshotData.length) % screenshotData.length;
+            updateGallery();
+            resetAutoSlide();
+        }
+
+        function goToSlide(index) {
+            currentSlide = index;
+            updateGallery();
+            resetAutoSlide();
+        }
+
+        function startAutoSlide() {
+            autoSlideInterval = setInterval(() => {
+                currentSlide = (currentSlide + 1) % screenshotData.length;
+                updateGallery();
+            }, 5000);
+        }
+
+        function resetAutoSlide() {
+            clearInterval(autoSlideInterval);
+            startAutoSlide();
+        }
+
+        // Touch/Swipe support for mobile
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        document.querySelector('.gallery-container')?.addEventListener('touchstart', e => {
+            touchStartX = e.changedTouches[0].screenX;
         });
+
+        document.querySelector('.gallery-container')?.addEventListener('touchend', e => {
+            touchEndX = e.changedTouches[0].screenX;
+            if (touchStartX - touchEndX > 50) nextScreenshot();
+            if (touchEndX - touchStartX > 50) prevScreenshot();
+        });
+
+        // Load screenshots on page load
+        loadScreenshots();
 
         // FAQ accordion
         function initFaqAccordion() {
@@ -2026,6 +2813,15 @@
                 }
             });
         });
+
+        // Register Service Worker for PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('Service Worker registered'))
+                    .catch(err => console.log('Service Worker registration failed:', err));
+            });
+        }
     </script>
 </body>
 </html>

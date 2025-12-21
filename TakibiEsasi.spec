@@ -50,7 +50,28 @@ hiddenimports = [
     'subprocess',
     'tempfile',
     'webbrowser',
+    # SQLCipher veritabanı şifreleme
+    'sqlcipher3',
+    'pysqlcipher3',
+    'pysqlcipher3.dbapi2',
 ]
+
+# SQLCipher DLL'lerini bul ve ekle
+sqlcipher_binaries = []
+try:
+    import pysqlcipher3
+    import os as _os
+    pysqlcipher_dir = _os.path.dirname(pysqlcipher3.__file__)
+    for f in _os.listdir(pysqlcipher_dir):
+        if f.endswith('.dll') or f.endswith('.so') or f.endswith('.pyd'):
+            sqlcipher_binaries.append(
+                (_os.path.join(pysqlcipher_dir, f), '.')
+            )
+    print(f"[build] pysqlcipher3 DLL'leri bulundu: {len(sqlcipher_binaries)}")
+except ImportError:
+    print("[build] pysqlcipher3 yüklü değil, SQLCipher devre dışı")
+except Exception as e:
+    print(f"[build] SQLCipher DLL arama hatası: {e}")
 
 # Hariç tutulacak modüller (boyut küçültme)
 excludes = [
@@ -67,7 +88,7 @@ excludes = [
 a = Analysis(
     [os.path.join(ROOT_DIR, 'app', 'main.py')],
     pathex=[ROOT_DIR],
-    binaries=[],
+    binaries=sqlcipher_binaries,  # SQLCipher DLL'leri dahil
     datas=datas,
     hiddenimports=hiddenimports,
     hookspath=[],

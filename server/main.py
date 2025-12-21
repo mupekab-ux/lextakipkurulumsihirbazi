@@ -21,6 +21,10 @@ import jwt
 import bcrypt
 import re
 import uuid
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import threading
 
 app = FastAPI(title="TakibiEsasi API", version="1.0.0")
 
@@ -50,6 +54,15 @@ OFFLINE_TOKEN_DAYS = 30  # Offline token geçerlilik süresi
 DOWNLOAD_DIR = "/var/www/takibiesasi/download"
 RELEASES_FILE = "/var/www/takibiesasi/releases/latest.json"
 RELEASES_HISTORY_FILE = "/var/www/takibiesasi/releases/history.json"
+
+# Email Configuration
+EMAIL_CONFIG = {
+    "smtp_server": "smtp.gmail.com",
+    "smtp_port": 587,
+    "email": "destek@takibiesasi.com",
+    "password": "hohmrbtbnqyjltzd",  # App Password (boşluksuz)
+    "from_name": "TakibiEsasi"
+}
 
 # Ensure directories exist
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
@@ -300,6 +313,52 @@ def init_db():
         )
     """)
 
+    # Activity log table
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS activity_log (
+            id SERIAL PRIMARY KEY,
+            activity_type VARCHAR(50) NOT NULL,
+            description TEXT,
+            user_id INTEGER,
+            license_key VARCHAR(50),
+            order_id INTEGER,
+            ip_address VARCHAR(50),
+            user_agent TEXT,
+            metadata JSONB,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    # Email templates table
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS email_templates (
+            id SERIAL PRIMARY KEY,
+            template_key VARCHAR(50) UNIQUE NOT NULL,
+            template_name VARCHAR(100) NOT NULL,
+            subject VARCHAR(255) NOT NULL,
+            html_content TEXT NOT NULL,
+            description TEXT,
+            variables TEXT,
+            is_active BOOLEAN DEFAULT TRUE,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    # Email logs table
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS email_logs (
+            id SERIAL PRIMARY KEY,
+            template_key VARCHAR(50),
+            recipient_email VARCHAR(200) NOT NULL,
+            subject VARCHAR(255),
+            status VARCHAR(20) DEFAULT 'sent',
+            error_message TEXT,
+            metadata JSONB,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
     # Commit base tables first
     conn.commit()
 
@@ -344,6 +403,7 @@ def init_db():
 @app.on_event("startup")
 async def startup():
     init_db()
+    init_default_email_templates()
 
 # ============ MODELS ============
 
@@ -542,6 +602,26 @@ def generate_license_key():
         parts.append(part)
     return '-'.join(parts)
 
+
+def log_activity(activity_type: str, description: str, user_id: int = None,
+                 license_key: str = None, order_id: int = None,
+                 ip_address: str = None, user_agent: str = None, metadata: dict = None):
+    """Log an activity to the activity_log table"""
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO activity_log (activity_type, description, user_id, license_key,
+                                      order_id, ip_address, user_agent, metadata)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        """, (activity_type, description, user_id, license_key, order_id,
+              ip_address, user_agent, json.dumps(metadata) if metadata else None))
+        conn.commit()
+        cur.close()
+        conn.close()
+    except Exception as e:
+        print(f"Activity log error: {e}")
+
 def verify_admin_token(authorization: str = Header(None)):
     """Verify JWT token"""
     if not authorization or not authorization.startswith('Bearer '):
@@ -642,6 +722,352 @@ def save_release(release_data):
     with open(RELEASES_HISTORY_FILE, 'w') as f:
         json.dump(history, f, indent=2)
 
+# ============ EMAIL SYSTEM ============
+
+def log_email(template_key: str, recipient: str, subject: str, status: str = "sent", error: str = None, metadata: dict = None):
+    """Log email to database"""
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO email_logs (template_key, recipient_email, subject, status, error_message, metadata)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (template_key, recipient, subject, status, error, json.dumps(metadata) if metadata else None))
+        conn.commit()
+        cur.close()
+        conn.close()
+    except Exception as e:
+        print(f"Email log error: {e}")
+
+def send_email_async(to_email: str, subject: str, html_content: str, template_key: str = None, metadata: dict = None):
+    """Send email asynchronously in background thread"""
+    def _send():
+        try:
+            success = send_email(to_email, subject, html_content)
+            log_email(template_key, to_email, subject, "sent" if success else "failed", None, metadata)
+        except Exception as e:
+            log_email(template_key, to_email, subject, "failed", str(e), metadata)
+            print(f"Email sending failed: {e}")
+
+    thread = threading.Thread(target=_send)
+    thread.start()
+
+def send_email(to_email: str, subject: str, html_content: str, text_content: str = None):
+    """Send email via SMTP"""
+    try:
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = subject
+        msg['From'] = f"{EMAIL_CONFIG['from_name']} <{EMAIL_CONFIG['email']}>"
+        msg['To'] = to_email
+
+        # Plain text version
+        if text_content:
+            part1 = MIMEText(text_content, 'plain', 'utf-8')
+            msg.attach(part1)
+
+        # HTML version
+        part2 = MIMEText(html_content, 'html', 'utf-8')
+        msg.attach(part2)
+
+        # Connect and send
+        server = smtplib.SMTP(EMAIL_CONFIG['smtp_server'], EMAIL_CONFIG['smtp_port'])
+        server.starttls()
+        server.login(EMAIL_CONFIG['email'], EMAIL_CONFIG['password'])
+        server.sendmail(EMAIL_CONFIG['email'], to_email, msg.as_string())
+        server.quit()
+
+        print(f"Email sent to {to_email}: {subject}")
+        return True
+    except Exception as e:
+        print(f"Email error: {e}")
+        return False
+
+def get_db_template(template_key: str) -> dict:
+    """Get email template from database"""
+    try:
+        conn = get_db()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        cur.execute("SELECT * FROM email_templates WHERE template_key = %s AND is_active = TRUE", (template_key,))
+        template = cur.fetchone()
+        cur.close()
+        conn.close()
+        return dict(template) if template else None
+    except:
+        return None
+
+def init_default_email_templates():
+    """Initialize default email templates if not exist"""
+    conn = get_db()
+    cur = conn.cursor()
+
+    templates = [
+        {
+            "key": "welcome",
+            "name": "Hoş Geldin E-postası",
+            "subject": "TakibiEsasi'na Hoş Geldiniz! 🎉",
+            "description": "Yeni kullanıcı kaydında gönderilir",
+            "variables": "{{name}} - Kullanıcı adı",
+            "content": """<h2 style="color:#fbbf24; margin-top:0;">Hoş Geldiniz, {{name}}! 🎉</h2>
+<p>TakibiEsasi ailesine katıldığınız için teşekkür ederiz.</p>
+<p>Artık hukuki takip işlemlerinizi kolayca yönetebilir, icra dosyalarınızı takip edebilir ve raporlarınızı oluşturabilirsiniz.</p>
+<div style="background:#1a1a2a; border-radius:10px; padding:20px; margin:20px 0;">
+    <h3 style="color:#fbbf24; margin-top:0;">Hızlı Başlangıç</h3>
+    <ul style="padding-left:20px; margin:0;">
+        <li style="margin-bottom:10px;">Hesabınıza giriş yapın</li>
+        <li style="margin-bottom:10px;">Lisans anahtarınızı etkinleştirin</li>
+        <li style="margin-bottom:10px;">İlk dosyanızı oluşturun</li>
+    </ul>
+</div>
+<p>Herhangi bir sorunuz olursa <a href="mailto:destek@takibiesasi.com" style="color:#fbbf24;">destek@takibiesasi.com</a> adresinden bize ulaşabilirsiniz.</p>
+<p style="margin-bottom:0;">İyi çalışmalar dileriz!</p>"""
+        },
+        {
+            "key": "purchase",
+            "name": "Satın Alma Onayı",
+            "subject": "Lisans Anahtarınız - Sipariş #{{order_number}}",
+            "description": "Ödeme tamamlandığında gönderilir",
+            "variables": "{{name}}, {{license_key}}, {{order_number}}, {{amount}}, {{date}}",
+            "content": """<h2 style="color:#fbbf24; margin-top:0;">Satın Alma Onayı ✅</h2>
+<p>Sayın {{name}},</p>
+<p>TakibiEsasi lisansınız başarıyla oluşturuldu. Aşağıda lisans bilgilerinizi bulabilirsiniz:</p>
+<div style="background:linear-gradient(135deg, #1a1a2a, #2a2a3a); border-radius:10px; padding:25px; margin:20px 0; border:1px solid #fbbf24;">
+    <p style="margin:0 0 10px; color:#888; font-size:12px; text-transform:uppercase;">Lisans Anahtarınız</p>
+    <p style="margin:0; font-size:24px; font-family:monospace; color:#fbbf24; letter-spacing:2px; word-break:break-all;">{{license_key}}</p>
+</div>
+<div style="background:#1a1a2a; border-radius:10px; padding:20px; margin:20px 0;">
+    <table width="100%" style="color:#e0e0e0;">
+        <tr><td style="padding:8px 0; color:#888;">Sipariş No:</td><td style="padding:8px 0; text-align:right;">{{order_number}}</td></tr>
+        <tr><td style="padding:8px 0; color:#888;">Tutar:</td><td style="padding:8px 0; text-align:right; color:#fbbf24; font-weight:bold;">{{amount}} TL</td></tr>
+        <tr><td style="padding:8px 0; color:#888;">Tarih:</td><td style="padding:8px 0; text-align:right;">{{date}}</td></tr>
+    </table>
+</div>
+<p><strong>Önemli:</strong> Bu lisans anahtarını güvenli bir yerde saklayınız.</p>"""
+        },
+        {
+            "key": "demo_welcome",
+            "name": "Demo Hoş Geldin",
+            "subject": "TakibiEsasi Demo Sürümüne Hoş Geldiniz!",
+            "description": "Demo indirme kaydında gönderilir",
+            "variables": "Yok",
+            "content": """<h2 style="color:#fbbf24; margin-top:0;">Demo Sürümüne Hoş Geldiniz! 🎯</h2>
+<p>TakibiEsasi demo sürümünü indirdiğiniz için teşekkür ederiz.</p>
+<div style="background:#1a1a2a; border-radius:10px; padding:20px; margin:20px 0;">
+    <h3 style="color:#fbbf24; margin-top:0;">Demo Sürümü Özellikleri</h3>
+    <ul style="padding-left:20px; margin:0;">
+        <li style="margin-bottom:10px;">14 gün ücretsiz kullanım</li>
+        <li style="margin-bottom:10px;">Tüm temel özelliklere erişim</li>
+        <li style="margin-bottom:10px;">Sınırlı dosya oluşturma</li>
+    </ul>
+</div>
+<div style="text-align:center; margin:30px 0;">
+    <a href="https://takibiesasi.com/#pricing" style="display:inline-block; background:linear-gradient(135deg, #fbbf24, #f59e0b); color:#000; text-decoration:none; padding:15px 40px; border-radius:8px; font-weight:bold; font-size:16px;">Tam Sürümü Satın Al</a>
+</div>
+<p>Demo süreniz dolmadan önce size hatırlatma e-postası göndereceğiz.</p>"""
+        },
+        {
+            "key": "demo_expiring",
+            "name": "Demo Süresi Doluyor",
+            "subject": "Demo Süreniz {{days_left}} Gün İçinde Doluyor!",
+            "description": "Demo bitmeden 3 ve 1 gün önce gönderilir",
+            "variables": "{{days_left}} - Kalan gün sayısı",
+            "content": """<h2 style="color:#fbbf24; margin-top:0;">Demo Süreniz Dolmak Üzere ⏰</h2>
+<p>TakibiEsasi demo sürenizin bitmesine <strong style="color:#fbbf24;">{{days_left}} gün</strong> kaldı.</p>
+<p>Demo süreniz sona erdikten sonra uygulamayı kullanmaya devam edemezsiniz. Çalışmalarınızın kesintiye uğramaması için hemen tam sürüme geçin!</p>
+<div style="background:#1a1a2a; border-radius:10px; padding:20px; margin:20px 0;">
+    <h3 style="color:#fbbf24; margin-top:0;">Tam Sürüm Avantajları</h3>
+    <ul style="padding-left:20px; margin:0;">
+        <li style="margin-bottom:10px;">Sınırsız dosya oluşturma</li>
+        <li style="margin-bottom:10px;">Tüm premium özellikler</li>
+        <li style="margin-bottom:10px;">Öncelikli destek</li>
+        <li style="margin-bottom:10px;">Otomatik güncellemeler</li>
+    </ul>
+</div>
+<div style="text-align:center; margin:30px 0;">
+    <a href="https://takibiesasi.com/#pricing" style="display:inline-block; background:linear-gradient(135deg, #fbbf24, #f59e0b); color:#000; text-decoration:none; padding:15px 40px; border-radius:8px; font-weight:bold; font-size:16px;">Hemen Satın Al</a>
+</div>"""
+        },
+        {
+            "key": "demo_expired",
+            "name": "Demo Süresi Doldu",
+            "subject": "Demo Süreniz Doldu - Özel İndirim Fırsatı!",
+            "description": "Demo süresi dolduğunda gönderilir",
+            "variables": "Yok",
+            "content": """<h2 style="color:#ef4444; margin-top:0;">Demo Süreniz Doldu 😢</h2>
+<p>TakibiEsasi demo süreniz sona erdi.</p>
+<p>Endişelenmeyin! Verileriniz hala güvende ve tam sürüme geçtiğinizde kaldığınız yerden devam edebilirsiniz.</p>
+<div style="background:linear-gradient(135deg, #1a1a2a, #2a2a3a); border-radius:10px; padding:25px; margin:20px 0; border:1px solid #fbbf24; text-align:center;">
+    <p style="margin:0 0 15px; font-size:18px;">Özel Teklif: <strong style="color:#fbbf24;">%20 İndirim!</strong></p>
+    <p style="margin:0; color:#888; font-size:14px;">Kod: <span style="color:#fbbf24; font-family:monospace;">DEMO20</span></p>
+</div>
+<div style="text-align:center; margin:30px 0;">
+    <a href="https://takibiesasi.com/#pricing" style="display:inline-block; background:linear-gradient(135deg, #fbbf24, #f59e0b); color:#000; text-decoration:none; padding:15px 40px; border-radius:8px; font-weight:bold; font-size:16px;">İndirimli Satın Al</a>
+</div>
+<p>Sorularınız için <a href="mailto:destek@takibiesasi.com" style="color:#fbbf24;">destek@takibiesasi.com</a> adresinden bize ulaşabilirsiniz.</p>"""
+        },
+        {
+            "key": "password_reset",
+            "name": "Şifre Sıfırlama",
+            "subject": "Şifre Sıfırlama Talebi",
+            "description": "Şifremi unuttum talebinde gönderilir",
+            "variables": "{{reset_url}} - Sıfırlama linki",
+            "content": """<h2 style="color:#fbbf24; margin-top:0;">Şifre Sıfırlama 🔐</h2>
+<p>Hesabınız için şifre sıfırlama talebinde bulunuldu.</p>
+<div style="text-align:center; margin:30px 0;">
+    <a href="{{reset_url}}" style="display:inline-block; background:linear-gradient(135deg, #fbbf24, #f59e0b); color:#000; text-decoration:none; padding:15px 40px; border-radius:8px; font-weight:bold; font-size:16px;">Şifremi Sıfırla</a>
+</div>
+<p style="color:#888; font-size:14px;">Bu link 1 saat içinde geçerliliğini yitirecektir.</p>
+<p>Eğer bu talebi siz yapmadıysanız, bu e-postayı görmezden gelebilirsiniz. Hesabınız güvende.</p>"""
+        },
+        {
+            "key": "license_activated",
+            "name": "Lisans Aktivasyonu",
+            "subject": "Lisansınız Etkinleştirildi",
+            "description": "Lisans aktive edildiğinde gönderilir",
+            "variables": "{{license_key}}, {{machine_name}}, {{date}}",
+            "content": """<h2 style="color:#fbbf24; margin-top:0;">Lisans Etkinleştirildi ✅</h2>
+<p>TakibiEsasi lisansınız başarıyla etkinleştirildi.</p>
+<div style="background:#1a1a2a; border-radius:10px; padding:20px; margin:20px 0;">
+    <table width="100%" style="color:#e0e0e0;">
+        <tr><td style="padding:8px 0; color:#888;">Lisans:</td><td style="padding:8px 0; text-align:right; font-family:monospace;">{{license_key}}</td></tr>
+        <tr><td style="padding:8px 0; color:#888;">Cihaz:</td><td style="padding:8px 0; text-align:right;">{{machine_name}}</td></tr>
+        <tr><td style="padding:8px 0; color:#888;">Tarih:</td><td style="padding:8px 0; text-align:right;">{{date}}</td></tr>
+    </table>
+</div>
+<p>Eğer bu aktivasyonu siz yapmadıysanız, lütfen hemen bizimle iletişime geçin.</p>"""
+        }
+    ]
+
+    for t in templates:
+        try:
+            cur.execute("""
+                INSERT INTO email_templates (template_key, template_name, subject, html_content, description, variables)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                ON CONFLICT (template_key) DO NOTHING
+            """, (t["key"], t["name"], t["subject"], t["content"], t["description"], t["variables"]))
+        except:
+            pass
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+# Email Templates
+def get_email_template(content: str, title: str = "TakibiEsasi") -> str:
+    """Wrap content in email template"""
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="margin:0; padding:0; background-color:#0a0a0f; font-family: Arial, sans-serif;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#0a0a0f; padding: 40px 20px;">
+            <tr>
+                <td align="center">
+                    <table width="600" cellpadding="0" cellspacing="0" style="background-color:#12121a; border-radius:16px; border:1px solid #2a2a3a;">
+                        <!-- Header -->
+                        <tr>
+                            <td style="padding:30px; text-align:center; border-bottom:1px solid #2a2a3a;">
+                                <h1 style="margin:0; color:#fbbf24; font-size:28px;">⚖️ TakibiEsasi</h1>
+                                <p style="margin:8px 0 0; color:#888; font-size:14px;">Hukuki Takip Sistemi</p>
+                            </td>
+                        </tr>
+                        <!-- Content -->
+                        <tr>
+                            <td style="padding:30px; color:#e0e0e0;">
+                                {content}
+                            </td>
+                        </tr>
+                        <!-- Footer -->
+                        <tr>
+                            <td style="padding:20px 30px; text-align:center; border-top:1px solid #2a2a3a; color:#666; font-size:12px;">
+                                <p style="margin:0;">© 2024 TakibiEsasi. Tüm hakları saklıdır.</p>
+                                <p style="margin:8px 0 0;">
+                                    <a href="https://takibiesasi.com" style="color:#fbbf24; text-decoration:none;">takibiesasi.com</a> |
+                                    <a href="mailto:destek@takibiesasi.com" style="color:#fbbf24; text-decoration:none;">destek@takibiesasi.com</a>
+                                </p>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>
+    """
+
+def render_template(template_key: str, variables: dict) -> tuple:
+    """Render email template with variables, returns (subject, html_content)"""
+    template = get_db_template(template_key)
+    if not template:
+        return None, None
+
+    subject = template['subject']
+    content = template['html_content']
+
+    # Replace variables
+    for key, value in variables.items():
+        subject = subject.replace(f"{{{{{key}}}}}", str(value))
+        content = content.replace(f"{{{{{key}}}}}", str(value))
+
+    return subject, get_email_template(content)
+
+def send_welcome_email(email: str, full_name: str):
+    """Send welcome email to new user"""
+    subject, html = render_template("welcome", {"name": full_name})
+    if subject and html:
+        send_email_async(email, subject, html, "welcome", {"name": full_name})
+
+def send_purchase_email(email: str, name: str, license_key: str, order_number: str, amount: float):
+    """Send purchase confirmation email with license key"""
+    variables = {
+        "name": name,
+        "license_key": license_key,
+        "order_number": order_number,
+        "amount": f"{amount:.2f}",
+        "date": datetime.now().strftime('%d.%m.%Y %H:%M')
+    }
+    subject, html = render_template("purchase", variables)
+    if subject and html:
+        send_email_async(email, subject, html, "purchase", variables)
+
+def send_demo_welcome_email(email: str):
+    """Send demo welcome email"""
+    subject, html = render_template("demo_welcome", {})
+    if subject and html:
+        send_email_async(email, subject, html, "demo_welcome", {"email": email})
+
+def send_demo_expiring_email(email: str, days_left: int):
+    """Send demo expiration warning email"""
+    subject, html = render_template("demo_expiring", {"days_left": str(days_left)})
+    if subject and html:
+        send_email_async(email, subject, html, "demo_expiring", {"days_left": days_left})
+
+def send_demo_expired_email(email: str):
+    """Send demo expired email"""
+    subject, html = render_template("demo_expired", {})
+    if subject and html:
+        send_email_async(email, subject, html, "demo_expired", {"email": email})
+
+def send_password_reset_email(email: str, reset_token: str):
+    """Send password reset email"""
+    reset_url = f"https://takibiesasi.com/reset-password?token={reset_token}"
+    subject, html = render_template("password_reset", {"reset_url": reset_url})
+    if subject and html:
+        send_email_async(email, subject, html, "password_reset", {"email": email})
+
+def send_license_activated_email(email: str, license_key: str, machine_name: str = None):
+    """Send license activation confirmation email"""
+    variables = {
+        "license_key": f"{license_key[:8]}...{license_key[-4:]}",
+        "machine_name": machine_name or "Bilinmiyor",
+        "date": datetime.now().strftime('%d.%m.%Y %H:%M')
+    }
+    subject, html = render_template("license_activated", variables)
+    if subject and html:
+        send_email_async(email, subject, html, "license_activated", variables)
+
 # ============ USER AUTH HELPERS ============
 
 def hash_password(password: str) -> str:
@@ -740,6 +1166,22 @@ async def activate_license(req: ActivateRequest):
     conn.commit()
     cur.close()
     conn.close()
+
+    # Log activity
+    log_activity(
+        activity_type="license_activation",
+        description=f"Lisans aktive edildi: {req.license_key[:8]}...",
+        license_key=req.license_key,
+        metadata={"machine_id": req.machine_id}
+    )
+
+    # Send license activation email
+    if license.get('email'):
+        send_license_activated_email(
+            email=license['email'],
+            license_key=req.license_key,
+            machine_name=req.machine_id[:20] if req.machine_id else None
+        )
 
     # Offline token oluştur (30 gün geçerli)
     token_data = generate_offline_token(req.license_key, req.machine_id)
@@ -1018,13 +1460,21 @@ async def admin_create_license(req: CreateLicenseRequest, authorization: str = H
     cur = conn.cursor()
 
     cur.execute("""
-        INSERT INTO licenses (license_key, customer_name, email)
-        VALUES (%s, %s, %s)
+        INSERT INTO licenses (license_key, customer_name, email, source)
+        VALUES (%s, %s, %s, 'manual')
     """, (license_key, req.customer_name, req.email))
 
     conn.commit()
     cur.close()
     conn.close()
+
+    # Log admin license creation
+    log_activity(
+        activity_type="license_created",
+        description=f"Admin tarafından lisans oluşturuldu: {license_key[:8]}...",
+        license_key=license_key,
+        metadata={"source": "manual", "customer_name": req.customer_name, "email": req.email}
+    )
 
     return {"success": True, "license_key": license_key}
 
@@ -1034,13 +1484,26 @@ async def admin_toggle_license(req: LicenseActionRequest, authorization: str = H
     verify_admin_token(authorization)
 
     conn = get_db()
-    cur = conn.cursor()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    # Get current state
+    cur.execute("SELECT is_active FROM licenses WHERE license_key = %s", (req.license_key,))
+    license = cur.fetchone()
+    new_state = not license['is_active'] if license else False
 
     cur.execute("UPDATE licenses SET is_active = NOT is_active WHERE license_key = %s", (req.license_key,))
 
     conn.commit()
     cur.close()
     conn.close()
+
+    # Log toggle action
+    log_activity(
+        activity_type="license_toggled",
+        description=f"Lisans {'aktif edildi' if new_state else 'devre dışı bırakıldı'}: {req.license_key[:8]}...",
+        license_key=req.license_key,
+        metadata={"new_state": new_state}
+    )
 
     return {"success": True}
 
@@ -1533,6 +1996,44 @@ async def submit_contact(req: ContactMessageRequest):
 
     return {"success": True}
 
+
+class NotifyRequest(BaseModel):
+    email: str
+
+
+@app.post("/api/notify/buro")
+async def notify_buro(req: NotifyRequest):
+    """Subscribe to Büro Yönetim Sistemi notification list"""
+    conn = get_db()
+    cur = conn.cursor()
+
+    try:
+        # Create table if not exists
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS notify_subscribers (
+                id SERIAL PRIMARY KEY,
+                email VARCHAR(255) UNIQUE NOT NULL,
+                feature VARCHAR(50) DEFAULT 'buro',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        # Insert subscriber
+        cur.execute("""
+            INSERT INTO notify_subscribers (email, feature)
+            VALUES (%s, 'buro')
+            ON CONFLICT (email) DO NOTHING
+        """, (req.email,))
+
+        conn.commit()
+        return {"success": True, "message": "E-posta kaydedildi"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+    finally:
+        cur.close()
+        conn.close()
+
+
 @app.get("/api/admin/messages")
 async def admin_get_messages(authorization: str = Header(None)):
     """Get all contact messages"""
@@ -2016,6 +2517,24 @@ async def purchase_page():
             return f.read()
     return "<h1>Purchase page not found</h1>"
 
+@app.get("/sifremi-unuttum", response_class=HTMLResponse)
+async def forgot_password_page():
+    """Serve forgot password page"""
+    html_path = "/var/www/takibiesasi/sifremi-unuttum.html"
+    if os.path.exists(html_path):
+        with open(html_path, 'r', encoding='utf-8') as f:
+            return f.read()
+    return "<h1>Forgot password page not found</h1>"
+
+@app.get("/reset-password", response_class=HTMLResponse)
+async def reset_password_page():
+    """Serve reset password page"""
+    html_path = "/var/www/takibiesasi/reset-password.html"
+    if os.path.exists(html_path):
+        with open(html_path, 'r', encoding='utf-8') as f:
+            return f.read()
+    return "<h1>Reset password page not found</h1>"
+
 # ============ DEMO REGISTRATION API ============
 
 class DemoRegisterRequest(BaseModel):
@@ -2051,6 +2570,9 @@ async def register_demo(req: DemoRegisterRequest, request: Request):
 
         result = cur.fetchone()
         conn.commit()
+
+        # Send demo welcome email
+        send_demo_welcome_email(req.email.lower().strip())
 
         return {
             "success": True,
@@ -2156,6 +2678,75 @@ async def get_demo_status(authorization: str = Header(None)):
             }
         else:
             return {"success": True, "is_demo": False}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.post("/api/admin/demo/check-expiring")
+async def check_expiring_demos(authorization: str = Header(None)):
+    """Check for expiring demos and send reminder emails (cron job endpoint)"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        results = {
+            "expiring_3_days": 0,
+            "expiring_1_day": 0,
+            "expired_today": 0,
+            "emails_sent": []
+        }
+
+        # Demo süresi 14 gün
+        demo_days = 14
+
+        # 3 gün kalan demolar
+        cur.execute("""
+            SELECT email, registered_at
+            FROM demo_registrations
+            WHERE converted_to_license = FALSE
+            AND DATE(registered_at + INTERVAL '%s days') = CURRENT_DATE + INTERVAL '3 days'
+        """, (demo_days,))
+
+        for demo in cur.fetchall():
+            send_demo_expiring_email(demo['email'], 3)
+            results["expiring_3_days"] += 1
+            results["emails_sent"].append({"email": demo['email'], "type": "3_days_left"})
+
+        # 1 gün kalan demolar
+        cur.execute("""
+            SELECT email, registered_at
+            FROM demo_registrations
+            WHERE converted_to_license = FALSE
+            AND DATE(registered_at + INTERVAL '%s days') = CURRENT_DATE + INTERVAL '1 day'
+        """, (demo_days,))
+
+        for demo in cur.fetchall():
+            send_demo_expiring_email(demo['email'], 1)
+            results["expiring_1_day"] += 1
+            results["emails_sent"].append({"email": demo['email'], "type": "1_day_left"})
+
+        # Bugün biten demolar
+        cur.execute("""
+            SELECT email, registered_at
+            FROM demo_registrations
+            WHERE converted_to_license = FALSE
+            AND DATE(registered_at + INTERVAL '%s days') = CURRENT_DATE
+        """, (demo_days,))
+
+        for demo in cur.fetchall():
+            send_demo_expired_email(demo['email'])
+            results["expired_today"] += 1
+            results["emails_sent"].append({"email": demo['email'], "type": "expired"})
+
+        return {
+            "success": True,
+            "message": f"Demo kontrol tamamlandı",
+            "results": results
+        }
 
     finally:
         cur.close()
@@ -2330,21 +2921,64 @@ async def list_demo_registrations(authorization: str = Header(None)):
 
 @app.post("/api/admin/demo-registrations/{reg_id}/convert")
 async def mark_demo_converted(reg_id: int, authorization: str = Header(None)):
-    """Mark a demo registration as converted to license"""
+    """Mark a demo registration as converted to license and create a license"""
     verify_admin_token(authorization)
 
     conn = get_db()
-    cur = conn.cursor()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
     try:
+        # Get demo registration info
+        cur.execute("SELECT * FROM demo_registrations WHERE id = %s", (reg_id,))
+        demo = cur.fetchone()
+
+        if not demo:
+            return {"success": False, "error": "Demo kaydı bulunamadı"}
+
+        if demo['converted_to_license']:
+            return {"success": False, "error": "Bu demo zaten lisansa dönüştürülmüş"}
+
+        # Generate a license key
+        license_key = generate_license_key()
+
+        # Create license entry
+        cur.execute("""
+            INSERT INTO licenses (
+                license_key, customer_name, email, is_active, source, created_at
+            ) VALUES (
+                %s, %s, %s, TRUE, 'demo_conversion', CURRENT_TIMESTAMP
+            )
+            RETURNING license_key
+        """, (license_key, demo['email'].split('@')[0], demo['email']))
+
+        new_license = cur.fetchone()
+
+        # Mark demo as converted
         cur.execute("""
             UPDATE demo_registrations
-            SET converted_to_license = TRUE
+            SET converted_to_license = TRUE, converted_at = CURRENT_TIMESTAMP
             WHERE id = %s
         """, (reg_id,))
+
         conn.commit()
 
-        return {"success": True, "message": "Demo kaydı lisansa dönüştürüldü olarak işaretlendi"}
+        # Log activity
+        log_activity(
+            activity_type="license_created",
+            description=f"Demo'dan lisans oluşturuldu: {license_key[:8]}... ({demo['email']})",
+            license_key=license_key,
+            metadata={"source": "demo_conversion", "demo_email": demo['email'], "demo_id": reg_id}
+        )
+
+        return {
+            "success": True,
+            "message": "Demo kaydı lisansa dönüştürüldü",
+            "license_key": license_key
+        }
+
+    except Exception as e:
+        conn.rollback()
+        return {"success": False, "error": f"Hata: {str(e)}"}
 
     finally:
         cur.close()
@@ -2430,7 +3064,17 @@ async def user_register(req: UserRegisterRequest, request: Request):
         user = cur.fetchone()
         conn.commit()
 
-        # TODO: Send verification email here
+        # Log registration
+        log_activity(
+            activity_type="user_registration",
+            description=f"Yeni kullanıcı kaydı: {user['email']}",
+            user_id=user['id'],
+            ip_address=client_ip,
+            metadata={"full_name": user['full_name'], "company": req.company_name}
+        )
+
+        # Send welcome email
+        send_welcome_email(user['email'], user['full_name'] or user['email'].split('@')[0])
 
         return {
             "success": True,
@@ -2582,7 +3226,8 @@ async def forgot_password(req: ForgotPasswordRequest):
         """, (reset_token, expires_at, user['id']))
         conn.commit()
 
-        # TODO: Send password reset email here
+        # Send password reset email
+        send_password_reset_email(user['email'], reset_token)
 
         return {"success": True, "message": "Eğer bu e-posta kayıtlıysa, şifre sıfırlama bağlantısı gönderildi."}
 
@@ -3394,7 +4039,38 @@ async def mock_payment(order_id: int, req: MockPaymentRequest, authorization: st
         new_license = cur.fetchone()
         conn.commit()
 
-        # TODO: Send purchase confirmation email
+        # Log payment activity
+        log_activity(
+            activity_type="order_completed",
+            description=f"Sipariş tamamlandı: {updated_order['order_number']} - {order['total_price_cents']/100:.2f} TL",
+            user_id=user_id,
+            order_id=order_id,
+            license_key=new_license['license_key'],
+            metadata={
+                "product": order['product_name'],
+                "amount": order['total_price_cents'] / 100,
+                "transaction_id": transaction_id
+            }
+        )
+
+        # Log license creation
+        log_activity(
+            activity_type="license_created",
+            description=f"Satın alma ile lisans oluşturuldu: {new_license['license_key'][:8]}...",
+            user_id=user_id,
+            license_key=new_license['license_key'],
+            order_id=order_id,
+            metadata={"source": "purchase", "price": order['total_price_cents'] / 100}
+        )
+
+        # Send purchase confirmation email
+        send_purchase_email(
+            email=order['billing_email'],
+            name=order['billing_name'],
+            license_key=new_license['license_key'],
+            order_number=updated_order['order_number'],
+            amount=order['total_price_cents'] / 100
+        )
 
         return {
             "success": True,
@@ -3484,6 +4160,60 @@ async def admin_get_orders(authorization: str = Header(None)):
         conn.close()
 
 
+@app.get("/api/admin/orders/stats")
+async def admin_order_stats(authorization: str = Header(None)):
+    """Get order statistics (admin only)"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        # Total orders
+        cur.execute("SELECT COUNT(*) as count FROM orders")
+        total_orders = cur.fetchone()['count']
+
+        # Completed orders
+        cur.execute("SELECT COUNT(*) as count FROM orders WHERE payment_status = 'completed'")
+        completed_orders = cur.fetchone()['count']
+
+        # Total revenue
+        cur.execute("SELECT COALESCE(SUM(total_price_cents), 0) as total FROM orders WHERE payment_status = 'completed'")
+        total_revenue = cur.fetchone()['total'] / 100
+
+        # Today's orders
+        cur.execute("SELECT COUNT(*) as count FROM orders WHERE DATE(created_at) = CURRENT_DATE")
+        today_orders = cur.fetchone()['count']
+
+        # Today's revenue
+        cur.execute("""
+            SELECT COALESCE(SUM(total_price_cents), 0) as total
+            FROM orders
+            WHERE DATE(paid_at) = CURRENT_DATE AND payment_status = 'completed'
+        """)
+        today_revenue = cur.fetchone()['total'] / 100
+
+        # Pending orders
+        cur.execute("SELECT COUNT(*) as count FROM orders WHERE payment_status = 'pending'")
+        pending_orders = cur.fetchone()['count']
+
+        return {
+            "success": True,
+            "stats": {
+                "total_orders": total_orders,
+                "completed_orders": completed_orders,
+                "pending_orders": pending_orders,
+                "total_revenue": total_revenue,
+                "today_orders": today_orders,
+                "today_revenue": today_revenue
+            }
+        }
+
+    finally:
+        cur.close()
+        conn.close()
+
+
 @app.get("/api/admin/orders/{order_id}")
 async def admin_get_order_detail(order_id: int, authorization: str = Header(None)):
     """Get order details (admin only)"""
@@ -3553,60 +4283,6 @@ async def admin_update_order_status(order_id: int, req: OrderStatusUpdateRequest
 
         conn.commit()
         return {"success": True, "message": f"Sipariş durumu '{req.status}' olarak güncellendi"}
-
-    finally:
-        cur.close()
-        conn.close()
-
-
-@app.get("/api/admin/orders/stats")
-async def admin_order_stats(authorization: str = Header(None)):
-    """Get order statistics (admin only)"""
-    verify_admin_token(authorization)
-
-    conn = get_db()
-    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-
-    try:
-        # Total orders
-        cur.execute("SELECT COUNT(*) as count FROM orders")
-        total_orders = cur.fetchone()['count']
-
-        # Completed orders
-        cur.execute("SELECT COUNT(*) as count FROM orders WHERE payment_status = 'completed'")
-        completed_orders = cur.fetchone()['count']
-
-        # Total revenue
-        cur.execute("SELECT COALESCE(SUM(total_price_cents), 0) as total FROM orders WHERE payment_status = 'completed'")
-        total_revenue = cur.fetchone()['total'] / 100
-
-        # Today's orders
-        cur.execute("SELECT COUNT(*) as count FROM orders WHERE DATE(created_at) = CURRENT_DATE")
-        today_orders = cur.fetchone()['count']
-
-        # Today's revenue
-        cur.execute("""
-            SELECT COALESCE(SUM(total_price_cents), 0) as total
-            FROM orders
-            WHERE DATE(paid_at) = CURRENT_DATE AND payment_status = 'completed'
-        """)
-        today_revenue = cur.fetchone()['total'] / 100
-
-        # Pending orders
-        cur.execute("SELECT COUNT(*) as count FROM orders WHERE payment_status = 'pending'")
-        pending_orders = cur.fetchone()['count']
-
-        return {
-            "success": True,
-            "stats": {
-                "total_orders": total_orders,
-                "completed_orders": completed_orders,
-                "pending_orders": pending_orders,
-                "total_revenue": total_revenue,
-                "today_orders": today_orders,
-                "today_revenue": today_revenue
-            }
-        }
 
     finally:
         cur.close()
@@ -3890,6 +4566,993 @@ async def admin_extend_demo(demo_id: int, req: DemoExtendRequest, authorization:
 
         conn.commit()
         return {"success": True, "message": f"Demo {req.days} gün uzatıldı"}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+# ============ ENHANCED ADMIN DASHBOARD ============
+
+@app.get("/api/admin/dashboard")
+async def admin_dashboard(authorization: str = Header(None)):
+    """Comprehensive admin dashboard with all statistics"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        stats = {}
+
+        # === LICENSE STATS ===
+        cur.execute("SELECT COUNT(*) FROM licenses")
+        stats['total_licenses'] = cur.fetchone()[0]
+
+        cur.execute("SELECT COUNT(*) FROM licenses WHERE is_active = TRUE AND machine_id IS NOT NULL")
+        stats['active_licenses'] = cur.fetchone()[0]
+
+        cur.execute("SELECT COUNT(*) FROM licenses WHERE source = 'purchase'")
+        stats['purchased_licenses'] = cur.fetchone()[0]
+
+        cur.execute("SELECT COUNT(*) FROM licenses WHERE source = 'manual' OR source IS NULL")
+        stats['manual_licenses'] = cur.fetchone()[0]
+
+        # === USER STATS ===
+        cur.execute("SELECT COUNT(*) FROM users")
+        stats['total_users'] = cur.fetchone()[0]
+
+        cur.execute("SELECT COUNT(*) FROM users WHERE email_verified = TRUE")
+        stats['verified_users'] = cur.fetchone()[0]
+
+        cur.execute("SELECT COUNT(*) FROM users WHERE DATE(created_at) = CURRENT_DATE")
+        stats['today_registrations'] = cur.fetchone()[0]
+
+        cur.execute("SELECT COUNT(*) FROM users WHERE created_at >= CURRENT_DATE - INTERVAL '7 days'")
+        stats['week_registrations'] = cur.fetchone()[0]
+
+        # === ORDER/REVENUE STATS ===
+        cur.execute("SELECT COUNT(*) FROM orders WHERE payment_status = 'completed'")
+        stats['completed_orders'] = cur.fetchone()[0]
+
+        cur.execute("SELECT COUNT(*) FROM orders WHERE payment_status = 'pending'")
+        stats['pending_orders'] = cur.fetchone()[0]
+
+        cur.execute("SELECT COALESCE(SUM(total_price_cents), 0) FROM orders WHERE payment_status = 'completed'")
+        stats['total_revenue'] = cur.fetchone()[0] / 100
+
+        cur.execute("""
+            SELECT COALESCE(SUM(total_price_cents), 0) FROM orders
+            WHERE payment_status = 'completed' AND paid_at >= DATE_TRUNC('month', CURRENT_DATE)
+        """)
+        stats['month_revenue'] = cur.fetchone()[0] / 100
+
+        cur.execute("""
+            SELECT COALESCE(SUM(total_price_cents), 0) FROM orders
+            WHERE payment_status = 'completed' AND paid_at >= CURRENT_DATE - INTERVAL '7 days'
+        """)
+        stats['week_revenue'] = cur.fetchone()[0] / 100
+
+        cur.execute("""
+            SELECT COALESCE(SUM(total_price_cents), 0) FROM orders
+            WHERE payment_status = 'completed' AND DATE(paid_at) = CURRENT_DATE
+        """)
+        stats['today_revenue'] = cur.fetchone()[0] / 100
+
+        # Average order value
+        cur.execute("""
+            SELECT COALESCE(AVG(total_price_cents), 0) FROM orders WHERE payment_status = 'completed'
+        """)
+        stats['avg_order_value'] = cur.fetchone()[0] / 100
+
+        # === MONTHLY REVENUE (Last 12 months) ===
+        cur.execute("""
+            SELECT
+                TO_CHAR(DATE_TRUNC('month', paid_at), 'YYYY-MM') as month,
+                COALESCE(SUM(total_price_cents), 0) / 100 as revenue,
+                COUNT(*) as order_count
+            FROM orders
+            WHERE payment_status = 'completed'
+                AND paid_at >= CURRENT_DATE - INTERVAL '12 months'
+            GROUP BY DATE_TRUNC('month', paid_at)
+            ORDER BY month
+        """)
+        stats['monthly_revenue'] = [{"month": r['month'], "revenue": float(r['revenue']),
+                                      "orders": r['order_count']} for r in cur.fetchall()]
+
+        # === DAILY REVENUE (Last 30 days) ===
+        cur.execute("""
+            SELECT
+                TO_CHAR(DATE(paid_at), 'YYYY-MM-DD') as date,
+                COALESCE(SUM(total_price_cents), 0) / 100 as revenue,
+                COUNT(*) as order_count
+            FROM orders
+            WHERE payment_status = 'completed'
+                AND paid_at >= CURRENT_DATE - INTERVAL '30 days'
+            GROUP BY DATE(paid_at)
+            ORDER BY date
+        """)
+        stats['daily_revenue'] = [{"date": r['date'], "revenue": float(r['revenue']),
+                                    "orders": r['order_count']} for r in cur.fetchall()]
+
+        # === TOP SELLING PRODUCTS ===
+        cur.execute("""
+            SELECT
+                product_name,
+                COUNT(*) as count,
+                COALESCE(SUM(total_price_cents), 0) / 100 as total_revenue
+            FROM orders
+            WHERE payment_status = 'completed'
+            GROUP BY product_name
+            ORDER BY count DESC
+            LIMIT 10
+        """)
+        stats['top_products'] = [{"name": r['product_name'], "count": r['count'],
+                                   "revenue": float(r['total_revenue'])} for r in cur.fetchall()]
+
+        # === RECENT ACTIVITY ===
+        cur.execute("""
+            SELECT * FROM activity_log ORDER BY created_at DESC LIMIT 20
+        """)
+        stats['recent_activity'] = [{"id": r['id'], "type": r['activity_type'],
+                                      "description": r['description'],
+                                      "created_at": r['created_at'].isoformat() if r['created_at'] else None
+                                     } for r in cur.fetchall()]
+
+        # === RECENT ORDERS ===
+        cur.execute("""
+            SELECT o.id, o.order_number, o.product_name, o.total_price_cents,
+                   o.payment_status, o.created_at, u.email, u.full_name
+            FROM orders o
+            LEFT JOIN users u ON o.user_id = u.id
+            ORDER BY o.created_at DESC LIMIT 10
+        """)
+        stats['recent_orders'] = [{"id": r['id'], "order_number": r['order_number'],
+                                    "product": r['product_name'],
+                                    "total": r['total_price_cents'] / 100 if r['total_price_cents'] else 0,
+                                    "status": r['payment_status'],
+                                    "user_email": r['email'],
+                                    "user_name": r['full_name'],
+                                    "created_at": r['created_at'].isoformat() if r['created_at'] else None
+                                   } for r in cur.fetchall()]
+
+        # === RECENT LICENSES ===
+        cur.execute("""
+            SELECT l.*, u.email as user_email, u.full_name as user_name
+            FROM licenses l
+            LEFT JOIN users u ON l.user_id = u.id
+            ORDER BY l.created_at DESC LIMIT 10
+        """)
+        stats['recent_licenses'] = [{"id": r['id'], "license_key": r['license_key'],
+                                      "customer_name": r['customer_name'], "email": r['email'],
+                                      "is_active": r['is_active'], "source": r['source'],
+                                      "purchase_price": r['purchase_price_cents'] / 100 if r['purchase_price_cents'] else None,
+                                      "user_email": r['user_email'],
+                                      "created_at": r['created_at'].isoformat() if r['created_at'] else None
+                                     } for r in cur.fetchall()]
+
+        return {"success": True, "stats": stats}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.get("/api/admin/users/{user_id}/detail")
+async def admin_user_detail(user_id: int, authorization: str = Header(None)):
+    """Get detailed user information including orders, licenses, and downloads"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        # Get user info
+        cur.execute("""
+            SELECT id, email, full_name, phone, company_name, tax_number,
+                   email_verified, role, kvkk_accepted, marketing_accepted,
+                   last_login_at, created_at
+            FROM users WHERE id = %s
+        """, (user_id,))
+
+        user = cur.fetchone()
+        if not user:
+            return {"success": False, "error": "Kullanıcı bulunamadı"}
+
+        user_data = {
+            "id": user['id'],
+            "email": user['email'],
+            "full_name": user['full_name'],
+            "phone": user['phone'],
+            "company_name": user['company_name'],
+            "tax_number": user['tax_number'],
+            "email_verified": user['email_verified'],
+            "role": user['role'],
+            "kvkk_accepted": user['kvkk_accepted'],
+            "marketing_accepted": user['marketing_accepted'],
+            "last_login_at": user['last_login_at'].isoformat() if user['last_login_at'] else None,
+            "created_at": user['created_at'].isoformat() if user['created_at'] else None
+        }
+
+        # Get user's licenses
+        cur.execute("""
+            SELECT id, license_key, machine_id, is_active, transfer_count, source,
+                   purchase_price_cents, activated_at, created_at
+            FROM licenses WHERE user_id = %s OR email = %s
+            ORDER BY created_at DESC
+        """, (user_id, user['email']))
+
+        licenses = []
+        for r in cur.fetchall():
+            licenses.append({
+                "id": r['id'],
+                "license_key": r['license_key'],
+                "machine_id": r['machine_id'],
+                "is_active": r['is_active'],
+                "transfer_count": r['transfer_count'],
+                "source": r['source'],
+                "purchase_price": r['purchase_price_cents'] / 100 if r['purchase_price_cents'] else None,
+                "activated_at": r['activated_at'].isoformat() if r['activated_at'] else None,
+                "created_at": r['created_at'].isoformat() if r['created_at'] else None
+            })
+
+        # Get user's orders
+        cur.execute("""
+            SELECT id, order_number, product_name, quantity, total_price_cents,
+                   payment_status, payment_method, paid_at, created_at
+            FROM orders WHERE user_id = %s
+            ORDER BY created_at DESC
+        """, (user_id,))
+
+        orders = []
+        total_spent = 0
+        for r in cur.fetchall():
+            if r['payment_status'] == 'completed' and r['total_price_cents']:
+                total_spent += r['total_price_cents']
+            orders.append({
+                "id": r['id'],
+                "order_number": r['order_number'],
+                "product_name": r['product_name'],
+                "quantity": r['quantity'],
+                "total": r['total_price_cents'] / 100 if r['total_price_cents'] else 0,
+                "status": r['payment_status'],
+                "payment_method": r['payment_method'],
+                "paid_at": r['paid_at'].isoformat() if r['paid_at'] else None,
+                "created_at": r['created_at'].isoformat() if r['created_at'] else None
+            })
+
+        # Get user's invoices
+        cur.execute("""
+            SELECT id, invoice_number, total_cents, status, invoice_date
+            FROM invoices WHERE user_id = %s
+            ORDER BY created_at DESC
+        """, (user_id,))
+
+        invoices = [{"id": r['id'], "invoice_number": r['invoice_number'],
+                     "total": r['total_cents'] / 100 if r['total_cents'] else 0,
+                     "status": r['status'],
+                     "date": r['invoice_date'].isoformat() if r['invoice_date'] else None
+                    } for r in cur.fetchall()]
+
+        # Get user's downloads
+        cur.execute("""
+            SELECT version, file_name, ip_address, created_at
+            FROM downloads WHERE user_id = %s
+            ORDER BY created_at DESC LIMIT 20
+        """, (user_id,))
+
+        downloads = [{"version": r['version'], "file_name": r['file_name'],
+                      "ip": r['ip_address'],
+                      "date": r['created_at'].isoformat() if r['created_at'] else None
+                     } for r in cur.fetchall()]
+
+        # Get activity related to user
+        cur.execute("""
+            SELECT activity_type, description, created_at
+            FROM activity_log WHERE user_id = %s
+            ORDER BY created_at DESC LIMIT 30
+        """, (user_id,))
+
+        activities = [{"type": r['activity_type'], "description": r['description'],
+                       "date": r['created_at'].isoformat() if r['created_at'] else None
+                      } for r in cur.fetchall()]
+
+        return {
+            "success": True,
+            "user": user_data,
+            "licenses": licenses,
+            "orders": orders,
+            "invoices": invoices,
+            "downloads": downloads,
+            "activities": activities,
+            "summary": {
+                "total_orders": len(orders),
+                "completed_orders": len([o for o in orders if o['status'] == 'completed']),
+                "total_spent": total_spent / 100,
+                "total_licenses": len(licenses),
+                "active_licenses": len([l for l in licenses if l['is_active']]),
+                "total_downloads": len(downloads)
+            }
+        }
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.get("/api/admin/sales/report")
+async def admin_sales_report(
+    start_date: str = None,
+    end_date: str = None,
+    authorization: str = Header(None)
+):
+    """Generate sales report with optional date range"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        # Build date filter
+        date_filter = "payment_status = 'completed'"
+        params = []
+
+        if start_date:
+            date_filter += " AND DATE(paid_at) >= %s"
+            params.append(start_date)
+        if end_date:
+            date_filter += " AND DATE(paid_at) <= %s"
+            params.append(end_date)
+
+        # Summary stats
+        cur.execute(f"""
+            SELECT
+                COUNT(*) as order_count,
+                COALESCE(SUM(total_price_cents), 0) as total_revenue,
+                COALESCE(AVG(total_price_cents), 0) as avg_order,
+                COALESCE(MIN(total_price_cents), 0) as min_order,
+                COALESCE(MAX(total_price_cents), 0) as max_order
+            FROM orders WHERE {date_filter}
+        """, params)
+
+        summary = cur.fetchone()
+
+        # Daily breakdown
+        cur.execute(f"""
+            SELECT
+                DATE(paid_at) as date,
+                COUNT(*) as orders,
+                SUM(total_price_cents) as revenue
+            FROM orders
+            WHERE {date_filter}
+            GROUP BY DATE(paid_at)
+            ORDER BY date
+        """, params)
+
+        daily = [{"date": str(r['date']), "orders": r['orders'],
+                  "revenue": r['revenue'] / 100} for r in cur.fetchall()]
+
+        # Product breakdown
+        cur.execute(f"""
+            SELECT
+                product_name,
+                COUNT(*) as count,
+                SUM(total_price_cents) as revenue
+            FROM orders
+            WHERE {date_filter}
+            GROUP BY product_name
+            ORDER BY revenue DESC
+        """, params)
+
+        products = [{"product": r['product_name'], "count": r['count'],
+                     "revenue": r['revenue'] / 100} for r in cur.fetchall()]
+
+        # All orders in range
+        cur.execute(f"""
+            SELECT o.*, u.email as user_email, u.full_name as user_name
+            FROM orders o
+            LEFT JOIN users u ON o.user_id = u.id
+            WHERE {date_filter}
+            ORDER BY o.paid_at DESC
+        """, params)
+
+        orders = []
+        for r in cur.fetchall():
+            orders.append({
+                "id": r['id'],
+                "order_number": r['order_number'],
+                "product": r['product_name'],
+                "quantity": r['quantity'],
+                "total": r['total_price_cents'] / 100 if r['total_price_cents'] else 0,
+                "user_email": r['user_email'],
+                "user_name": r['user_name'],
+                "payment_method": r['payment_method'],
+                "paid_at": r['paid_at'].isoformat() if r['paid_at'] else None
+            })
+
+        return {
+            "success": True,
+            "period": {
+                "start": start_date or "All time",
+                "end": end_date or "Now"
+            },
+            "summary": {
+                "total_orders": summary['order_count'],
+                "total_revenue": summary['total_revenue'] / 100,
+                "avg_order_value": summary['avg_order'] / 100,
+                "min_order": summary['min_order'] / 100,
+                "max_order": summary['max_order'] / 100
+            },
+            "daily_breakdown": daily,
+            "product_breakdown": products,
+            "orders": orders
+        }
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.get("/api/admin/activity")
+async def admin_activity_log(
+    limit: int = 100,
+    activity_type: str = None,
+    authorization: str = Header(None)
+):
+    """Get activity log"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        query = "SELECT * FROM activity_log"
+        params = []
+
+        if activity_type:
+            query += " WHERE activity_type = %s"
+            params.append(activity_type)
+
+        query += " ORDER BY created_at DESC LIMIT %s"
+        params.append(limit)
+
+        cur.execute(query, params)
+
+        activities = []
+        for r in cur.fetchall():
+            activities.append({
+                "id": r['id'],
+                "type": r['activity_type'],
+                "description": r['description'],
+                "user_id": r['user_id'],
+                "license_key": r['license_key'],
+                "order_id": r['order_id'],
+                "ip_address": r['ip_address'],
+                "metadata": r['metadata'],
+                "created_at": r['created_at'].isoformat() if r['created_at'] else None
+            })
+
+        # Get activity type counts
+        cur.execute("""
+            SELECT activity_type, COUNT(*) as count
+            FROM activity_log
+            GROUP BY activity_type
+            ORDER BY count DESC
+        """)
+
+        type_counts = {r['activity_type']: r['count'] for r in cur.fetchall()}
+
+        return {
+            "success": True,
+            "activities": activities,
+            "type_counts": type_counts
+        }
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.get("/api/admin/export/orders")
+async def admin_export_orders(
+    format: str = "json",
+    start_date: str = None,
+    end_date: str = None,
+    authorization: str = Header(None)
+):
+    """Export orders as JSON or CSV"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        query = """
+            SELECT o.id, o.order_number, o.product_name, o.quantity,
+                   o.total_price_cents / 100.0 as total,
+                   o.payment_status, o.payment_method, o.paid_at, o.created_at,
+                   u.email as user_email, u.full_name as user_name
+            FROM orders o
+            LEFT JOIN users u ON o.user_id = u.id
+            WHERE 1=1
+        """
+        params = []
+
+        if start_date:
+            query += " AND DATE(o.created_at) >= %s"
+            params.append(start_date)
+        if end_date:
+            query += " AND DATE(o.created_at) <= %s"
+            params.append(end_date)
+
+        query += " ORDER BY o.created_at DESC"
+
+        cur.execute(query, params)
+        rows = cur.fetchall()
+
+        if format == "csv":
+            import io
+            output = io.StringIO()
+            output.write("ID,Sipariş No,Ürün,Adet,Toplam,Durum,Ödeme Yöntemi,Ödeme Tarihi,Oluşturma Tarihi,E-posta,Ad Soyad\n")
+            for r in rows:
+                output.write(f"{r['id']},{r['order_number']},{r['product_name']},{r['quantity']},{r['total']},{r['payment_status']},{r['payment_method'] or ''},{r['paid_at'] or ''},{r['created_at']},{r['user_email'] or ''},{r['user_name'] or ''}\n")
+
+            return {"success": True, "format": "csv", "data": output.getvalue()}
+
+        # JSON format
+        orders = []
+        for r in rows:
+            orders.append({
+                "id": r['id'],
+                "order_number": r['order_number'],
+                "product": r['product_name'],
+                "quantity": r['quantity'],
+                "total": float(r['total']) if r['total'] else 0,
+                "status": r['payment_status'],
+                "payment_method": r['payment_method'],
+                "paid_at": r['paid_at'].isoformat() if r['paid_at'] else None,
+                "created_at": r['created_at'].isoformat() if r['created_at'] else None,
+                "user_email": r['user_email'],
+                "user_name": r['user_name']
+            })
+
+        return {"success": True, "format": "json", "data": orders}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.get("/api/admin/export/licenses")
+async def admin_export_licenses(format: str = "json", authorization: str = Header(None)):
+    """Export licenses as JSON or CSV"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        cur.execute("""
+            SELECT l.id, l.license_key, l.customer_name, l.email, l.machine_id,
+                   l.is_active, l.transfer_count, l.source,
+                   l.purchase_price_cents / 100.0 as purchase_price,
+                   l.activated_at, l.created_at,
+                   u.full_name as user_name
+            FROM licenses l
+            LEFT JOIN users u ON l.user_id = u.id
+            ORDER BY l.created_at DESC
+        """)
+        rows = cur.fetchall()
+
+        if format == "csv":
+            import io
+            output = io.StringIO()
+            output.write("ID,Lisans Key,Müşteri,E-posta,Makine ID,Aktif,Transfer,Kaynak,Fiyat,Aktivasyon,Oluşturma\n")
+            for r in rows:
+                output.write(f"{r['id']},{r['license_key']},{r['customer_name'] or ''},{r['email'] or ''},{r['machine_id'] or ''},{r['is_active']},{r['transfer_count']},{r['source'] or ''},{r['purchase_price'] or ''},{r['activated_at'] or ''},{r['created_at']}\n")
+
+            return {"success": True, "format": "csv", "data": output.getvalue()}
+
+        licenses = []
+        for r in rows:
+            licenses.append({
+                "id": r['id'],
+                "license_key": r['license_key'],
+                "customer_name": r['customer_name'],
+                "email": r['email'],
+                "machine_id": r['machine_id'],
+                "is_active": r['is_active'],
+                "transfer_count": r['transfer_count'],
+                "source": r['source'],
+                "purchase_price": float(r['purchase_price']) if r['purchase_price'] else None,
+                "activated_at": r['activated_at'].isoformat() if r['activated_at'] else None,
+                "created_at": r['created_at'].isoformat() if r['created_at'] else None
+            })
+
+        return {"success": True, "format": "json", "data": licenses}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.get("/api/admin/export/users")
+async def admin_export_users(format: str = "json", authorization: str = Header(None)):
+    """Export users as JSON or CSV"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        cur.execute("""
+            SELECT u.id, u.email, u.full_name, u.phone, u.company_name,
+                   u.email_verified, u.role, u.created_at, u.last_login_at,
+                   COUNT(DISTINCT o.id) as order_count,
+                   COALESCE(SUM(CASE WHEN o.payment_status = 'completed' THEN o.total_price_cents ELSE 0 END), 0) / 100.0 as total_spent,
+                   COUNT(DISTINCT l.id) as license_count
+            FROM users u
+            LEFT JOIN orders o ON u.id = o.user_id
+            LEFT JOIN licenses l ON u.id = l.user_id
+            GROUP BY u.id
+            ORDER BY u.created_at DESC
+        """)
+        rows = cur.fetchall()
+
+        if format == "csv":
+            import io
+            output = io.StringIO()
+            output.write("ID,E-posta,Ad Soyad,Telefon,Şirket,Doğrulanmış,Rol,Kayıt,Son Giriş,Sipariş,Harcama,Lisans\n")
+            for r in rows:
+                output.write(f"{r['id']},{r['email']},{r['full_name'] or ''},{r['phone'] or ''},{r['company_name'] or ''},{r['email_verified']},{r['role']},{r['created_at']},{r['last_login_at'] or ''},{r['order_count']},{r['total_spent']},{r['license_count']}\n")
+
+            return {"success": True, "format": "csv", "data": output.getvalue()}
+
+        users = []
+        for r in rows:
+            users.append({
+                "id": r['id'],
+                "email": r['email'],
+                "full_name": r['full_name'],
+                "phone": r['phone'],
+                "company_name": r['company_name'],
+                "email_verified": r['email_verified'],
+                "role": r['role'],
+                "created_at": r['created_at'].isoformat() if r['created_at'] else None,
+                "last_login_at": r['last_login_at'].isoformat() if r['last_login_at'] else None,
+                "order_count": r['order_count'],
+                "total_spent": float(r['total_spent']),
+                "license_count": r['license_count']
+            })
+
+        return {"success": True, "format": "json", "data": users}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+# ============ EMAIL MANAGEMENT API ============
+
+class EmailTemplateUpdateRequest(BaseModel):
+    subject: str
+    html_content: str
+    is_active: Optional[bool] = True
+
+@app.get("/api/admin/email/templates")
+async def admin_get_email_templates(authorization: str = Header(None)):
+    """Get all email templates"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        cur.execute("""
+            SELECT id, template_key, template_name, subject, html_content,
+                   description, variables, is_active, updated_at, created_at
+            FROM email_templates
+            ORDER BY template_name
+        """)
+
+        templates = []
+        for row in cur.fetchall():
+            templates.append({
+                "id": row['id'],
+                "key": row['template_key'],
+                "name": row['template_name'],
+                "subject": row['subject'],
+                "content": row['html_content'],
+                "description": row['description'],
+                "variables": row['variables'],
+                "is_active": row['is_active'],
+                "updated_at": row['updated_at'].isoformat() if row['updated_at'] else None,
+                "created_at": row['created_at'].isoformat() if row['created_at'] else None
+            })
+
+        return {"success": True, "templates": templates}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.get("/api/admin/email/templates/{template_key}")
+async def admin_get_email_template(template_key: str, authorization: str = Header(None)):
+    """Get single email template"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        cur.execute("SELECT * FROM email_templates WHERE template_key = %s", (template_key,))
+        row = cur.fetchone()
+
+        if not row:
+            return {"success": False, "error": "Şablon bulunamadı"}
+
+        return {
+            "success": True,
+            "template": {
+                "id": row['id'],
+                "key": row['template_key'],
+                "name": row['template_name'],
+                "subject": row['subject'],
+                "content": row['html_content'],
+                "description": row['description'],
+                "variables": row['variables'],
+                "is_active": row['is_active']
+            }
+        }
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.put("/api/admin/email/templates/{template_key}")
+async def admin_update_email_template(template_key: str, req: EmailTemplateUpdateRequest, authorization: str = Header(None)):
+    """Update email template"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    try:
+        cur.execute("""
+            UPDATE email_templates
+            SET subject = %s, html_content = %s, is_active = %s, updated_at = CURRENT_TIMESTAMP
+            WHERE template_key = %s
+            RETURNING id
+        """, (req.subject, req.html_content, req.is_active, template_key))
+
+        result = cur.fetchone()
+        conn.commit()
+
+        if not result:
+            return {"success": False, "error": "Şablon bulunamadı"}
+
+        return {"success": True, "message": "Şablon güncellendi"}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.post("/api/admin/email/templates/{template_key}/toggle")
+async def admin_toggle_email_template(template_key: str, authorization: str = Header(None)):
+    """Toggle email template active status"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    try:
+        cur.execute("""
+            UPDATE email_templates
+            SET is_active = NOT is_active, updated_at = CURRENT_TIMESTAMP
+            WHERE template_key = %s
+            RETURNING is_active
+        """, (template_key,))
+
+        result = cur.fetchone()
+        conn.commit()
+
+        if not result:
+            return {"success": False, "error": "Şablon bulunamadı"}
+
+        return {"success": True, "is_active": result[0]}
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.post("/api/admin/email/preview")
+async def admin_preview_email(template_key: str, authorization: str = Header(None)):
+    """Preview email template with sample data"""
+    verify_admin_token(authorization)
+
+    sample_data = {
+        "welcome": {"name": "Mehmet Yılmaz"},
+        "purchase": {"name": "Mehmet Yılmaz", "license_key": "XXXX-YYYY-ZZZZ-1234", "order_number": "ORD-20241214-0001", "amount": "2499.00", "date": "14.12.2024 15:30"},
+        "demo_welcome": {},
+        "demo_expiring": {"days_left": "3"},
+        "demo_expired": {},
+        "password_reset": {"reset_url": "https://takibiesasi.com/reset-password?token=sample"},
+        "license_activated": {"license_key": "XXXX...1234", "machine_name": "DESKTOP-ABC", "date": "14.12.2024 15:30"}
+    }
+
+    variables = sample_data.get(template_key, {})
+    subject, html = render_template(template_key, variables)
+
+    if not html:
+        return {"success": False, "error": "Şablon bulunamadı"}
+
+    return {"success": True, "subject": subject, "html": html}
+
+
+@app.post("/api/admin/email/test")
+async def admin_send_test_email(template_key: str, test_email: str, authorization: str = Header(None)):
+    """Send test email"""
+    verify_admin_token(authorization)
+
+    sample_data = {
+        "welcome": {"name": "Test Kullanıcı"},
+        "purchase": {"name": "Test Kullanıcı", "license_key": "TEST-XXXX-YYYY-ZZZZ", "order_number": "ORD-TEST-0001", "amount": "2499.00", "date": datetime.now().strftime('%d.%m.%Y %H:%M')},
+        "demo_welcome": {},
+        "demo_expiring": {"days_left": "3"},
+        "demo_expired": {},
+        "password_reset": {"reset_url": "https://takibiesasi.com/reset-password?token=test"},
+        "license_activated": {"license_key": "TEST...XXXX", "machine_name": "TEST-PC", "date": datetime.now().strftime('%d.%m.%Y %H:%M')}
+    }
+
+    variables = sample_data.get(template_key, {})
+    subject, html = render_template(template_key, variables)
+
+    if not html:
+        return {"success": False, "error": "Şablon bulunamadı"}
+
+    try:
+        success = send_email(test_email, f"[TEST] {subject}", html)
+        if success:
+            log_email(template_key, test_email, f"[TEST] {subject}", "sent", None, {"test": True})
+            return {"success": True, "message": f"Test e-postası {test_email} adresine gönderildi"}
+        else:
+            return {"success": False, "error": "E-posta gönderilemedi"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/admin/email/logs")
+async def admin_get_email_logs(
+    page: int = 1,
+    limit: int = 50,
+    template_key: str = None,
+    status: str = None,
+    authorization: str = Header(None)
+):
+    """Get email logs with pagination"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        offset = (page - 1) * limit
+        where_clauses = []
+        params = []
+
+        if template_key:
+            where_clauses.append("e.template_key = %s")
+            params.append(template_key)
+
+        if status:
+            where_clauses.append("e.status = %s")
+            params.append(status)
+
+        where_sql = " AND ".join(where_clauses) if where_clauses else "1=1"
+
+        cur.execute(f"SELECT COUNT(*) FROM email_logs e WHERE {where_sql}", params)
+        total = cur.fetchone()[0]
+
+        cur.execute(f"""
+            SELECT e.*, t.template_name
+            FROM email_logs e
+            LEFT JOIN email_templates t ON e.template_key = t.template_key
+            WHERE {where_sql}
+            ORDER BY e.created_at DESC
+            LIMIT %s OFFSET %s
+        """, params + [limit, offset])
+
+        logs = []
+        for row in cur.fetchall():
+            logs.append({
+                "id": row['id'],
+                "template_key": row['template_key'],
+                "template_name": row['template_name'],
+                "recipient": row['recipient_email'],
+                "subject": row['subject'],
+                "status": row['status'],
+                "error": row['error_message'],
+                "metadata": row['metadata'],
+                "created_at": row['created_at'].isoformat() if row['created_at'] else None
+            })
+
+        return {
+            "success": True,
+            "logs": logs,
+            "total": total,
+            "page": page,
+            "pages": (total + limit - 1) // limit
+        }
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.get("/api/admin/email/stats")
+async def admin_get_email_stats(authorization: str = Header(None)):
+    """Get email statistics"""
+    verify_admin_token(authorization)
+
+    conn = get_db()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
+    try:
+        cur.execute("SELECT COUNT(*) FROM email_logs WHERE status = 'sent'")
+        total_sent = cur.fetchone()[0]
+
+        cur.execute("SELECT COUNT(*) FROM email_logs WHERE status = 'failed'")
+        total_failed = cur.fetchone()[0]
+
+        cur.execute("SELECT COUNT(*) FROM email_logs WHERE status = 'sent' AND DATE(created_at) = CURRENT_DATE")
+        today_sent = cur.fetchone()[0]
+
+        cur.execute("""
+            SELECT e.template_key, t.template_name, COUNT(*) as count
+            FROM email_logs e
+            LEFT JOIN email_templates t ON e.template_key = t.template_key
+            WHERE e.status = 'sent'
+            GROUP BY e.template_key, t.template_name
+            ORDER BY count DESC
+        """)
+
+        by_template = []
+        for row in cur.fetchall():
+            by_template.append({
+                "key": row['template_key'],
+                "name": row['template_name'],
+                "count": row['count']
+            })
+
+        cur.execute("""
+            SELECT DATE(created_at) as date, COUNT(*) as count
+            FROM email_logs
+            WHERE created_at >= CURRENT_DATE - INTERVAL '7 days'
+            GROUP BY DATE(created_at)
+            ORDER BY date
+        """)
+
+        daily = []
+        for row in cur.fetchall():
+            daily.append({
+                "date": row['date'].isoformat(),
+                "count": row['count']
+            })
+
+        return {
+            "success": True,
+            "stats": {
+                "total_sent": total_sent,
+                "total_failed": total_failed,
+                "today_sent": today_sent,
+                "by_template": by_template,
+                "daily": daily
+            }
+        }
 
     finally:
         cur.close()

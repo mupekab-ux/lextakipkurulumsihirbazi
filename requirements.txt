@@ -5,3 +5,8 @@ python-docx
 pandas
 requests  # API istekleri için
 pyinstaller  # Executable oluşturmak için
+
+# Veritabanı şifreleme (opsiyonel - AES-256)
+# Windows için: pip install pysqlcipher3
+# Linux için: pip install sqlcipher3
+# Yüklenemezse uygulama şifresiz çalışır

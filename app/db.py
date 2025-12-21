@@ -12,6 +12,32 @@ try:  # pragma: no cover - runtime import guard
 except ModuleNotFoundError:  # pragma: no cover
     from utils import hash_password, iso_to_tr, normalize_hex, get_attachments_dir
 
+# SQLCipher entegrasyonu
+try:  # pragma: no cover
+    from app.db_crypto import (
+        SQLCIPHER_AVAILABLE,
+        get_encrypted_connection,
+        is_encrypted_db,
+        ensure_encrypted_db,
+        derive_db_key,
+    )
+except ModuleNotFoundError:  # pragma: no cover
+    try:
+        from db_crypto import (
+            SQLCIPHER_AVAILABLE,
+            get_encrypted_connection,
+            is_encrypted_db,
+            ensure_encrypted_db,
+            derive_db_key,
+        )
+    except ImportError:
+        # db_crypto modülü yüklenemezse, şifreleme devre dışı
+        SQLCIPHER_AVAILABLE = False
+        get_encrypted_connection = None
+        is_encrypted_db = lambda x: False
+        ensure_encrypted_db = lambda x: (False, "db_crypto modülü yüklenemedi")
+        derive_db_key = lambda: ""
+
 
 def _get_documents_dir() -> str:
     """Windows ve diğer platformlarda Documents klasörünü güvenli şekilde bulur."""
@@ -524,8 +550,33 @@ DOSYALAR_OPTIONAL_COLUMNS = [
 ]
 
 def get_connection():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
+    """
+    Veritabanı bağlantısı al.
+
+    SQLCipher yüklü ise şifreli bağlantı kullanır.
+    Mevcut şifresiz veritabanı varsa otomatik migrate eder.
+    """
+    # SQLCipher varsa ve veritabanı şifresiz ise migrate et
+    if SQLCIPHER_AVAILABLE and os.path.exists(DB_PATH) and not is_encrypted_db(DB_PATH):
+        success, msg = ensure_encrypted_db(DB_PATH)
+        if success:
+            print(f"[db] {msg}")
+        else:
+            print(f"[db] Şifreleme uyarısı: {msg}")
+
+    # Bağlantı oluştur
+    if SQLCIPHER_AVAILABLE and get_encrypted_connection is not None:
+        try:
+            conn = get_encrypted_connection(DB_PATH)
+            conn.row_factory = sqlite3.Row
+        except Exception as e:
+            print(f"[db] SQLCipher bağlantı hatası: {e}, sqlite3'e geçiliyor")
+            conn = sqlite3.connect(DB_PATH)
+            conn.row_factory = sqlite3.Row
+    else:
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+
     conn.execute("PRAGMA foreign_keys = ON")
     pragmas = [
         "PRAGMA journal_mode=WAL",

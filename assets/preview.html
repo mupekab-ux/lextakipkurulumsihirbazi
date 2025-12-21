@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TakibiEsasi - Versiyon 10 İkonları</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+            color: #fff;
+        }
+        h1 { text-align: center; margin-bottom: 10px; font-weight: 300; }
+        .subtitle { text-align: center; color: #888; margin-bottom: 40px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .section {
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .section h2 {
+            color: #f5a623;
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+        }
+        .icon-row {
+            display: flex;
+            align-items: flex-end;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+        .icon-item {
+            text-align: center;
+        }
+        .icon-item img {
+            display: block;
+            margin: 0 auto 10px;
+            background: repeating-conic-gradient(#333 0% 25%, #222 0% 50%) 50% / 16px 16px;
+            border-radius: 8px;
+        }
+        .icon-item span {
+            font-size: 12px;
+            color: #666;
+        }
+        .wizard-preview {
+            display: flex;
+            gap: 40px;
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+        .wizard-item {
+            text-align: center;
+        }
+        .wizard-item img {
+            border: 1px solid #333;
+            border-radius: 4px;
+        }
+        .file-info {
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-family: monospace;
+            font-size: 13px;
+            color: #aaa;
+        }
+        .file-info div { margin: 5px 0; }
+        .file-info .filename { color: #f5a623; }
+        .file-info .size { color: #888; }
+    </style>
+</head>
+<body>
+    <h1>TakibiEsasi - Versiyon 10</h1>
+    <p class="subtitle">Gradient Çerçeve (Koyu arka plan üzerinde altın gradient)</p>
+    
+    <div class="container">
+        <div class="section">
+            <h2>📱 PNG İkonları (Farklı Boyutlar)</h2>
+            <div class="icon-row">
+                <div class="icon-item">
+                    <img src="icon_16.png" width="16" height="16" alt="16x16">
+                    <span>16×16</span>
+                </div>
+                <div class="icon-item">
+                    <img src="icon_32.png" width="32" height="32" alt="32x32">
+                    <span>32×32</span>
+                </div>
+                <div class="icon-item">
+                    <img src="icon_48.png" width="48" height="48" alt="48x48">
+                    <span>48×48</span>
+                </div>
+                <div class="icon-item">
+                    <img src="icon_64.png" width="64" height="64" alt="64x64">
+                    <span>64×64</span>
+                </div>
+                <div class="icon-item">
+                    <img src="icon_128.png" width="128" height="128" alt="128x128">
+                    <span>128×128</span>
+                </div>
+                <div class="icon-item">
+                    <img src="icon_256.png" width="256" height="256" alt="256x256">
+                    <span>256×256</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>🖼️ Ana İkon (512×512)</h2>
+            <div class="icon-row">
+                <div class="icon-item">
+                    <img src="icon.png" width="256" height="256" alt="icon.png" style="width: 256px; height: 256px;">
+                    <span>icon.png (gösterim 256px, gerçek 512×512)</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>🧙 Wizard Görselleri (Kurulum Sihirbazı)</h2>
+            <div class="wizard-preview">
+                <div class="wizard-item">
+                    <img src="wizard.bmp" alt="wizard.bmp">
+                    <p style="margin-top: 10px; color: #888; font-size: 12px;">wizard.bmp (164×314)</p>
+                </div>
+                <div class="wizard-item">
+                    <img src="wizard_small.bmp" alt="wizard_small.bmp">
+                    <p style="margin-top: 10px; color: #888; font-size: 12px;">wizard_small.bmp (55×58)</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>📁 Oluşturulan Dosyalar</h2>
+            <div class="file-info">
+                <div><span class="filename">icon.png</span> <span class="size">- 512×512 PNG (Ana ikon)</span></div>
+                <div><span class="filename">icon.ico</span> <span class="size">- Windows ICO (16, 32, 48, 64, 128, 256)</span></div>
+                <div><span class="filename">icon.icns</span> <span class="size">- macOS ICNS (16 - 1024)</span></div>
+                <div><span class="filename">wizard.bmp</span> <span class="size">- 164×314 BMP (Inno Setup büyük)</span></div>
+                <div><span class="filename">wizard_small.bmp</span> <span class="size">- 55×58 BMP (Inno Setup küçük)</span></div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
