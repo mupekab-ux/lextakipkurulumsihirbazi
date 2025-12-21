@@ -150,7 +150,8 @@ def build_nuitka():
         "--include-module=pandas",
         "--include-module=requests",
         "--include-module=sqlite3",
-        "--include-module=sqlcipher3",  # Veritabanı şifreleme
+        "--include-module=cryptography",  # Veritabanı şifreleme (fallback)
+        "--nofollow-import-to=sqlcipher3",  # SQLCipher opsiyonel
         "--assume-yes-for-downloads",
         f"--windows-company-name={APP_NAME}",
         f"--windows-product-name={APP_NAME}",

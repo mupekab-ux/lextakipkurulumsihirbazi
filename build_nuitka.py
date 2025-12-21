@@ -79,7 +79,8 @@ def build():
         "--include-module=pandas",
         "--include-module=requests",
         "--include-module=sqlite3",
-        "--include-module=sqlcipher3",  # Veritabanı şifreleme
+        "--include-module=cryptography",  # Veritabanı şifreleme (fallback)
+        "--nofollow-import-to=sqlcipher3",  # SQLCipher opsiyonel
 
         # Data dosyaları
         f"--include-data-dir={os.path.join(SCRIPT_DIR, 'app/themes')}=app/themes",

@@ -23,6 +23,10 @@ APP_SECRET = "TakibiEsasi-DB-Secret-2024-v1"
 SQLCIPHER_AVAILABLE = False
 sqlcipher = None
 
+# Fallback: cryptography kütüphanesi (dosya seviyesi şifreleme)
+CRYPTOGRAPHY_AVAILABLE = False
+Fernet = None
+
 try:
     import sqlcipher3 as sqlcipher
     SQLCIPHER_AVAILABLE = True
@@ -33,7 +37,16 @@ except ImportError:
         SQLCIPHER_AVAILABLE = True
         logger.info("SQLCipher kullanılabilir (pysqlcipher3)")
     except ImportError:
-        logger.warning("SQLCipher bulunamadı, veritabanı şifrelenmeyecek")
+        logger.info("SQLCipher bulunamadı, fallback şifreleme denenecek")
+        try:
+            from cryptography.fernet import Fernet
+            from cryptography.hazmat.primitives import hashes
+            from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+            import base64
+            CRYPTOGRAPHY_AVAILABLE = True
+            logger.info("Cryptography kütüphanesi kullanılabilir (dosya şifreleme)")
+        except ImportError:
+            logger.warning("Şifreleme kütüphanesi bulunamadı, veritabanı şifrelenmeyecek")
 
 
 def get_machine_id() -> str:
@@ -73,6 +86,129 @@ def derive_db_key() -> str:
         key = hashlib.sha256(key).digest()
 
     return key.hex()
+
+
+def derive_fernet_key() -> bytes:
+    """
+    Cryptography/Fernet için anahtar türet.
+
+    Returns:
+        32-byte base64-encoded key for Fernet
+    """
+    if not CRYPTOGRAPHY_AVAILABLE:
+        raise RuntimeError("Cryptography kütüphanesi yüklü değil")
+
+    from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+    from cryptography.hazmat.primitives import hashes
+    import base64
+
+    machine_id = get_machine_id()
+    salt = APP_SECRET.encode('utf-8')
+    password = machine_id.encode('utf-8')
+
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=salt,
+        iterations=480000,
+    )
+
+    key = base64.urlsafe_b64encode(kdf.derive(password))
+    return key
+
+
+def encrypt_file(file_path: str, key: bytes = None) -> bool:
+    """
+    Dosyayı Fernet ile şifrele.
+
+    Args:
+        file_path: Şifrelenecek dosya
+        key: Fernet anahtarı (None ise otomatik türetilir)
+
+    Returns:
+        Başarılı ise True
+    """
+    if not CRYPTOGRAPHY_AVAILABLE:
+        logger.warning("Cryptography yüklü değil, dosya şifrelenmedi")
+        return False
+
+    from cryptography.fernet import Fernet as FernetClass
+
+    try:
+        if key is None:
+            key = derive_fernet_key()
+
+        fernet = FernetClass(key)
+
+        with open(file_path, 'rb') as f:
+            data = f.read()
+
+        encrypted = fernet.encrypt(data)
+
+        # Şifreli dosyayı yaz (marker ile başla)
+        with open(file_path, 'wb') as f:
+            f.write(b'TAKIBI_ENC_V1\x00')  # 14 byte marker
+            f.write(encrypted)
+
+        logger.info(f"Dosya şifrelendi: {file_path}")
+        return True
+
+    except Exception as e:
+        logger.error(f"Dosya şifreleme hatası: {e}")
+        return False
+
+
+def decrypt_file(file_path: str, key: bytes = None) -> bool:
+    """
+    Fernet ile şifrelenmiş dosyayı çöz.
+
+    Args:
+        file_path: Şifresi çözülecek dosya
+        key: Fernet anahtarı (None ise otomatik türetilir)
+
+    Returns:
+        Başarılı ise True
+    """
+    if not CRYPTOGRAPHY_AVAILABLE:
+        logger.warning("Cryptography yüklü değil")
+        return False
+
+    from cryptography.fernet import Fernet as FernetClass
+
+    try:
+        if key is None:
+            key = derive_fernet_key()
+
+        fernet = FernetClass(key)
+
+        with open(file_path, 'rb') as f:
+            marker = f.read(14)
+            if marker != b'TAKIBI_ENC_V1\x00':
+                logger.warning("Dosya Fernet ile şifreli değil")
+                return False
+            encrypted = f.read()
+
+        decrypted = fernet.decrypt(encrypted)
+
+        with open(file_path, 'wb') as f:
+            f.write(decrypted)
+
+        logger.info(f"Dosya şifresi çözüldü: {file_path}")
+        return True
+
+    except Exception as e:
+        logger.error(f"Dosya şifre çözme hatası: {e}")
+        return False
+
+
+def is_fernet_encrypted(file_path: str) -> bool:
+    """Dosyanın Fernet ile şifreli olup olmadığını kontrol et."""
+    try:
+        with open(file_path, 'rb') as f:
+            marker = f.read(14)
+        return marker == b'TAKIBI_ENC_V1\x00'
+    except Exception:
+        return False
 
 
 def is_encrypted_db(db_path: str) -> bool:
