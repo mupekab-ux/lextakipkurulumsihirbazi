@@ -780,14 +780,16 @@
 
         .slide-caption {
             position: absolute;
-            bottom: 0;
+            top: 0;
             left: 0;
             right: 0;
             padding: 20px 30px;
-            background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+            background: linear-gradient(rgba(0, 0, 0, 0.7), transparent);
             color: white;
-            font-size: 18px;
-            font-weight: 500;
+            font-size: 20px;
+            font-weight: 600;
+            text-align: center;
+            letter-spacing: 0.5px;
         }
 
         .gallery-nav {
@@ -822,12 +824,11 @@
         }
 
         .thumb-item {
-            width: 120px;
-            height: 70px;
-            border-radius: 10px;
-            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
             cursor: pointer;
-            border: 2px solid transparent;
             opacity: 0.5;
             transition: all 0.3s ease;
         }
@@ -838,14 +839,42 @@
 
         .thumb-item.active {
             opacity: 1;
+        }
+
+        .thumb-img {
+            width: 140px;
+            height: 85px;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .thumb-item.active .thumb-img {
             border-color: var(--gold-medium);
             box-shadow: 0 0 20px rgba(251, 191, 36, 0.3);
         }
 
-        .thumb-item img {
+        .thumb-img img {
             width: 100%;
             height: 100%;
             object-fit: cover;
+        }
+
+        .thumb-title {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-align: center;
+            max-width: 140px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            transition: color 0.3s ease;
+        }
+
+        .thumb-item.active .thumb-title {
+            color: var(--gold-medium);
+            font-weight: 500;
         }
 
         .gallery-dots {
@@ -2338,7 +2367,10 @@
             // Render thumbnails
             thumbs.innerHTML = screenshotData.map((s, i) => `
                 <div class="thumb-item ${i === 0 ? 'active' : ''}" onclick="goToSlide(${i})">
-                    <img src="${s.image_url}" alt="${s.title || 'Thumbnail'}">
+                    <div class="thumb-img">
+                        <img src="${s.image_url}" alt="${s.title || 'Thumbnail'}">
+                    </div>
+                    <div class="thumb-title">${s.title || 'Görüntü ' + (i + 1)}</div>
                 </div>
             `).join('');
 
