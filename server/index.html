@@ -767,27 +767,30 @@
 
         .gallery-slide {
             min-width: 100%;
-            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
         }
 
         .gallery-slide img {
-            width: 100%;
+            max-width: 100%;
+            max-height: 70vh;
             height: auto;
-            max-height: 80vh;
+            width: auto;
             display: block;
-            object-fit: contain;
+            border-radius: 12px;
         }
 
         .slide-caption {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            padding: 20px 30px;
-            background: linear-gradient(rgba(0, 0, 0, 0.7), transparent);
-            color: white;
-            font-size: 20px;
-            font-weight: 600;
+            margin-top: 15px;
+            padding: 12px 25px;
+            background: rgba(251, 191, 36, 0.15);
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            border-radius: 30px;
+            color: var(--gold-medium);
+            font-size: 16px;
+            font-weight: 500;
             text-align: center;
             letter-spacing: 0.5px;
         }
