@@ -27,6 +27,14 @@
     <meta name="twitter:description" content="Avukatlar için profesyonel dava ve icra takip yazılımı.">
     <meta name="twitter:image" content="https://takibiesasi.com/logo.png">
 
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#FBBF24">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="TakibiEsasi">
+    <link rel="apple-touch-icon" href="/icon-192.png">
+
     <title>TakibiEsasi - Hukuki Takip Yazılımı</title>
 
     <!-- Schema.org Structured Data (Google için) -->
@@ -2289,7 +2297,7 @@
                 <div class="footer-brand">
                     <a href="#" class="logo">
                         <div class="logo-icon">
-                            <img src="/logo.png" alt="TakibiEsasi Logo">
+                            <img src="/logo.png" alt="TakibiEsasi Logo" loading="lazy">
                         </div>
                         <span class="logo-text">TakibiEsasi</span>
                     </a>
@@ -2446,7 +2454,7 @@
             // Render thumbnails
             thumbs.innerHTML = screenshotData.map((s, i) => `
                 <div class="thumb-item ${i === 0 ? 'active' : ''}" onclick="goToSlide(${i})">
-                    <img src="${s.image_url}" alt="${s.title || 'Thumbnail'}">
+                    <img src="${s.image_url}" alt="${s.title || 'Thumbnail'}" loading="lazy">
                 </div>
             `).join('');
 
@@ -2676,6 +2684,15 @@
                 }
             });
         });
+
+        // Register Service Worker for PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('Service Worker registered'))
+                    .catch(err => console.log('Service Worker registration failed:', err));
+            });
+        }
     </script>
 </body>
 </html>
