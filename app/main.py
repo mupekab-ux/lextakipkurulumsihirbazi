@@ -8,12 +8,18 @@ from PyQt6.QtGui import QIcon
 
 def resource_path(relative_path: str) -> str:
     """
-    PyInstaller ile paketlendiğinde dosya yollarını düzgün çözer.
+    PyInstaller veya Nuitka ile paketlendiğinde dosya yollarını düzgün çözer.
     Geliştirme ortamında normal yolu döndürür.
     """
-    if getattr(sys, 'frozen', False):
+    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
         # PyInstaller ile paketlenmiş
         base_path = sys._MEIPASS
+    elif '__nuitka_binary_dir' in dir():
+        # Nuitka onefile - geçici klasör
+        base_path = __nuitka_binary_dir  # noqa: F821
+    elif getattr(sys, 'frozen', False) or '__compiled__' in dir():
+        # Nuitka standalone veya diğer frozen durumlar
+        base_path = os.path.dirname(sys.executable)
     else:
         # Normal Python çalıştırma - app klasörünün bir üst dizini
         base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

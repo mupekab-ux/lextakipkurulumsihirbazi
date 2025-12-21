@@ -111,12 +111,20 @@ _THEME_CACHE: dict[str, str] = {}
 
 
 def resource_path(relative_path: str) -> str:
-    """PyInstaller paketlerinde kaynak dosyaları güvenle çözümler."""
+    """PyInstaller veya Nuitka paketlerinde kaynak dosyaları güvenle çözümler."""
 
     if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+        # PyInstaller
         base = Path(sys._MEIPASS)
+    elif '__nuitka_binary_dir' in dir():
+        # Nuitka onefile - geçici klasör
+        base = Path(__nuitka_binary_dir)  # noqa: F821
+    elif getattr(sys, 'frozen', False) or '__compiled__' in dir():
+        # Nuitka standalone veya diğer frozen durumlar
+        base = Path(sys.executable).parent
     else:
-        base = Path(__file__).resolve().parent
+        # Geliştirme ortamı - app klasörünün bir üst dizini
+        base = Path(__file__).resolve().parent.parent
     return str((base / relative_path).resolve())
 
 
