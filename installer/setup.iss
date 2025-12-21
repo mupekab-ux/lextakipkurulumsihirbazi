@@ -41,8 +41,8 @@ LZMANumFastBytes=64
 
 ; Kurulum ikonu ve gorseller
 SetupIconFile=..\assets\icon.ico
-; WizardImageFile=..\assets\wizard.bmp
-; WizardSmallImageFile=..\assets\wizard_small.bmp
+WizardImageFile=..\assets\wizard.bmp
+WizardSmallImageFile=..\assets\wizard_small.bmp
 
 ; Gereksinimler
 PrivilegesRequired=admin

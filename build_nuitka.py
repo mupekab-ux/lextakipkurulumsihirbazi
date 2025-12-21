@@ -24,7 +24,7 @@ APP_NAME = "TakibiEsasi"
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 MAIN_FILE = os.path.join(SCRIPT_DIR, "app/main.py")
 ICON_FILE = os.path.join(SCRIPT_DIR, "app/icon.ico")
-OUTPUT_DIR = os.path.join(SCRIPT_DIR, "dist_nuitka")
+OUTPUT_DIR = os.path.join(SCRIPT_DIR, "dist")
 
 def check_nuitka():
     """Nuitka kurulu mu kontrol et"""
@@ -82,7 +82,7 @@ def build():
 
         # Data dosyaları
         f"--include-data-dir={os.path.join(SCRIPT_DIR, 'app/themes')}=app/themes",
-        f"--include-data-dir={os.path.join(SCRIPT_DIR, 'app/ui')}=app/ui",
+        f"--include-data-dir={os.path.join(SCRIPT_DIR, 'assets')}=assets",
 
         # Performans ve koruma
         "--lto=yes",                       # Link Time Optimization
