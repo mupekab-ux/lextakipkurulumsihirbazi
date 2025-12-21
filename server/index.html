@@ -1202,7 +1202,25 @@
 
         @media (max-width: 768px) {
             .coming-features-grid {
-                grid-template-columns: 1fr;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+            }
+
+            .coming-feature-item {
+                padding: 16px 12px;
+            }
+
+            .coming-feature-item i {
+                font-size: 22px;
+                margin-bottom: 8px;
+            }
+
+            .coming-feature-item h4 {
+                font-size: 13px;
+            }
+
+            .coming-feature-item p {
+                font-size: 11px;
             }
 
             .notify-form {
@@ -1210,7 +1228,28 @@
             }
 
             .coming-soon-card {
-                padding: 40px 24px;
+                padding: 30px 16px;
+            }
+
+            .coming-soon-card h2 {
+                font-size: 24px;
+            }
+
+            .coming-soon-card > p {
+                font-size: 14px;
+                margin-bottom: 24px;
+            }
+
+            .coming-soon-badge-large {
+                padding: 10px 20px;
+                font-size: 12px;
+                letter-spacing: 1px;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .coming-features-grid {
+                grid-template-columns: 1fr;
             }
         }
 
