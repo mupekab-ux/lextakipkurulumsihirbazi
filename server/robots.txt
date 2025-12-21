@@ -11,8 +11,6 @@ Disallow: /api/
 
 # Media files - allow
 Allow: /media/
-Allow: /logo.png
-Allow: /icon-*.png
 
 # Sitemap location
 Sitemap: https://takibiesasi.com/sitemap.xml
