@@ -2290,7 +2290,7 @@
         // Load screenshots from API
         async function loadScreenshots() {
             try {
-                const response = await fetch(API_BASE + '/api/screenshots');
+                const response = await fetch(API_BASE + '/api/site/screenshots');
                 if (response.ok) {
                     screenshotData = await response.json();
                     if (screenshotData.length > 0) {
