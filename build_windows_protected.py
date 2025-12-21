@@ -31,11 +31,12 @@ ICON_FILE = "app/icon.ico"
 OUTPUT_DIR = "dist_protected"
 BUILD_TEMP = "build_temp"
 
-# Cython ile derlenecek dosyalar
+# Cython ile derlenecek dosyalar (kritik/güvenlik modülleri)
 CYTHON_MODULES = [
     "app/license.py",
     "app/demo_manager.py",
     "app/updater.py",
+    "app/db_crypto.py",  # Veritabanı şifreleme
     "app/services/user_service.py",
 ]
 
