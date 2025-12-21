@@ -37,18 +37,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Configuration
+# Configuration - Sensitive data from environment variables
 DB_CONFIG = {
-    "host": "localhost",
-    "database": "takibiesasi_db",
-    "user": "takibiesasi_user",
-    "password": "TakibiEsasi2024!"
+    "host": os.environ.get("DB_HOST", "localhost"),
+    "database": os.environ.get("DB_NAME", "takibiesasi_db"),
+    "user": os.environ.get("DB_USER", "takibiesasi_user"),
+    "password": os.environ.get("DB_PASSWORD", "")
 }
 
-ADMIN_USERNAME = "admin"
-ADMIN_PASSWORD = "TakibiAdmin2024!"
-JWT_SECRET = "takibiesasi-secret-key-2024"
-OFFLINE_TOKEN_SECRET = "takibiesasi-offline-token-secret-2024"
+ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
+JWT_SECRET = os.environ.get("JWT_SECRET", "change-this-secret-key")
+OFFLINE_TOKEN_SECRET = os.environ.get("OFFLINE_TOKEN_SECRET", "change-this-offline-secret")
 OFFLINE_TOKEN_DAYS = 30  # Offline token geçerlilik süresi
 
 DOWNLOAD_DIR = "/var/www/takibiesasi/download"
@@ -59,8 +59,8 @@ RELEASES_HISTORY_FILE = "/var/www/takibiesasi/releases/history.json"
 EMAIL_CONFIG = {
     "smtp_server": "smtp.gmail.com",
     "smtp_port": 587,
-    "email": "destek@takibiesasi.com",
-    "password": "hohmrbtbnqyjltzd",  # App Password (boşluksuz)
+    "email": os.environ.get("SMTP_EMAIL", "destek@takibiesasi.com"),
+    "password": os.environ.get("SMTP_PASSWORD", ""),
     "from_name": "TakibiEsasi"
 }
 
