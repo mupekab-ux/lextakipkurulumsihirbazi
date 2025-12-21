@@ -177,13 +177,39 @@ def check_demo_on_startup() -> bool:
         if status["status"] == "demo_active":
             return True
 
-        # Bilinmeyen durum - devam et
-        return True
+        # Hata durumu - kullanıcıya bildir ve tekrar dene
+        if status["status"] == "error":
+            error_msg = status.get("error", "Bilinmeyen hata")
+            result = QMessageBox.warning(
+                None,
+                "Demo Kontrol Hatası",
+                f"Demo durumu kontrol edilemedi:\n{error_msg}\n\n"
+                "Tekrar denemek ister misiniz?",
+                QMessageBox.StandardButton.Retry | QMessageBox.StandardButton.Cancel
+            )
+            if result == QMessageBox.StandardButton.Retry:
+                return check_demo_on_startup()
+            return False
+
+        # Bilinmeyen durum - güvenlik için izin verme
+        print(f"Bilinmeyen demo durumu: {status.get('status')}")
+        QMessageBox.critical(
+            None,
+            "Hata",
+            f"Beklenmeyen demo durumu: {status.get('status')}\n"
+            "Lütfen destek ekibiyle iletişime geçin."
+        )
+        return False
 
     except Exception as e:
         print(f"Demo kontrolü hatası: {e}")
-        # Hata durumunda devam et (kullanıcıyı engelleme)
-        return True
+        QMessageBox.critical(
+            None,
+            "Demo Kontrol Hatası",
+            f"Demo durumu kontrol edilirken hata oluştu:\n{str(e)}\n\n"
+            "Uygulama başlatılamıyor."
+        )
+        return False
 
 
 def main():
