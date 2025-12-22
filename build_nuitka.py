@@ -46,10 +46,20 @@ def build():
     if not check_nuitka():
         return False
 
-    # Output klasörünü temizle
+    # Output klasörünü temizle (installer klasörünü koru)
     if os.path.exists(OUTPUT_DIR):
         print(f"Eski build temizleniyor: {OUTPUT_DIR}")
-        shutil.rmtree(OUTPUT_DIR)
+        # Sadece exe ve build dosyalarını sil, installer klasörünü koru
+        for item in os.listdir(OUTPUT_DIR):
+            item_path = os.path.join(OUTPUT_DIR, item)
+            if item != "installer":  # installer klasörünü koru
+                if os.path.isfile(item_path):
+                    os.remove(item_path)
+                elif os.path.isdir(item_path):
+                    shutil.rmtree(item_path)
+                print(f"  Silindi: {item}")
+    else:
+        os.makedirs(OUTPUT_DIR, exist_ok=True)
 
     # Nuitka komutunu oluştur
     cmd = [
