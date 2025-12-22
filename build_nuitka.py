@@ -90,17 +90,22 @@ def build():
         "--lto=yes",                       # Link Time Optimization
         "--python-flag=no_site",           # site.py yükleme
         "--python-flag=no_warnings",       # Uyarıları gizle
-
-        # Ana dosya
-        MAIN_FILE
     ]
 
-    # Icon varsa ekle
+    # Icon varsa ekle (MAIN_FILE'dan önce)
     if os.path.exists(ICON_FILE):
-        cmd.insert(-1, f"--windows-icon-from-ico={ICON_FILE}")
+        cmd.append(f"--windows-icon-from-ico={ICON_FILE}")
         print(f"✓ Icon bulundu: {ICON_FILE}")
     else:
         print(f"⚠ Icon bulunamadı: {ICON_FILE}")
+        # Alternatif konum dene
+        alt_icon = os.path.join(SCRIPT_DIR, "assets/icon.ico")
+        if os.path.exists(alt_icon):
+            cmd.append(f"--windows-icon-from-ico={alt_icon}")
+            print(f"✓ Alternatif icon bulundu: {alt_icon}")
+
+    # Ana dosya (en son eklenmeli)
+    cmd.append(MAIN_FILE)
 
     print("\n" + "="*60)
     print("Nuitka Build Başlıyor...")
