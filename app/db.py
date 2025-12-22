@@ -12,31 +12,46 @@ try:  # pragma: no cover - runtime import guard
 except ModuleNotFoundError:  # pragma: no cover
     from utils import hash_password, iso_to_tr, normalize_hex, get_attachments_dir
 
-# SQLCipher entegrasyonu
+# SQLCipher / Fernet şifreleme entegrasyonu
 try:  # pragma: no cover
     from app.db_crypto import (
         SQLCIPHER_AVAILABLE,
+        CRYPTOGRAPHY_AVAILABLE,
         get_encrypted_connection,
         is_encrypted_db,
+        is_fernet_encrypted,
         ensure_encrypted_db,
         derive_db_key,
+        encrypt_file,
+        decrypt_file,
     )
 except ModuleNotFoundError:  # pragma: no cover
     try:
         from db_crypto import (
             SQLCIPHER_AVAILABLE,
+            CRYPTOGRAPHY_AVAILABLE,
             get_encrypted_connection,
             is_encrypted_db,
+            is_fernet_encrypted,
             ensure_encrypted_db,
             derive_db_key,
+            encrypt_file,
+            decrypt_file,
         )
     except ImportError:
         # db_crypto modülü yüklenemezse, şifreleme devre dışı
         SQLCIPHER_AVAILABLE = False
+        CRYPTOGRAPHY_AVAILABLE = False
         get_encrypted_connection = None
         is_encrypted_db = lambda x: False
+        is_fernet_encrypted = lambda x: False
         ensure_encrypted_db = lambda x: (False, "db_crypto modülü yüklenemedi")
         derive_db_key = lambda: ""
+        encrypt_file = lambda x: False
+        decrypt_file = lambda x: False
+
+# Fernet şifreleme durumu (uygulama kapanırken şifrelemek için)
+_db_needs_encryption = False
 
 
 def _get_documents_dir() -> str:
@@ -553,19 +568,23 @@ def get_connection():
     """
     Veritabanı bağlantısı al.
 
-    SQLCipher yüklü ise şifreli bağlantı kullanır.
-    Mevcut şifresiz veritabanı varsa otomatik migrate eder.
+    Şifreleme öncelik sırası:
+    1. SQLCipher (veritabanı seviyesi şifreleme)
+    2. Fernet/Cryptography (dosya seviyesi şifreleme)
+    3. Şifresiz SQLite (fallback)
     """
-    # SQLCipher varsa ve veritabanı şifresiz ise migrate et
-    if SQLCIPHER_AVAILABLE and os.path.exists(DB_PATH) and not is_encrypted_db(DB_PATH):
-        success, msg = ensure_encrypted_db(DB_PATH)
-        if success:
-            print(f"[db] {msg}")
-        else:
-            print(f"[db] Şifreleme uyarısı: {msg}")
+    global _db_needs_encryption
 
-    # Bağlantı oluştur
+    # SQLCipher varsa kullan
     if SQLCIPHER_AVAILABLE and get_encrypted_connection is not None:
+        # Şifresiz veritabanı varsa migrate et
+        if os.path.exists(DB_PATH) and not is_encrypted_db(DB_PATH) and not is_fernet_encrypted(DB_PATH):
+            success, msg = ensure_encrypted_db(DB_PATH)
+            if success:
+                print(f"[db] {msg}")
+            else:
+                print(f"[db] Şifreleme uyarısı: {msg}")
+
         try:
             conn = get_encrypted_connection(DB_PATH)
             conn.row_factory = sqlite3.Row
@@ -573,7 +592,26 @@ def get_connection():
             print(f"[db] SQLCipher bağlantı hatası: {e}, sqlite3'e geçiliyor")
             conn = sqlite3.connect(DB_PATH)
             conn.row_factory = sqlite3.Row
+
+    # SQLCipher yok ama Fernet varsa, dosya seviyesi şifreleme kullan
+    elif CRYPTOGRAPHY_AVAILABLE:
+        # Eğer veritabanı Fernet ile şifreli ise, önce çöz
+        if os.path.exists(DB_PATH) and is_fernet_encrypted(DB_PATH):
+            print("[db] Fernet şifreli veritabanı açılıyor...")
+            if decrypt_file(DB_PATH):
+                print("[db] Veritabanı şifresi çözüldü")
+                _db_needs_encryption = True
+            else:
+                print("[db] HATA: Veritabanı şifresi çözülemedi!")
+        elif os.path.exists(DB_PATH):
+            # Veritabanı var ama şifreli değil - kapanışta şifrelenecek
+            _db_needs_encryption = True
+
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+
     else:
+        # Ne SQLCipher ne Fernet var - şifresiz kullan
         conn = sqlite3.connect(DB_PATH)
         conn.row_factory = sqlite3.Row
 
@@ -3657,3 +3695,80 @@ def open_attachment_file(attachment_id: int) -> bool:
             return False
     finally:
         conn.close()
+
+
+def encrypt_database_on_shutdown() -> bool:
+    """
+    Uygulama kapanırken veritabanını Fernet ile şifreler.
+
+    Bu fonksiyon sadece:
+    - SQLCipher kullanılmıyorsa VE
+    - Cryptography/Fernet mevcutsa VE
+    - Veritabanı şifreleme gerektiriyorsa çalışır.
+
+    Returns:
+        Şifreleme yapıldıysa True
+    """
+    global _db_needs_encryption
+
+    if not _db_needs_encryption:
+        return False
+
+    if SQLCIPHER_AVAILABLE:
+        # SQLCipher kullanılıyor, Fernet şifreleme gerekmiyor
+        return False
+
+    if not CRYPTOGRAPHY_AVAILABLE:
+        print("[db] UYARI: Cryptography yüklü değil, veritabanı şifrelenemiyor!")
+        return False
+
+    if not os.path.exists(DB_PATH):
+        return False
+
+    # Zaten şifreli mi kontrol et
+    if is_fernet_encrypted(DB_PATH):
+        return False
+
+    try:
+        # WAL checkpoint yap - tüm değişiklikleri ana dosyaya yaz
+        conn = sqlite3.connect(DB_PATH)
+        conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        conn.close()
+
+        # WAL ve SHM dosyalarını sil
+        wal_path = DB_PATH + "-wal"
+        shm_path = DB_PATH + "-shm"
+        if os.path.exists(wal_path):
+            os.remove(wal_path)
+        if os.path.exists(shm_path):
+            os.remove(shm_path)
+
+        # Veritabanını şifrele
+        if encrypt_file(DB_PATH):
+            print("[db] Veritabanı başarıyla şifrelendi")
+            _db_needs_encryption = False
+            return True
+        else:
+            print("[db] HATA: Veritabanı şifrelenemedi!")
+            return False
+
+    except Exception as e:
+        print(f"[db] Şifreleme hatası: {e}")
+        return False
+
+
+def is_encryption_available() -> tuple:
+    """
+    Şifreleme durumunu kontrol et.
+
+    Returns:
+        (method, available) tuple:
+        - method: 'sqlcipher', 'fernet', veya 'none'
+        - available: True/False
+    """
+    if SQLCIPHER_AVAILABLE:
+        return ('sqlcipher', True)
+    elif CRYPTOGRAPHY_AVAILABLE:
+        return ('fernet', True)
+    else:
+        return ('none', False)

@@ -26,9 +26,9 @@ def resource_path(relative_path: str) -> str:
     return os.path.join(base_path, relative_path)
 
 try:  # pragma: no cover - runtime import guard
-    from app.db import initialize_database, auto_backup_on_startup, get_database_path
+    from app.db import initialize_database, auto_backup_on_startup, get_database_path, encrypt_database_on_shutdown
 except ModuleNotFoundError:  # pragma: no cover
-    from db import initialize_database, auto_backup_on_startup, get_database_path
+    from db import initialize_database, auto_backup_on_startup, get_database_path, encrypt_database_on_shutdown
 
 try:  # pragma: no cover - runtime import guard
     from app.ui_main import MainWindow
@@ -280,6 +280,10 @@ def main():
     window = MainWindow(login.user)
     window.showMaximized()
     print("Veritabanı oluşturuldu")
+
+    # Uygulama kapanırken veritabanını şifrele
+    app.aboutToQuit.connect(encrypt_database_on_shutdown)
+
     sys.exit(app.exec())
 
 
