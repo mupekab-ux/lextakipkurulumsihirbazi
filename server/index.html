@@ -1930,16 +1930,16 @@
 
             <div class="hero-stats" data-aos="fade-up" data-aos-delay="400">
                 <div class="stat-item">
-                    <span class="stat-number" data-count="1000">0</span>
-                    <span class="stat-label">Aktif Kullanıcı</span>
+                    <span class="stat-number" id="stat-users" data-count="0">0</span>
+                    <span class="stat-label" id="stat-users-label">Aktif Kullanıcı</span>
                 </div>
                 <div class="stat-item">
-                    <span class="stat-number" data-count="50000">0</span>
-                    <span class="stat-label">Takip Edilen Dava</span>
+                    <span class="stat-number" id="stat-cases" data-count="0">0</span>
+                    <span class="stat-label" id="stat-cases-label">Takip Edilen Dava</span>
                 </div>
                 <div class="stat-item">
-                    <span class="stat-number" data-count="99">0</span>
-                    <span class="stat-label">% Memnuniyet</span>
+                    <span class="stat-number" id="stat-satisfaction" data-count="0">0</span>
+                    <span class="stat-label" id="stat-satisfaction-label">% Memnuniyet</span>
                 </div>
             </div>
         </div>
@@ -2144,11 +2144,6 @@
                         <p>Detaylı istatistikler</p>
                     </div>
                     <div class="coming-feature-item">
-                        <i class="fas fa-comments"></i>
-                        <h4>Büro İçi Mesajlaşma</h4>
-                        <p>Anlık iletişim</p>
-                    </div>
-                    <div class="coming-feature-item">
                         <i class="fas fa-calendar-alt"></i>
                         <h4>Ortak Takvim & Randevu</h4>
                         <p>Koordineli çalışma</p>
@@ -2260,22 +2255,7 @@
 
             <div class="testimonials-slider" data-aos="fade-up" data-aos-delay="100">
                 <div class="testimonial-card" id="testimonial-card">
-                    <div class="testimonial-quote">"</div>
-                    <p class="testimonial-text">TakibiEsasi ile dava ve icra takibim çok kolaylaştı. Artık hiçbir duruşma tarihini kaçırmıyorum. Vekalet yönetimi de son derece pratik.</p>
-                    <div class="testimonial-author">
-                        <div class="testimonial-avatar">MY</div>
-                        <div class="testimonial-info">
-                            <h4>Av. Mehmet Yılmaz</h4>
-                            <p>Yılmaz Hukuk Bürosu</p>
-                        </div>
-                    </div>
-                    <div class="testimonial-rating">
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                        <i class="fas fa-star"></i>
-                    </div>
+                    <!-- Yorumlar admin panelinden eklenir -->
                 </div>
             </div>
         </div>
@@ -2362,7 +2342,7 @@
                         </div>
                         <div class="contact-item-text">
                             <h4>E-posta</h4>
-                            <p>info@takibiesasi.com</p>
+                            <p id="contact-email">-</p>
                         </div>
                     </div>
 
@@ -2372,7 +2352,7 @@
                         </div>
                         <div class="contact-item-text">
                             <h4>Telefon</h4>
-                            <p>+90 212 000 00 00</p>
+                            <p id="contact-phone">-</p>
                         </div>
                     </div>
 
@@ -2382,7 +2362,7 @@
                         </div>
                         <div class="contact-item-text">
                             <h4>Adres</h4>
-                            <p>İstanbul, Türkiye</p>
+                            <p id="contact-address">-</p>
                         </div>
                     </div>
                 </div>
@@ -2455,11 +2435,10 @@
 
             <div class="footer-bottom">
                 <p>&copy; 2025 TakibiEsasi. Tüm hakları saklıdır.</p>
-                <!-- Sosyal medya linkleri - hesaplar açılınca güncellenecek -->
                 <div class="footer-social">
-                    <a href="#" title="Yakında" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
-                    <a href="#" title="Yakında" aria-label="LinkedIn"><i class="fab fa-linkedin"></i></a>
-                    <a href="#" title="Yakında" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+                    <a href="#" id="social-twitter" title="Yakında" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+                    <a href="#" id="social-linkedin" title="Yakında" aria-label="LinkedIn"><i class="fab fa-linkedin"></i></a>
+                    <a href="#" id="social-instagram" title="Yakında" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
                 </div>
             </div>
         </div>
@@ -2477,6 +2456,50 @@
             once: true,
             offset: 100
         });
+
+        // Load site settings for contact info and hero stats
+        async function loadSiteSettings() {
+            try {
+                const response = await fetch(API_BASE + '/api/site/settings');
+                if (response.ok) {
+                    const settings = await response.json();
+
+                    // Update contact info
+                    const contactEmail = document.getElementById('contact-email');
+                    const contactPhone = document.getElementById('contact-phone');
+                    const contactAddress = document.getElementById('contact-address');
+                    if (contactEmail && settings.contact_email) contactEmail.textContent = settings.contact_email;
+                    if (contactPhone && settings.contact_phone) contactPhone.textContent = settings.contact_phone;
+                    if (contactAddress && settings.contact_address) contactAddress.textContent = settings.contact_address;
+
+                    // Update hero stats
+                    const statUsers = document.getElementById('stat-users');
+                    const statCases = document.getElementById('stat-cases');
+                    const statSatisfaction = document.getElementById('stat-satisfaction');
+                    const statUsersLabel = document.getElementById('stat-users-label');
+                    const statCasesLabel = document.getElementById('stat-cases-label');
+                    const statSatisfactionLabel = document.getElementById('stat-satisfaction-label');
+
+                    if (statUsers && settings.stat_users) statUsers.dataset.count = settings.stat_users;
+                    if (statCases && settings.stat_cases) statCases.dataset.count = settings.stat_cases;
+                    if (statSatisfaction && settings.stat_satisfaction) statSatisfaction.dataset.count = settings.stat_satisfaction;
+                    if (statUsersLabel && settings.stat_users_label) statUsersLabel.textContent = settings.stat_users_label;
+                    if (statCasesLabel && settings.stat_cases_label) statCasesLabel.textContent = settings.stat_cases_label;
+                    if (statSatisfactionLabel && settings.stat_satisfaction_label) statSatisfactionLabel.textContent = settings.stat_satisfaction_label;
+
+                    // Update social links
+                    const socialTwitter = document.getElementById('social-twitter');
+                    const socialLinkedin = document.getElementById('social-linkedin');
+                    const socialInstagram = document.getElementById('social-instagram');
+                    if (socialTwitter && settings.social_twitter) { socialTwitter.href = settings.social_twitter; socialTwitter.title = 'Twitter'; }
+                    if (socialLinkedin && settings.social_linkedin) { socialLinkedin.href = settings.social_linkedin; socialLinkedin.title = 'LinkedIn'; }
+                    if (socialInstagram && settings.social_instagram) { socialInstagram.href = settings.social_instagram; socialInstagram.title = 'Instagram'; }
+                }
+            } catch (e) { console.log('Site settings load error'); }
+        }
+
+        // Load settings on page load
+        loadSiteSettings();
 
         // Toggle features section
         function toggleFeatures() {
