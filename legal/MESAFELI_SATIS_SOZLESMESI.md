@@ -105,7 +105,7 @@ Alıcı, ödeme işlemlerini kredi kartı ile yaptığı durumda temerrüde dü�
 
 İşbu sözleşmeden doğan uyuşmazlıklarda, Gümrük ve Ticaret Bakanlığınca ilan edilen değere kadar Tüketici Hakem Heyetleri, bu değerin üzerindeki uyuşmazlıklarda Tüketici Mahkemeleri yetkilidir.
 
-Satıcı'nın yerleşim yerindeki [ŞEHİR] Tüketici Hakem Heyetleri ve Tüketici Mahkemeleri de yetkilidir.
+Satıcı'nın yerleşim yerindeki Ankara Tüketici Hakem Heyetleri ve Tüketici Mahkemeleri de yetkilidir.
 
 ---
 
