@@ -24,6 +24,11 @@ try:  # pragma: no cover
         derive_db_key,
         encrypt_file,
         decrypt_file,
+        # Parola bazlı yedek şifreleme
+        encrypt_backup_with_password,
+        decrypt_backup_with_password,
+        get_backup_hint,
+        is_password_protected_backup,
     )
 except ModuleNotFoundError:  # pragma: no cover
     try:
@@ -37,6 +42,11 @@ except ModuleNotFoundError:  # pragma: no cover
             derive_db_key,
             encrypt_file,
             decrypt_file,
+            # Parola bazlı yedek şifreleme
+            encrypt_backup_with_password,
+            decrypt_backup_with_password,
+            get_backup_hint,
+            is_password_protected_backup,
         )
     except ImportError:
         # db_crypto modülü yüklenemezse, şifreleme devre dışı
@@ -49,6 +59,10 @@ except ModuleNotFoundError:  # pragma: no cover
         derive_db_key = lambda: ""
         encrypt_file = lambda x: False
         decrypt_file = lambda x: False
+        encrypt_backup_with_password = lambda x, y, z="": False
+        decrypt_backup_with_password = lambda x, y: False
+        get_backup_hint = lambda x: None
+        is_password_protected_backup = lambda x: False
 
 # Fernet şifreleme durumu (uygulama kapanırken şifrelemek için)
 _db_needs_encryption = False
@@ -2784,18 +2798,20 @@ def get_backup_dir() -> str:
     return BACKUP_DIR
 
 
-def create_backup(custom_path: str | None = None) -> str | None:
+def create_backup(custom_path: str | None = None, encrypt: bool = True) -> str | None:
     """
-    Veritabanının yedeğini alır.
+    Veritabanının yedeğini alır (otomatik yedekler için).
+
+    Otomatik yedekler makine anahtarıyla şifrelenir ve sadece
+    aynı bilgisayarda geri yüklenebilir.
 
     Args:
         custom_path: Özel yedek yolu (None ise varsayılan dizine kaydeder)
+        encrypt: Makine anahtarıyla şifrele (varsayılan: True)
 
     Returns:
         Yedek dosyasının yolu veya hata durumunda None
     """
-    import shutil
-
     if not os.path.exists(DB_PATH):
         return None
 
@@ -2817,10 +2833,68 @@ def create_backup(custom_path: str | None = None) -> str | None:
         source_conn.close()
         dest_conn.close()
 
+        # Otomatik yedekleri makine anahtarıyla şifrele
+        if encrypt and CRYPTOGRAPHY_AVAILABLE:
+            if encrypt_file(backup_path):
+                print(f"[backup] Yedek şifrelendi: {backup_path}")
+            else:
+                print(f"[backup] Yedek şifrelenemedi: {backup_path}")
+
         return backup_path
     except Exception as e:
         print(f"Yedekleme hatası: {e}")
         return None
+
+
+def create_portable_backup(dest_path: str, password: str, hint: str = "") -> tuple[bool, str]:
+    """
+    Taşınabilir yedek oluştur (manuel yedekler için).
+
+    Kullanıcı parolasıyla şifrelenir ve herhangi bir bilgisayarda
+    geri yüklenebilir.
+
+    Args:
+        dest_path: Hedef dosya yolu
+        password: Kullanıcı parolası
+        hint: Parola ipucu (opsiyonel)
+
+    Returns:
+        (başarılı, mesaj) tuple
+    """
+    if not os.path.exists(DB_PATH):
+        return False, "Veritabanı bulunamadı"
+
+    if not password or len(password) < 4:
+        return False, "Parola en az 4 karakter olmalı"
+
+    if not CRYPTOGRAPHY_AVAILABLE:
+        return False, "Şifreleme kütüphanesi yüklü değil"
+
+    try:
+        # Önce normal yedek al (şifresiz)
+        source_conn = sqlite3.connect(DB_PATH)
+        dest_conn = sqlite3.connect(dest_path)
+
+        with dest_conn:
+            source_conn.backup(dest_conn)
+
+        source_conn.close()
+        dest_conn.close()
+
+        # Parola ile şifrele
+        if encrypt_backup_with_password(dest_path, password, hint):
+            return True, "Taşınabilir yedek oluşturuldu"
+        else:
+            # Şifreleme başarısız - dosyayı sil
+            if os.path.exists(dest_path):
+                os.remove(dest_path)
+            return False, "Yedek şifrelenemedi"
+
+    except Exception as e:
+        # Hata durumunda dosyayı temizle
+        if os.path.exists(dest_path):
+            os.remove(dest_path)
+        return False, f"Yedekleme hatası: {e}"
 
 
 def list_backups() -> list[dict[str, Any]]:
@@ -2958,17 +3032,48 @@ def cleanup_old_backups(keep_count: int = 10) -> int:
     return deleted
 
 
+def get_backup_type(backup_path: str) -> str:
+    """
+    Yedek dosyasının türünü belirle.
+
+    Returns:
+        'password': Parola korumalı (taşınabilir)
+        'machine': Makine anahtarıyla şifreli (yerel)
+        'plain': Şifresiz SQLite
+        'unknown': Bilinmeyen format
+    """
+    if not os.path.exists(backup_path):
+        return 'unknown'
+
+    if is_password_protected_backup(backup_path):
+        return 'password'
+    elif is_fernet_encrypted(backup_path):
+        return 'machine'
+    else:
+        # SQLite header kontrolü
+        try:
+            with open(backup_path, 'rb') as f:
+                header = f.read(16)
+            if header.startswith(b'SQLite format 3'):
+                return 'plain'
+        except Exception:
+            pass
+        return 'unknown'
+
+
 def restore_backup(backup_path: str) -> tuple[bool, str]:
     """
     Yedekten geri yükleme yapar.
 
+    NOT: Parola korumalı yedekler için restore_portable_backup kullanın.
+
     GÜVENLİK:
     1. Yedek dosyası var mı kontrol edilir
-    2. Yedek dosyası doğrulanır
-    3. Mevcut veritabanı yedeklenir (pre_restore)
-    4. Pre-restore yedeği doğrulanır
-    5. Ancak bundan sonra geri yükleme yapılır
-    6. Geri yükleme sonrası doğrulama yapılır
+    2. Yedek türü kontrol edilir
+    3. Makine şifreli ise çözülür
+    4. Yedek dosyası doğrulanır
+    5. Mevcut veritabanı yedeklenir (pre_restore)
+    6. Geri yükleme yapılır
     7. Başarısız olursa pre-restore'dan geri dönülür
 
     Args:
@@ -2977,6 +3082,8 @@ def restore_backup(backup_path: str) -> tuple[bool, str]:
     Returns:
         (başarılı, mesaj) tuple
     """
+    import tempfile
+
     # 1. Yedek dosyası var mı?
     if not os.path.exists(backup_path):
         return False, "Yedek dosyası bulunamadı."
@@ -2985,15 +3092,45 @@ def restore_backup(backup_path: str) -> tuple[bool, str]:
     if is_main_database(backup_path):
         return False, "HATA: Ana veritabanı kendisine geri yüklenemez!"
 
-    # 3. Yedek dosyasını doğrula
-    is_valid, validation_msg = validate_backup_file(backup_path)
-    if not is_valid:
-        return False, f"Yedek dosyası geçersiz: {validation_msg}"
+    # 3. Yedek türünü kontrol et
+    backup_type = get_backup_type(backup_path)
 
-    pre_restore_backup = None
+    if backup_type == 'password':
+        return False, "PAROLA_GEREKLI"  # UI'da parola dialogu açılmalı
+
+    if backup_type == 'unknown':
+        return False, "Bilinmeyen yedek formatı"
+
+    # 4. Makine şifreli ise geçici dosyaya çöz
+    temp_backup = None
+    actual_backup_path = backup_path
+
+    if backup_type == 'machine':
+        if not CRYPTOGRAPHY_AVAILABLE:
+            return False, "Şifreleme kütüphanesi yüklü değil"
+
+        # Geçici dosyaya kopyala ve çöz
+        temp_fd, temp_backup = tempfile.mkstemp(suffix='.db')
+        os.close(temp_fd)
+        shutil.copy2(backup_path, temp_backup)
+
+        if not decrypt_file(temp_backup):
+            os.remove(temp_backup)
+            return False, "Yedek şifresi çözülemedi (farklı bilgisayardan?)"
+
+        actual_backup_path = temp_backup
 
     try:
-        # 4. Mevcut veritabanını yedekle
+        # 5. Yedek dosyasını doğrula
+        is_valid, validation_msg = validate_backup_file(actual_backup_path)
+        if not is_valid:
+            if temp_backup:
+                os.remove(temp_backup)
+            return False, f"Yedek dosyası geçersiz: {validation_msg}"
+
+        pre_restore_backup = None
+
+        # 6. Mevcut veritabanını yedekle
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         pre_restore_backup = os.path.join(get_backup_dir(), f"pre_restore_{timestamp}.db")
 
@@ -3004,20 +3141,26 @@ def restore_backup(backup_path: str) -> tuple[bool, str]:
         source_conn.close()
         pre_conn.close()
 
-        # 5. Pre-restore yedeğini doğrula
+        # 7. Pre-restore yedeğini doğrula
         pre_valid, pre_msg = validate_backup_file(pre_restore_backup)
         if not pre_valid:
+            if temp_backup:
+                os.remove(temp_backup)
             return False, f"Güvenlik yedeği oluşturulamadı: {pre_msg}"
 
-        # 6. Yedeği geri yükle
-        backup_conn = sqlite3.connect(backup_path)
+        # 8. Yedeği geri yükle (actual_backup_path kullan)
+        backup_conn = sqlite3.connect(actual_backup_path)
         dest_conn = sqlite3.connect(DB_PATH)
         with dest_conn:
             backup_conn.backup(dest_conn)
         backup_conn.close()
         dest_conn.close()
 
-        # 7. Geri yüklenen veritabanını doğrula
+        # 9. Geçici dosyayı temizle
+        if temp_backup and os.path.exists(temp_backup):
+            os.remove(temp_backup)
+
+        # 10. Geri yüklenen veritabanını doğrula
         restored_valid, restored_msg = validate_backup_file(DB_PATH)
         if not restored_valid:
             # Geri yükleme başarısız - pre-restore'dan geri dön
@@ -3036,6 +3179,10 @@ def restore_backup(backup_path: str) -> tuple[bool, str]:
         return True, "Geri yükleme başarılı."
 
     except Exception as e:
+        # Geçici dosyayı temizle
+        if temp_backup and os.path.exists(temp_backup):
+            os.remove(temp_backup)
+
         # Hata durumunda pre-restore'dan geri dönmeyi dene
         if pre_restore_backup and os.path.exists(pre_restore_backup):
             try:
@@ -3053,6 +3200,87 @@ def restore_backup(backup_path: str) -> tuple[bool, str]:
             except Exception as rollback_error:
                 return False, f"KRİTİK HATA: Geri yükleme ve geri dönüş başarısız! {e} / {rollback_error}"
 
+        return False, f"Geri yükleme hatası: {e}"
+
+
+def restore_portable_backup(backup_path: str, password: str) -> tuple[bool, str]:
+    """
+    Parola korumalı (taşınabilir) yedeği geri yükle.
+
+    Args:
+        backup_path: Yedek dosyasının yolu
+        password: Kullanıcı parolası
+
+    Returns:
+        (başarılı, mesaj) tuple
+    """
+    import tempfile
+
+    if not os.path.exists(backup_path):
+        return False, "Yedek dosyası bulunamadı."
+
+    if not is_password_protected_backup(backup_path):
+        return False, "Bu dosya parola korumalı yedek değil."
+
+    if not CRYPTOGRAPHY_AVAILABLE:
+        return False, "Şifreleme kütüphanesi yüklü değil"
+
+    # Geçici dosyaya kopyala ve çöz
+    temp_fd, temp_backup = tempfile.mkstemp(suffix='.db')
+    os.close(temp_fd)
+    shutil.copy2(backup_path, temp_backup)
+
+    if not decrypt_backup_with_password(temp_backup, password):
+        os.remove(temp_backup)
+        return False, "Parola hatalı veya dosya bozuk"
+
+    try:
+        # Çözülen yedeği doğrula
+        is_valid, validation_msg = validate_backup_file(temp_backup)
+        if not is_valid:
+            os.remove(temp_backup)
+            return False, f"Yedek dosyası geçersiz: {validation_msg}"
+
+        # Mevcut veritabanını yedekle
+        pre_restore_backup = None
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        pre_restore_backup = os.path.join(get_backup_dir(), f"pre_restore_{timestamp}.db")
+
+        source_conn = sqlite3.connect(DB_PATH)
+        pre_conn = sqlite3.connect(pre_restore_backup)
+        with pre_conn:
+            source_conn.backup(pre_conn)
+        source_conn.close()
+        pre_conn.close()
+
+        # Yedeği geri yükle
+        backup_conn = sqlite3.connect(temp_backup)
+        dest_conn = sqlite3.connect(DB_PATH)
+        with dest_conn:
+            backup_conn.backup(dest_conn)
+        backup_conn.close()
+        dest_conn.close()
+
+        # Geçici dosyayı temizle
+        os.remove(temp_backup)
+
+        # Geri yüklenen veritabanını doğrula
+        restored_valid, restored_msg = validate_backup_file(DB_PATH)
+        if not restored_valid:
+            # Geri yükleme başarısız - pre-restore'dan geri dön
+            rollback_conn = sqlite3.connect(pre_restore_backup)
+            rollback_dest = sqlite3.connect(DB_PATH)
+            with rollback_dest:
+                rollback_conn.backup(rollback_dest)
+            rollback_conn.close()
+            rollback_dest.close()
+            return False, f"Geri yükleme başarısız: {restored_msg}"
+
+        return True, "Geri yükleme başarılı."
+
+    except Exception as e:
+        if os.path.exists(temp_backup):
+            os.remove(temp_backup)
         return False, f"Geri yükleme hatası: {e}"
 
 
