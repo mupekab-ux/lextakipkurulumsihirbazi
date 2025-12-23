@@ -226,6 +226,7 @@ class ServerConfigPage(QWizardPage):
         self.server_url = QLineEdit()
         self.server_url.setPlaceholderText("http://192.168.1.126:8080")
         self.server_url.setText("http://192.168.1.126:8080")
+        self.server_url.textChanged.connect(self.completeChanged)
 
         form_layout.addRow("Sunucu Adresi:", self.server_url)
 
@@ -258,8 +259,12 @@ class ServerConfigPage(QWizardPage):
 
         self.setLayout(layout)
 
-        # Field olarak kaydet
-        self.registerField("server_url*", self.server_url)
+        # Field olarak kaydet (zorunlu değil artık, isComplete ile kontrol ediyoruz)
+        self.registerField("server_url", self.server_url)
+
+    def isComplete(self) -> bool:
+        """Next butonu için sayfa tamamlanma durumu"""
+        return bool(self.server_url.text().strip())
 
     def _test_connection(self):
         """Bağlantıyı test et"""
