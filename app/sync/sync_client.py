@@ -289,6 +289,7 @@ class SyncClient:
                 'admin_password': admin_password,
                 'admin_email': admin_email,
                 'device_name': self.config.device_id,
+                'device_id': self.config.device_id,
             },
             timeout=30,
             verify=False
