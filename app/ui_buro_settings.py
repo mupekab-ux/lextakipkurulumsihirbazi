@@ -410,10 +410,11 @@ class DeviceManagementDialog(QDialog):
                     device.get('device_id', '-')[:12] + '...'
                 ))
                 self.table.setItem(i, 1, QTableWidgetItem(
-                    device.get('device_name', '-')
+                    device.get('device_name', '-') or '-'
                 ))
+                device_info = device.get('device_info') or {}
                 self.table.setItem(i, 2, QTableWidgetItem(
-                    device.get('device_info', {}).get('platform', '-')
+                    device_info.get('platform', '-') if isinstance(device_info, dict) else '-'
                 ))
                 self.table.setItem(i, 3, QTableWidgetItem(
                     device.get('last_sync_at', '-') or '-'
