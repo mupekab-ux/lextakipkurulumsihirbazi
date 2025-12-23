@@ -219,7 +219,10 @@ class BuroSettingsTab(QWidget):
 
     def _open_setup(self):
         """Kurulum wizard'ını aç"""
-        from app.ui_buro_setup_wizard import BuroSetupWizard
+        try:
+            from app.ui_buro_setup_wizard import BuroSetupWizard
+        except ImportError:
+            from ui_buro_setup_wizard import BuroSetupWizard
 
         wizard = BuroSetupWizard(self.sync_manager, self)
         if wizard.exec():
