@@ -69,6 +69,12 @@ class SyncManager:
         self.on_conflict: Optional[Callable[[SyncConflict], None]] = None
         self.on_error: Optional[Callable[[str], None]] = None
 
+        # Sync tablolarını oluştur
+        self._ensure_sync_tables()
+
+        # Mevcut yapılandırmayı yüklemeyi dene
+        self.load_config_from_db()
+
     def _get_connection(self) -> sqlite3.Connection:
         """Veritabanı bağlantısı al"""
         conn = sqlite3.connect(self.db_path)
