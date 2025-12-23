@@ -192,10 +192,17 @@ class AboutDialog(QDialog):
         )
 
     def get_resource_path(self, relative_path):
-        """PyInstaller ile uyumlu kaynak yolu"""
+        """PyInstaller veya Nuitka ile uyumlu kaynak yolu"""
         if hasattr(sys, "_MEIPASS"):
+            # PyInstaller
             return os.path.join(sys._MEIPASS, relative_path)
-        # Önce app klasöründen dene
+        if '__nuitka_binary_dir' in dir():
+            # Nuitka onefile
+            return os.path.join(__nuitka_binary_dir, relative_path)  # noqa: F821
+        if getattr(sys, 'frozen', False) or '__compiled__' in dir():
+            # Nuitka standalone
+            return os.path.join(os.path.dirname(sys.executable), relative_path)
+        # Geliştirme ortamı - önce app klasöründen dene
         app_path = os.path.join(os.path.dirname(__file__), relative_path)
         if os.path.exists(app_path):
             return app_path

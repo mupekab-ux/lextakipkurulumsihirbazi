@@ -156,7 +156,6 @@ Haklarınızı kullanmak için aşağıdaki yöntemlerle başvurabilirsiniz:
 |--------|-------|
 | E-posta | kvkk@takibiesasi.com |
 | Posta | [ADRES] |
-| KEP | [KEP ADRESİ] (varsa) |
 
 ### 9.2 Başvuru İçeriği
 Başvurunuzda aşağıdaki bilgiler bulunmalıdır:

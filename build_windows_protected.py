@@ -28,7 +28,7 @@ from pathlib import Path
 APP_NAME = "TakibiEsasi"
 MAIN_FILE = "app/main.py"
 ICON_FILE = "app/icon.ico"
-OUTPUT_DIR = "dist_protected"
+OUTPUT_DIR = "dist"
 BUILD_TEMP = "build_temp"
 
 # Cython ile derlenecek dosyalar (kritik/güvenlik modülleri)
@@ -80,7 +80,7 @@ def clean_build():
     """Önceki build dosyalarını temizle."""
     print("\nÖnceki build temizleniyor...")
 
-    dirs_to_clean = [OUTPUT_DIR, BUILD_TEMP, "build", "__pycache__", "dist_nuitka"]
+    dirs_to_clean = [OUTPUT_DIR, BUILD_TEMP, "build", "__pycache__"]
 
     for dir_name in dirs_to_clean:
         if os.path.exists(dir_name):
@@ -150,6 +150,8 @@ def build_nuitka():
         "--include-module=pandas",
         "--include-module=requests",
         "--include-module=sqlite3",
+        "--include-module=cryptography",  # Veritabanı şifreleme (fallback)
+        "--nofollow-import-to=sqlcipher3",  # SQLCipher opsiyonel
         "--assume-yes-for-downloads",
         f"--windows-company-name={APP_NAME}",
         f"--windows-product-name={APP_NAME}",

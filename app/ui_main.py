@@ -285,12 +285,19 @@ except ModuleNotFoundError:  # pragma: no cover
 
 def _resource_path(relative_path: str) -> str:
     """
-    PyInstaller ile paketlendiğinde dosya yollarını düzgün çözer.
+    PyInstaller veya Nuitka ile paketlendiğinde dosya yollarını düzgün çözer.
     """
     import sys
     import os
-    if getattr(sys, 'frozen', False):
+    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+        # PyInstaller
         base_path = sys._MEIPASS
+    elif '__nuitka_binary_dir' in dir():
+        # Nuitka onefile
+        base_path = __nuitka_binary_dir  # noqa: F821
+    elif getattr(sys, 'frozen', False) or '__compiled__' in dir():
+        # Nuitka standalone
+        base_path = os.path.dirname(sys.executable)
     else:
         base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     return os.path.join(base_path, relative_path)

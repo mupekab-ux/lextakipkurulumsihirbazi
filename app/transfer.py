@@ -68,10 +68,36 @@ def export_transfer_package(output_path: str) -> Tuple[bool, str]:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
 
-            # Veritabanını kopyala
+            # Veritabanını kopyala (şifreli ise çöz)
             db_path = get_db_path()
             if db_path.exists():
-                shutil.copy2(db_path, temp_path / "data.db")
+                # Şifreleme modülünü import et
+                try:
+                    try:
+                        from app.db_crypto import (
+                            is_encrypted_db, migrate_from_encrypted, SQLCIPHER_AVAILABLE
+                        )
+                    except ModuleNotFoundError:
+                        from db_crypto import (
+                            is_encrypted_db, migrate_from_encrypted, SQLCIPHER_AVAILABLE
+                        )
+
+                    # Şifreli mi kontrol et
+                    if SQLCIPHER_AVAILABLE and is_encrypted_db(str(db_path)):
+                        # Şifreli - transfer için şifresiz versiyonu oluştur
+                        temp_db = temp_path / "data.db"
+                        if migrate_from_encrypted(str(db_path), str(temp_db)):
+                            logger.info("Veritabanı transfer için şifresi çözüldü")
+                        else:
+                            # Fallback - olduğu gibi kopyala
+                            shutil.copy2(db_path, temp_db)
+                            logger.warning("Şifre çözme başarısız, olduğu gibi kopyalandı")
+                    else:
+                        # Şifresiz - direkt kopyala
+                        shutil.copy2(db_path, temp_path / "data.db")
+                except ImportError:
+                    # db_crypto modülü yok - direkt kopyala
+                    shutil.copy2(db_path, temp_path / "data.db")
             else:
                 return False, "Veritabanı dosyası bulunamadı."
 
@@ -165,10 +191,26 @@ def import_transfer_package(package_path: str) -> Tuple[bool, str, Optional[str]
                 backup_dir.mkdir(exist_ok=True)
                 shutil.copy2(db_path, backup_dir / backup_name)
 
-            # Veritabanını kopyala
+            # Veritabanını kopyala ve yeni makine için şifrele
             source_db = temp_path / "data.db"
             if source_db.exists():
                 shutil.copy2(source_db, db_path)
+
+                # Yeni makine için şifrele
+                try:
+                    try:
+                        from app.db_crypto import ensure_encrypted_db, SQLCIPHER_AVAILABLE
+                    except ModuleNotFoundError:
+                        from db_crypto import ensure_encrypted_db, SQLCIPHER_AVAILABLE
+
+                    if SQLCIPHER_AVAILABLE:
+                        success, msg = ensure_encrypted_db(str(db_path))
+                        if success:
+                            logger.info(f"Veritabanı yeni makine için şifrelendi: {msg}")
+                        else:
+                            logger.warning(f"Şifreleme başarısız: {msg}")
+                except ImportError:
+                    logger.info("db_crypto modülü bulunamadı, şifreleme atlandı")
             else:
                 return False, "Transfer paketinde veritabanı bulunamadı.", None
 

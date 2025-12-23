@@ -124,7 +124,7 @@ Sözleşme'nin feshi halinde:
 Bu Sözleşme, Türkiye Cumhuriyeti yasalarına tabidir.
 
 ### 9.2 Uyuşmazlık Çözümü
-Bu Sözleşme'den doğan uyuşmazlıklarda [ŞEHİR] Mahkemeleri ve İcra Daireleri yetkilidir.
+Bu Sözleşme'den doğan uyuşmazlıklarda Ankara Mahkemeleri ve İcra Daireleri yetkilidir.
 
 ### 9.3 Bölünebilirlik
 Bu Sözleşme'nin herhangi bir hükmünün geçersiz veya uygulanamaz bulunması, diğer hükümlerin geçerliliğini etkilemez.

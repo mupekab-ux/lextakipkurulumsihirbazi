@@ -8,21 +8,27 @@ from PyQt6.QtGui import QIcon
 
 def resource_path(relative_path: str) -> str:
     """
-    PyInstaller ile paketlendiğinde dosya yollarını düzgün çözer.
+    PyInstaller veya Nuitka ile paketlendiğinde dosya yollarını düzgün çözer.
     Geliştirme ortamında normal yolu döndürür.
     """
-    if getattr(sys, 'frozen', False):
+    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
         # PyInstaller ile paketlenmiş
         base_path = sys._MEIPASS
+    elif '__nuitka_binary_dir' in dir():
+        # Nuitka onefile - geçici klasör
+        base_path = __nuitka_binary_dir  # noqa: F821
+    elif getattr(sys, 'frozen', False) or '__compiled__' in dir():
+        # Nuitka standalone veya diğer frozen durumlar
+        base_path = os.path.dirname(sys.executable)
     else:
         # Normal Python çalıştırma - app klasörünün bir üst dizini
         base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     return os.path.join(base_path, relative_path)
 
 try:  # pragma: no cover - runtime import guard
-    from app.db import initialize_database, auto_backup_on_startup, get_database_path
+    from app.db import initialize_database, auto_backup_on_startup, get_database_path, encrypt_database_on_shutdown
 except ModuleNotFoundError:  # pragma: no cover
-    from db import initialize_database, auto_backup_on_startup, get_database_path
+    from db import initialize_database, auto_backup_on_startup, get_database_path, encrypt_database_on_shutdown
 
 try:  # pragma: no cover - runtime import guard
     from app.ui_main import MainWindow
@@ -177,13 +183,39 @@ def check_demo_on_startup() -> bool:
         if status["status"] == "demo_active":
             return True
 
-        # Bilinmeyen durum - devam et
-        return True
+        # Hata durumu - kullanıcıya bildir ve tekrar dene
+        if status["status"] == "error":
+            error_msg = status.get("error", "Bilinmeyen hata")
+            result = QMessageBox.warning(
+                None,
+                "Demo Kontrol Hatası",
+                f"Demo durumu kontrol edilemedi:\n{error_msg}\n\n"
+                "Tekrar denemek ister misiniz?",
+                QMessageBox.StandardButton.Retry | QMessageBox.StandardButton.Cancel
+            )
+            if result == QMessageBox.StandardButton.Retry:
+                return check_demo_on_startup()
+            return False
+
+        # Bilinmeyen durum - güvenlik için izin verme
+        print(f"Bilinmeyen demo durumu: {status.get('status')}")
+        QMessageBox.critical(
+            None,
+            "Hata",
+            f"Beklenmeyen demo durumu: {status.get('status')}\n"
+            "Lütfen destek ekibiyle iletişime geçin."
+        )
+        return False
 
     except Exception as e:
         print(f"Demo kontrolü hatası: {e}")
-        # Hata durumunda devam et (kullanıcıyı engelleme)
-        return True
+        QMessageBox.critical(
+            None,
+            "Demo Kontrol Hatası",
+            f"Demo durumu kontrol edilirken hata oluştu:\n{str(e)}\n\n"
+            "Uygulama başlatılamıyor."
+        )
+        return False
 
 
 def main():
@@ -248,6 +280,10 @@ def main():
     window = MainWindow(login.user)
     window.showMaximized()
     print("Veritabanı oluşturuldu")
+
+    # Uygulama kapanırken veritabanını şifrele
+    app.aboutToQuit.connect(encrypt_database_on_shutdown)
+
     sys.exit(app.exec())
 
 

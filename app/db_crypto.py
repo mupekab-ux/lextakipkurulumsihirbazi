@@ -23,6 +23,10 @@ APP_SECRET = "TakibiEsasi-DB-Secret-2024-v1"
 SQLCIPHER_AVAILABLE = False
 sqlcipher = None
 
+# Fallback: cryptography kütüphanesi (dosya seviyesi şifreleme)
+CRYPTOGRAPHY_AVAILABLE = False
+Fernet = None
+
 try:
     import sqlcipher3 as sqlcipher
     SQLCIPHER_AVAILABLE = True
@@ -33,7 +37,16 @@ except ImportError:
         SQLCIPHER_AVAILABLE = True
         logger.info("SQLCipher kullanılabilir (pysqlcipher3)")
     except ImportError:
-        logger.warning("SQLCipher bulunamadı, veritabanı şifrelenmeyecek")
+        logger.info("SQLCipher bulunamadı, fallback şifreleme denenecek")
+        try:
+            from cryptography.fernet import Fernet
+            from cryptography.hazmat.primitives import hashes
+            from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+            import base64
+            CRYPTOGRAPHY_AVAILABLE = True
+            logger.info("Cryptography kütüphanesi kullanılabilir (dosya şifreleme)")
+        except ImportError:
+            logger.warning("Şifreleme kütüphanesi bulunamadı, veritabanı şifrelenmeyecek")
 
 
 def get_machine_id() -> str:
@@ -73,6 +86,317 @@ def derive_db_key() -> str:
         key = hashlib.sha256(key).digest()
 
     return key.hex()
+
+
+def derive_fernet_key() -> bytes:
+    """
+    Cryptography/Fernet için anahtar türet.
+
+    Returns:
+        32-byte base64-encoded key for Fernet
+    """
+    if not CRYPTOGRAPHY_AVAILABLE:
+        raise RuntimeError("Cryptography kütüphanesi yüklü değil")
+
+    from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+    from cryptography.hazmat.primitives import hashes
+    import base64
+
+    machine_id = get_machine_id()
+    salt = APP_SECRET.encode('utf-8')
+    password = machine_id.encode('utf-8')
+
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=salt,
+        iterations=480000,
+    )
+
+    key = base64.urlsafe_b64encode(kdf.derive(password))
+    return key
+
+
+def encrypt_file(file_path: str, key: bytes = None) -> bool:
+    """
+    Dosyayı Fernet ile şifrele.
+
+    Args:
+        file_path: Şifrelenecek dosya
+        key: Fernet anahtarı (None ise otomatik türetilir)
+
+    Returns:
+        Başarılı ise True
+    """
+    if not CRYPTOGRAPHY_AVAILABLE:
+        logger.warning("Cryptography yüklü değil, dosya şifrelenmedi")
+        return False
+
+    from cryptography.fernet import Fernet as FernetClass
+
+    try:
+        if key is None:
+            key = derive_fernet_key()
+
+        fernet = FernetClass(key)
+
+        with open(file_path, 'rb') as f:
+            data = f.read()
+
+        encrypted = fernet.encrypt(data)
+
+        # Şifreli dosyayı yaz (marker ile başla)
+        with open(file_path, 'wb') as f:
+            f.write(b'TAKIBI_ENC_V1\x00')  # 14 byte marker
+            f.write(encrypted)
+
+        logger.info(f"Dosya şifrelendi: {file_path}")
+        return True
+
+    except Exception as e:
+        logger.error(f"Dosya şifreleme hatası: {e}")
+        return False
+
+
+def decrypt_file(file_path: str, key: bytes = None) -> bool:
+    """
+    Fernet ile şifrelenmiş dosyayı çöz.
+
+    Args:
+        file_path: Şifresi çözülecek dosya
+        key: Fernet anahtarı (None ise otomatik türetilir)
+
+    Returns:
+        Başarılı ise True
+    """
+    if not CRYPTOGRAPHY_AVAILABLE:
+        logger.warning("Cryptography yüklü değil")
+        return False
+
+    from cryptography.fernet import Fernet as FernetClass
+
+    try:
+        if key is None:
+            key = derive_fernet_key()
+
+        fernet = FernetClass(key)
+
+        with open(file_path, 'rb') as f:
+            marker = f.read(14)
+            if marker != b'TAKIBI_ENC_V1\x00':
+                logger.warning("Dosya Fernet ile şifreli değil")
+                return False
+            encrypted = f.read()
+
+        decrypted = fernet.decrypt(encrypted)
+
+        with open(file_path, 'wb') as f:
+            f.write(decrypted)
+
+        logger.info(f"Dosya şifresi çözüldü: {file_path}")
+        return True
+
+    except Exception as e:
+        logger.error(f"Dosya şifre çözme hatası: {e}")
+        return False
+
+
+def is_fernet_encrypted(file_path: str) -> bool:
+    """Dosyanın Fernet ile şifreli olup olmadığını kontrol et."""
+    try:
+        with open(file_path, 'rb') as f:
+            marker = f.read(14)
+        return marker == b'TAKIBI_ENC_V1\x00'
+    except Exception:
+        return False
+
+
+# ============ PAROLA BAZLI YEDEK ŞİFRELEME ============
+
+BACKUP_MARKER = b'TAKIBI_BACKUP_V2'  # 16 byte
+
+
+def derive_key_from_password(password: str, salt: bytes) -> bytes:
+    """
+    Kullanıcı parolasından Fernet anahtarı türet.
+
+    Args:
+        password: Kullanıcı parolası
+        salt: Rastgele salt (16 byte)
+
+    Returns:
+        32-byte base64-encoded Fernet key
+    """
+    if not CRYPTOGRAPHY_AVAILABLE:
+        raise RuntimeError("Cryptography kütüphanesi yüklü değil")
+
+    from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+    from cryptography.hazmat.primitives import hashes
+    import base64
+
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=salt,
+        iterations=480000,
+    )
+
+    key = base64.urlsafe_b64encode(kdf.derive(password.encode('utf-8')))
+    return key
+
+
+def encrypt_backup_with_password(file_path: str, password: str, hint: str = "") -> bool:
+    """
+    Yedek dosyasını kullanıcı parolasıyla şifrele.
+
+    Format:
+    - 16 byte: TAKIBI_BACKUP_V2 marker
+    - 2 byte: hint uzunluğu (little-endian)
+    - N byte: hint (UTF-8)
+    - 16 byte: salt
+    - Rest: Fernet encrypted data
+
+    Args:
+        file_path: Şifrelenecek dosya
+        password: Kullanıcı parolası
+        hint: Parola ipucu (opsiyonel)
+
+    Returns:
+        Başarılı ise True
+    """
+    if not CRYPTOGRAPHY_AVAILABLE:
+        logger.warning("Cryptography yüklü değil")
+        return False
+
+    from cryptography.fernet import Fernet as FernetClass
+    import os as _os
+
+    try:
+        # Salt oluştur
+        salt = _os.urandom(16)
+
+        # Paroladan anahtar türet
+        key = derive_key_from_password(password, salt)
+        fernet = FernetClass(key)
+
+        # Dosyayı oku
+        with open(file_path, 'rb') as f:
+            data = f.read()
+
+        # Şifrele
+        encrypted = fernet.encrypt(data)
+
+        # Hint'i encode et
+        hint_bytes = hint.encode('utf-8') if hint else b''
+        hint_len = len(hint_bytes)
+
+        # Dosyaya yaz
+        with open(file_path, 'wb') as f:
+            f.write(BACKUP_MARKER)  # 16 byte marker
+            f.write(hint_len.to_bytes(2, 'little'))  # 2 byte hint length
+            f.write(hint_bytes)  # hint
+            f.write(salt)  # 16 byte salt
+            f.write(encrypted)  # encrypted data
+
+        logger.info(f"Yedek parolayla şifrelendi: {file_path}")
+        return True
+
+    except Exception as e:
+        logger.error(f"Yedek şifreleme hatası: {e}")
+        return False
+
+
+def decrypt_backup_with_password(file_path: str, password: str) -> bool:
+    """
+    Parola ile şifrelenmiş yedeği çöz.
+
+    Args:
+        file_path: Şifreli yedek dosyası
+        password: Kullanıcı parolası
+
+    Returns:
+        Başarılı ise True
+    """
+    if not CRYPTOGRAPHY_AVAILABLE:
+        logger.warning("Cryptography yüklü değil")
+        return False
+
+    from cryptography.fernet import Fernet as FernetClass
+
+    try:
+        with open(file_path, 'rb') as f:
+            # Marker kontrol
+            marker = f.read(16)
+            if marker != BACKUP_MARKER:
+                logger.warning("Dosya parola korumalı yedek değil")
+                return False
+
+            # Hint uzunluğunu oku
+            hint_len = int.from_bytes(f.read(2), 'little')
+
+            # Hint'i atla
+            f.read(hint_len)
+
+            # Salt oku
+            salt = f.read(16)
+
+            # Şifreli veriyi oku
+            encrypted = f.read()
+
+        # Paroladan anahtar türet
+        key = derive_key_from_password(password, salt)
+        fernet = FernetClass(key)
+
+        # Çöz
+        decrypted = fernet.decrypt(encrypted)
+
+        # Dosyaya yaz
+        with open(file_path, 'wb') as f:
+            f.write(decrypted)
+
+        logger.info(f"Yedek şifresi çözüldü: {file_path}")
+        return True
+
+    except Exception as e:
+        logger.error(f"Yedek şifre çözme hatası: {e}")
+        return False
+
+
+def get_backup_hint(file_path: str) -> str | None:
+    """
+    Parola korumalı yedekten ipucu al.
+
+    Args:
+        file_path: Yedek dosyası
+
+    Returns:
+        Parola ipucu veya None
+    """
+    try:
+        with open(file_path, 'rb') as f:
+            marker = f.read(16)
+            if marker != BACKUP_MARKER:
+                return None
+
+            hint_len = int.from_bytes(f.read(2), 'little')
+            if hint_len == 0:
+                return None
+
+            hint_bytes = f.read(hint_len)
+            return hint_bytes.decode('utf-8')
+
+    except Exception:
+        return None
+
+
+def is_password_protected_backup(file_path: str) -> bool:
+    """Dosyanın parola korumalı yedek olup olmadığını kontrol et."""
+    try:
+        with open(file_path, 'rb') as f:
+            marker = f.read(16)
+        return marker == BACKUP_MARKER
+    except Exception:
+        return False
 
 
 def is_encrypted_db(db_path: str) -> bool:

@@ -24,7 +24,7 @@ APP_NAME = "TakibiEsasi"
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 MAIN_FILE = os.path.join(SCRIPT_DIR, "app/main.py")
 ICON_FILE = os.path.join(SCRIPT_DIR, "app/icon.ico")
-OUTPUT_DIR = os.path.join(SCRIPT_DIR, "dist_nuitka")
+OUTPUT_DIR = os.path.join(SCRIPT_DIR, "dist")
 
 def check_nuitka():
     """Nuitka kurulu mu kontrol et"""
@@ -46,10 +46,20 @@ def build():
     if not check_nuitka():
         return False
 
-    # Output klasörünü temizle
+    # Output klasörünü temizle (installer klasörünü koru)
     if os.path.exists(OUTPUT_DIR):
         print(f"Eski build temizleniyor: {OUTPUT_DIR}")
-        shutil.rmtree(OUTPUT_DIR)
+        # Sadece exe ve build dosyalarını sil, installer klasörünü koru
+        for item in os.listdir(OUTPUT_DIR):
+            item_path = os.path.join(OUTPUT_DIR, item)
+            if item != "installer":  # installer klasörünü koru
+                if os.path.isfile(item_path):
+                    os.remove(item_path)
+                elif os.path.isdir(item_path):
+                    shutil.rmtree(item_path)
+                print(f"  Silindi: {item}")
+    else:
+        os.makedirs(OUTPUT_DIR, exist_ok=True)
 
     # Nuitka komutunu oluştur
     cmd = [
@@ -79,26 +89,33 @@ def build():
         "--include-module=pandas",
         "--include-module=requests",
         "--include-module=sqlite3",
+        "--include-module=cryptography",  # Veritabanı şifreleme (fallback)
+        "--nofollow-import-to=sqlcipher3",  # SQLCipher opsiyonel
 
         # Data dosyaları
         f"--include-data-dir={os.path.join(SCRIPT_DIR, 'app/themes')}=app/themes",
-        f"--include-data-dir={os.path.join(SCRIPT_DIR, 'app/ui')}=app/ui",
+        f"--include-data-dir={os.path.join(SCRIPT_DIR, 'assets')}=assets",
 
         # Performans ve koruma
         "--lto=yes",                       # Link Time Optimization
         "--python-flag=no_site",           # site.py yükleme
         "--python-flag=no_warnings",       # Uyarıları gizle
-
-        # Ana dosya
-        MAIN_FILE
     ]
 
-    # Icon varsa ekle
+    # Icon varsa ekle (MAIN_FILE'dan önce)
     if os.path.exists(ICON_FILE):
-        cmd.insert(-1, f"--windows-icon-from-ico={ICON_FILE}")
+        cmd.append(f"--windows-icon-from-ico={ICON_FILE}")
         print(f"✓ Icon bulundu: {ICON_FILE}")
     else:
         print(f"⚠ Icon bulunamadı: {ICON_FILE}")
+        # Alternatif konum dene
+        alt_icon = os.path.join(SCRIPT_DIR, "assets/icon.ico")
+        if os.path.exists(alt_icon):
+            cmd.append(f"--windows-icon-from-ico={alt_icon}")
+            print(f"✓ Alternatif icon bulundu: {alt_icon}")
+
+    # Ana dosya (en son eklenmeli)
+    cmd.append(MAIN_FILE)
 
     print("\n" + "="*60)
     print("Nuitka Build Başlıyor...")

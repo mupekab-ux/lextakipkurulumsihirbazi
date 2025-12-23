@@ -25,6 +25,7 @@ from PyQt6.QtWidgets import (
     QLabel,
     QSpinBox,
     QTextBrowser,
+    QInputDialog,
 )
 from PyQt6.QtGui import QColor
 try:  # pragma: no cover - runtime import guard
@@ -33,32 +34,40 @@ try:  # pragma: no cover - runtime import guard
         initialize_database,
         list_backups,
         create_backup,
+        create_portable_backup,
         restore_backup,
+        restore_portable_backup,
         cleanup_old_backups,
         get_backup_dir,
         check_disk_space,
         validate_backup_file,
         get_backup_info,
+        get_backup_type,
         get_database_size,
         safe_delete_file,
         MINIMUM_BACKUP_COUNT,
     )
+    from app.db_crypto import get_backup_hint
 except ModuleNotFoundError:  # pragma: no cover
     from db import (
         DB_PATH,
         initialize_database,
         list_backups,
         create_backup,
+        create_portable_backup,
         restore_backup,
+        restore_portable_backup,
         cleanup_old_backups,
         get_backup_dir,
         check_disk_space,
         validate_backup_file,
         get_backup_info,
+        get_backup_type,
         get_database_size,
         safe_delete_file,
         MINIMUM_BACKUP_COUNT,
     )
+    from db_crypto import get_backup_hint
 
 try:  # pragma: no cover - runtime import guard
     from app.models import (
@@ -432,9 +441,12 @@ class SettingsDialog(QDialog):
         backup_list_btn_layout = QHBoxLayout()
         self.backup_restore_btn = QPushButton("Seçili Yedeği Geri Yükle")
         self.backup_restore_btn.setToolTip("Seçili yedeği geri yükle (önce güvenlik kontrolü yapılır)")
+        self.backup_restore_file_btn = QPushButton("Dosyadan Geri Yükle...")
+        self.backup_restore_file_btn.setToolTip("Flash bellek veya başka konumdan yedek geri yükle")
         self.backup_delete_btn = QPushButton("Seçili Yedeği Sil")
         self.backup_refresh_btn = QPushButton("Listeyi Yenile")
         backup_list_btn_layout.addWidget(self.backup_restore_btn)
+        backup_list_btn_layout.addWidget(self.backup_restore_file_btn)
         backup_list_btn_layout.addWidget(self.backup_delete_btn)
         backup_list_btn_layout.addWidget(self.backup_refresh_btn)
         backup_list_btn_layout.addStretch()
@@ -497,6 +509,8 @@ class SettingsDialog(QDialog):
             self.backup_custom_btn.setToolTip("Bu işlem için yetkiniz yok")
             self.backup_restore_btn.setEnabled(False)
             self.backup_restore_btn.setToolTip("Bu işlem için yetkiniz yok")
+            self.backup_restore_file_btn.setEnabled(False)
+            self.backup_restore_file_btn.setToolTip("Bu işlem için yetkiniz yok")
             self.backup_delete_btn.setEnabled(False)
             self.backup_delete_btn.setToolTip("Bu işlem için yetkiniz yok")
             self.export_btn.setEnabled(False)
@@ -683,6 +697,7 @@ class SettingsDialog(QDialog):
         self.backup_btn.clicked.connect(self.backup_now)
         self.backup_custom_btn.clicked.connect(self.backup_custom)
         self.backup_restore_btn.clicked.connect(self.restore_selected_backup)
+        self.backup_restore_file_btn.clicked.connect(self.restore_from_file)
         self.backup_delete_btn.clicked.connect(self.delete_selected_backup)
         self.backup_refresh_btn.clicked.connect(self.load_backup_list)
         self.backup_verify_btn.clicked.connect(self.verify_all_backups)
@@ -885,6 +900,7 @@ class SettingsDialog(QDialog):
         self.backup_btn.setEnabled(enabled)
         self.backup_custom_btn.setEnabled(enabled)
         self.backup_restore_btn.setEnabled(enabled)
+        self.backup_restore_file_btn.setEnabled(enabled)
         self.backup_delete_btn.setEnabled(enabled)
         self.backup_verify_btn.setEnabled(enabled)
 
@@ -933,7 +949,41 @@ class SettingsDialog(QDialog):
             self._set_backup_buttons_enabled(True)
 
     def backup_custom(self) -> None:
-        """Farklı konuma yedekle."""
+        """Farklı konuma taşınabilir (parola korumalı) yedek al."""
+        # Parola al
+        password, ok = QInputDialog.getText(
+            self,
+            "Taşınabilir Yedek",
+            "Bu yedek başka bilgisayarlarda da açılabilir.\n\n"
+            "Yedek parolası belirleyin (en az 4 karakter):",
+            QLineEdit.EchoMode.Password
+        )
+        if not ok or not password:
+            return
+
+        if len(password) < 4:
+            QMessageBox.warning(self, "Uyarı", "Parola en az 4 karakter olmalı.")
+            return
+
+        # Parola tekrar
+        password2, ok = QInputDialog.getText(
+            self,
+            "Parola Tekrar",
+            "Parolayı tekrar girin:",
+            QLineEdit.EchoMode.Password
+        )
+        if not ok or password != password2:
+            QMessageBox.warning(self, "Uyarı", "Parolalar eşleşmiyor.")
+            return
+
+        # Parola ipucu (opsiyonel)
+        hint, _ = QInputDialog.getText(
+            self,
+            "Parola İpucu",
+            "Parola ipucu (opsiyonel, unutursanız hatırlatır):"
+        )
+
+        # Klasör seç
         folder = QFileDialog.getExistingDirectory(self, "Yedekleme Klasörü Seç")
         if not folder:
             return
@@ -949,29 +999,22 @@ class SettingsDialog(QDialog):
             return
 
         dest = os.path.join(
-            folder, f"data_backup_{datetime.now().strftime('%Y-%m-%d_%H%M')}.db"
+            folder, f"TakibiEsasi_Yedek_{datetime.now().strftime('%Y-%m-%d_%H%M')}.teb"
         )
 
         self._set_backup_buttons_enabled(False)
         try:
-            backup_path = create_backup(dest)
-            if backup_path:
-                # Oluşturulan yedeği doğrula
-                is_valid, validation_msg = validate_backup_file(backup_path)
-                if not is_valid:
-                    QMessageBox.warning(
-                        self,
-                        "Uyarı",
-                        f"Yedekleme oluşturuldu ancak doğrulama uyarısı:\n{validation_msg}"
-                    )
-                else:
-                    QMessageBox.information(
-                        self,
-                        "Başarılı",
-                        f"Yedekleme tamamlandı ve doğrulandı:\n{backup_path}",
-                    )
+            success, msg = create_portable_backup(dest, password, hint)
+            if success:
+                QMessageBox.information(
+                    self,
+                    "Başarılı",
+                    f"Taşınabilir yedek oluşturuldu:\n{dest}\n\n"
+                    "Bu yedeği flash bellek veya buluta\n"
+                    "güvenle kaydedebilirsiniz.",
+                )
             else:
-                QMessageBox.warning(self, "Uyarı", "Yedekleme oluşturulamadı.")
+                QMessageBox.warning(self, "Uyarı", f"Yedekleme hatası:\n{msg}")
         except Exception as e:
             QMessageBox.critical(self, "Hata", str(e))
         finally:
@@ -1024,7 +1067,6 @@ class SettingsDialog(QDialog):
             return
 
         # İkinci onay - yazarak onaylama
-        from PyQt6.QtWidgets import QInputDialog
         confirm_text, ok = QInputDialog.getText(
             self,
             "Onay Gerekli",
@@ -1046,8 +1088,104 @@ class SettingsDialog(QDialog):
                     "Değişikliklerin uygulanması için uygulamayı yeniden başlatın.",
                 )
                 self.load_backup_list()
+            elif message == "PAROLA_GEREKLI":
+                # Parola korumalı yedek - parola sor
+                self._restore_with_password(filepath)
             else:
                 QMessageBox.warning(self, "Uyarı", f"Geri yükleme başarısız:\n{message}")
+        except Exception as e:
+            QMessageBox.critical(self, "Hata", f"Geri yükleme hatası:\n{e}")
+        finally:
+            self._set_backup_buttons_enabled(True)
+
+    def _restore_with_password(self, filepath: str) -> None:
+        """Parola korumalı yedeği geri yükle."""
+        # Parola ipucunu göster
+        hint = get_backup_hint(filepath)
+        hint_text = f"\n\nParola ipucu: {hint}" if hint else ""
+
+        password, ok = QInputDialog.getText(
+            self,
+            "Parola Gerekli",
+            f"Bu yedek parola korumalı.{hint_text}\n\nParolayı girin:",
+            QLineEdit.EchoMode.Password
+        )
+        if not ok or not password:
+            return
+
+        try:
+            success, message = restore_portable_backup(filepath, password)
+            if success:
+                QMessageBox.information(
+                    self,
+                    "Başarılı",
+                    f"{message}\n\n"
+                    "Değişikliklerin uygulanması için uygulamayı yeniden başlatın.",
+                )
+                self.load_backup_list()
+            else:
+                QMessageBox.warning(self, "Uyarı", f"Geri yükleme başarısız:\n{message}")
+        except Exception as e:
+            QMessageBox.critical(self, "Hata", f"Geri yükleme hatası:\n{e}")
+
+    def restore_from_file(self) -> None:
+        """Harici dosyadan (flash bellek vb.) yedek geri yükle."""
+        filepath, _ = QFileDialog.getOpenFileName(
+            self,
+            "Yedek Dosyası Seç",
+            "",
+            "Tüm Yedekler (*.teb *.db);;Taşınabilir Yedek (*.teb);;SQLite Yedek (*.db)"
+        )
+        if not filepath:
+            return
+
+        # Yedek türünü kontrol et
+        backup_type = get_backup_type(filepath)
+
+        if backup_type == 'unknown':
+            QMessageBox.warning(self, "Uyarı", "Geçersiz yedek dosyası.")
+            return
+
+        # Onay al
+        reply = QMessageBox.warning(
+            self,
+            "⚠️ DİKKAT - Geri Yükleme",
+            f"Seçilen dosya geri yüklenecek.\n\n"
+            "⚠️ UYARI: Mevcut verileriniz bu yedekle DEĞİŞTİRİLECEK!\n\n"
+            "Devam etmek istiyor musunuz?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        # Yazarak onaylama
+        confirm_text, ok = QInputDialog.getText(
+            self,
+            "Onay Gerekli",
+            "Bu işlem geri alınamaz!\n\n"
+            "Devam etmek için 'ONAYLA' yazın:"
+        )
+        if not ok or confirm_text.strip().upper() != "ONAYLA":
+            QMessageBox.information(self, "İptal", "Geri yükleme iptal edildi.")
+            return
+
+        self._set_backup_buttons_enabled(False)
+        try:
+            if backup_type == 'password':
+                self._restore_with_password(filepath)
+            else:
+                success, message = restore_backup(filepath)
+                if success:
+                    QMessageBox.information(
+                        self,
+                        "Başarılı",
+                        f"{message}\n\n"
+                        "Değişikliklerin uygulanması için uygulamayı yeniden başlatın.",
+                    )
+                    self.load_backup_list()
+                else:
+                    QMessageBox.warning(self, "Uyarı", f"Geri yükleme başarısız:\n{message}")
         except Exception as e:
             QMessageBox.critical(self, "Hata", f"Geri yükleme hatası:\n{e}")
         finally:
