@@ -123,13 +123,18 @@ class BuroSettingsTab(QWidget):
             return
 
         info = self.sync_manager.get_status_info()
+        status = SyncStatus(info.get('status', 'not_configured'))
+
+        # Pending approval durumunda özel gösterim
+        if status == SyncStatus.PENDING_APPROVAL:
+            self._show_pending_approval(info)
+            return
 
         if not info.get('is_configured'):
             self._show_not_configured()
             return
 
         # Durum
-        status = SyncStatus(info.get('status', 'not_configured'))
         status_icons = {
             SyncStatus.IDLE: "🟢",
             SyncStatus.SYNCING: "🔄",
@@ -159,12 +164,16 @@ class BuroSettingsTab(QWidget):
 
         # Butonları güncelle
         is_configured = info.get('is_configured', False)
-        self.btn_sync_now.setEnabled(is_configured and status != SyncStatus.SYNCING)
-        self.btn_leave.setEnabled(is_configured)
+        is_pending = (status == SyncStatus.PENDING_APPROVAL)
+
+        self.btn_sync_now.setEnabled(is_configured and status != SyncStatus.SYNCING and not is_pending)
+        # Bürodan ayrıl butonu pending durumunda da aktif olmalı
+        self.btn_leave.setEnabled(is_configured or is_pending)
+        self.btn_leave.setText("🚪 Bürodan Ayrıl")  # Normal metin
         self.btn_setup.setText("🔧 Ayarları Değiştir" if is_configured else "🔧 Büro Kurulumu")
 
         # Admin grubu (şimdilik herkese göster)
-        self.admin_group.setVisible(is_configured)
+        self.admin_group.setVisible(is_configured and not is_pending)
 
     def _show_not_configured(self):
         """Yapılandırılmamış durumu göster"""
@@ -176,6 +185,20 @@ class BuroSettingsTab(QWidget):
 
         self.btn_sync_now.setEnabled(False)
         self.btn_leave.setEnabled(False)
+        self.admin_group.setVisible(False)
+
+    def _show_pending_approval(self, info: dict):
+        """Onay bekleniyor durumunu göster"""
+        self.lbl_status.setText("🟡 Onay bekleniyor")
+        self.lbl_firm_name.setText(info.get('firm_id', '-') or '-')
+        self.lbl_device_id.setText(info.get('device_id', '-') or '-')
+        self.lbl_last_sync.setText("Henüz senkronize edilmedi")
+        self.lbl_pending.setText("-")
+
+        self.btn_sync_now.setEnabled(False)
+        self.btn_leave.setEnabled(True)  # Katılım talebini iptal etmek için
+        self.btn_leave.setText("🚪 Katılım Talebini İptal Et")
+        self.btn_setup.setText("🔧 Büro Kurulumu")
         self.admin_group.setVisible(False)
 
     def _sync_now(self):
@@ -233,28 +256,45 @@ class BuroSettingsTab(QWidget):
             )
 
     def _leave_firm(self):
-        """Bürodan ayrıl"""
-        reply = QMessageBox.question(
-            self, "Bürodan Ayrıl",
-            "Bu işlem geri alınamaz!\n\n"
-            "Bürodan ayrıldıktan sonra verileriniz senkronize edilmeyecek.\n"
-            "Yerel verileriniz silinsin mi?",
-            QMessageBox.StandardButton.Yes |
-            QMessageBox.StandardButton.No |
-            QMessageBox.StandardButton.Cancel
-        )
+        """Bürodan ayrıl veya katılım talebini iptal et"""
+        # Pending approval durumunu kontrol et
+        is_pending = self.sync_manager and self.sync_manager.status == SyncStatus.PENDING_APPROVAL
 
-        if reply == QMessageBox.StandardButton.Cancel:
-            return
+        if is_pending:
+            # Katılım talebi iptal etme
+            reply = QMessageBox.question(
+                self, "Katılım Talebini İptal Et",
+                "Katılım talebiniz iptal edilecek.\n\n"
+                "Devam etmek istiyor musunuz?",
+                QMessageBox.StandardButton.Yes |
+                QMessageBox.StandardButton.No
+            )
 
-        keep_data = (reply == QMessageBox.StandardButton.No)
+            if reply != QMessageBox.StandardButton.Yes:
+                return
+
+            keep_data = True  # Pending durumda veri yok zaten
+        else:
+            # Normal bürodan ayrılma
+            reply = QMessageBox.question(
+                self, "Bürodan Ayrıl",
+                "Bu işlem geri alınamaz!\n\n"
+                "Bürodan ayrıldıktan sonra verileriniz senkronize edilmeyecek.\n"
+                "Yerel verileriniz silinsin mi?",
+                QMessageBox.StandardButton.Yes |
+                QMessageBox.StandardButton.No |
+                QMessageBox.StandardButton.Cancel
+            )
+
+            if reply == QMessageBox.StandardButton.Cancel:
+                return
+
+            keep_data = (reply == QMessageBox.StandardButton.No)
 
         try:
             result = self.sync_manager.leave_firm(keep_local_data=keep_data)
-            QMessageBox.information(
-                self, "Bürodan Ayrıldınız",
-                "Büro bağlantısı kaldırıldı."
-            )
+            msg = "Katılım talebi iptal edildi." if is_pending else "Büro bağlantısı kaldırıldı."
+            QMessageBox.information(self, "Başarılı", msg)
             self._refresh()
 
         except Exception as e:
