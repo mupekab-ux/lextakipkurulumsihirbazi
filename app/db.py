@@ -3363,7 +3363,8 @@ def check_disk_space(target_path: str, required_bytes: int | None = None) -> tup
 
 def validate_backup_file(backup_path: str) -> tuple[bool, str]:
     """
-    Yedek dosyasının geçerli bir SQLite veritabanı olduğunu kontrol eder.
+    Yedek dosyasının geçerli olduğunu kontrol eder.
+    Şifreli ve şifresiz yedekleri destekler.
 
     Args:
         backup_path: Yedek dosyasının yolu
@@ -3374,15 +3375,31 @@ def validate_backup_file(backup_path: str) -> tuple[bool, str]:
     if not os.path.exists(backup_path):
         return False, "Dosya bulunamadı."
 
-    if os.path.getsize(backup_path) == 0:
+    file_size = os.path.getsize(backup_path)
+    if file_size == 0:
         return False, "Dosya boş."
 
     try:
-        # SQLite header kontrolü (ilk 16 byte)
         with open(backup_path, "rb") as f:
-            header = f.read(16)
-            if not header.startswith(b"SQLite format 3"):
-                return False, "Geçerli bir SQLite veritabanı değil."
+            header = f.read(32)
+
+        # Parola korumalı yedek kontrolü (TAKIBI_BACKUP_V2 marker)
+        if header.startswith(b'TAKIBI_BACKUP_V2'):
+            # Minimum boyut kontrolü (marker + hint_len + salt + en az biraz veri)
+            if file_size < 50:
+                return False, "Parola korumalı yedek dosyası bozuk (çok küçük)."
+            return True, "Parola korumalı yedek dosyası geçerli."
+
+        # Fernet şifreli yedek kontrolü (makine anahtarıyla)
+        # Fernet token'lar 'gAAAAA' ile başlar (base64)
+        if header.startswith(b'gAAAAA'):
+            if file_size < 100:
+                return False, "Şifreli yedek dosyası bozuk (çok küçük)."
+            return True, "Şifreli yedek dosyası geçerli."
+
+        # Düz SQLite yedek kontrolü
+        if not header.startswith(b"SQLite format 3"):
+            return False, "Geçerli bir yedek dosyası değil."
 
         # Veritabanına bağlanmayı dene
         conn = sqlite3.connect(backup_path)
@@ -3417,6 +3434,7 @@ def validate_backup_file(backup_path: str) -> tuple[bool, str]:
 def get_backup_info(backup_path: str) -> dict[str, Any] | None:
     """
     Yedek dosyası hakkında detaylı bilgi döndürür.
+    Şifreli ve şifresiz yedekleri destekler.
 
     Args:
         backup_path: Yedek dosyasının yolu
@@ -3429,8 +3447,26 @@ def get_backup_info(backup_path: str) -> dict[str, Any] | None:
 
     try:
         stat = os.stat(backup_path)
+        backup_type = get_backup_type(backup_path)
 
-        # Veritabanındaki kayıt sayılarını al
+        base_info = {
+            "filepath": backup_path,
+            "filename": os.path.basename(backup_path),
+            "size_bytes": stat.st_size,
+            "size_display": _format_size(stat.st_size),
+            "created_at": datetime.fromtimestamp(stat.st_mtime),
+            "created_display": datetime.fromtimestamp(stat.st_mtime).strftime("%d.%m.%Y %H:%M"),
+            "backup_type": backup_type,
+        }
+
+        # Şifreli yedekler için detaylı bilgi alınamaz
+        if backup_type in ('password', 'machine'):
+            base_info["dava_count"] = "🔒"
+            base_info["user_count"] = "🔒"
+            base_info["encrypted"] = True
+            return base_info
+
+        # Düz SQLite yedekler için detaylı bilgi al
         conn = sqlite3.connect(backup_path)
         cursor = conn.cursor()
 
@@ -3442,16 +3478,10 @@ def get_backup_info(backup_path: str) -> dict[str, Any] | None:
 
         conn.close()
 
-        return {
-            "filepath": backup_path,
-            "filename": os.path.basename(backup_path),
-            "size_bytes": stat.st_size,
-            "size_display": _format_size(stat.st_size),
-            "created_at": datetime.fromtimestamp(stat.st_mtime),
-            "created_display": datetime.fromtimestamp(stat.st_mtime).strftime("%d.%m.%Y %H:%M"),
-            "dava_count": dosya_count,
-            "user_count": user_count,
-        }
+        base_info["dava_count"] = dosya_count
+        base_info["user_count"] = user_count
+        base_info["encrypted"] = False
+        return base_info
     except Exception:
         return None
 
