@@ -122,7 +122,7 @@ class SyncManager:
         try:
             row = conn.execute("""
                 SELECT device_id, firm_id, firm_key_encrypted,
-                       server_url, is_sync_enabled
+                       server_url, access_token, refresh_token, is_sync_enabled
                 FROM sync_metadata
                 LIMIT 1
             """).fetchone()
@@ -139,6 +139,8 @@ class SyncManager:
                 firm_id=row['firm_id'],
                 device_id=row['device_id'],
                 firm_key=firm_key,
+                access_token=row['access_token'],
+                refresh_token=row['refresh_token'],
             )
 
             return self.initialize(config)
@@ -161,13 +163,16 @@ class SyncManager:
 
             conn.execute("""
                 INSERT INTO sync_metadata
-                (device_id, firm_id, firm_key_encrypted, server_url, is_sync_enabled)
-                VALUES (?, ?, ?, ?, 1)
+                (device_id, firm_id, firm_key_encrypted, server_url,
+                 access_token, refresh_token, is_sync_enabled)
+                VALUES (?, ?, ?, ?, ?, ?, 1)
             """, (
                 self.config.device_id,
                 self.config.firm_id,
                 self.config.firm_key,  # TODO: Cihaz anahtarıyla şifrele
                 self.config.server_url,
+                self.config.access_token,
+                self.config.refresh_token,
             ))
             conn.commit()
         finally:
@@ -400,6 +405,16 @@ class SyncManager:
         )
 
         self.initialize(self.config)
+
+        # Otomatik login yap
+        try:
+            login_result = self.client.login(admin_username, admin_password)
+            self.config.access_token = login_result.get('access_token')
+            self.config.refresh_token = login_result.get('refresh_token')
+            logger.info("Büro kurulumu sonrası otomatik login başarılı")
+        except Exception as e:
+            logger.warning(f"Otomatik login başarısız: {e}")
+
         self.save_config_to_db()
 
         # Kurtarma kodu üret
@@ -609,9 +624,22 @@ class SyncManager:
                     last_sync_revision INTEGER DEFAULT 0,
                     last_sync_at DATETIME,
                     server_url TEXT,
+                    access_token TEXT,
+                    refresh_token TEXT,
                     is_sync_enabled INTEGER DEFAULT 0
                 )
             """)
+
+            # Eski tablolarda access_token ve refresh_token yoksa ekle
+            try:
+                conn.execute("ALTER TABLE sync_metadata ADD COLUMN access_token TEXT")
+            except sqlite3.OperationalError:
+                pass  # Kolon zaten var
+
+            try:
+                conn.execute("ALTER TABLE sync_metadata ADD COLUMN refresh_token TEXT")
+            except sqlite3.OperationalError:
+                pass  # Kolon zaten var
 
             # sync_outbox
             conn.execute("""
