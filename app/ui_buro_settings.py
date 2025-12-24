@@ -185,6 +185,8 @@ class BuroSettingsTab(QWidget):
 
         self.btn_sync_now.setEnabled(False)
         self.btn_leave.setEnabled(False)
+        self.btn_leave.setText("🚪 Bürodan Ayrıl")  # Metni sıfırla
+        self.btn_setup.setText("🔧 Büro Kurulumu")
         self.admin_group.setVisible(False)
 
     def _show_pending_approval(self, info: dict):
@@ -292,13 +294,19 @@ class BuroSettingsTab(QWidget):
             keep_data = (reply == QMessageBox.StandardButton.No)
 
         try:
-            result = self.sync_manager.leave_firm(keep_local_data=keep_data)
-            msg = "Katılım talebi iptal edildi." if is_pending else "Büro bağlantısı kaldırıldı."
-            QMessageBox.information(self, "Başarılı", msg)
-            self._refresh()
-
+            if self.sync_manager:
+                result = self.sync_manager.leave_firm(keep_local_data=keep_data)
+                msg = "Katılım talebi iptal edildi." if is_pending else "Büro bağlantısı kaldırıldı."
+                QMessageBox.information(self, "Başarılı", msg)
+            else:
+                QMessageBox.warning(self, "Uyarı", "SyncManager bulunamadı.")
         except Exception as e:
-            QMessageBox.critical(self, "Hata", str(e))
+            import traceback
+            traceback.print_exc()
+            QMessageBox.critical(self, "Hata", f"İşlem başarısız: {str(e)}")
+        finally:
+            # Her durumda refresh yap
+            self._refresh()
 
     def _manage_devices(self):
         """Cihaz yönetimi dialog'u"""

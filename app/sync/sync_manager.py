@@ -188,12 +188,18 @@ class SyncManager:
         """Yapılandırmayı temizle"""
         conn = self._get_connection()
         try:
-            conn.execute("UPDATE sync_metadata SET is_sync_enabled = 0")
+            # Kaydı tamamen sil
+            conn.execute("DELETE FROM sync_metadata")
             conn.commit()
         finally:
             conn.close()
 
         self.config = None
+        self.client = None
+        self.encryption = None
+        self.outbox = None
+        self.inbox = None
+        self.conflict_handler = None
         self.status = SyncStatus.NOT_CONFIGURED
         self._notify_status_change()
 
