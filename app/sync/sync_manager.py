@@ -134,11 +134,25 @@ class SyncManager:
                 LIMIT 1
             """).fetchone()
 
-            if not row or not row['is_sync_enabled']:
+            if not row:
                 return False
 
-            # firm_key'i çöz (cihaz anahtarıyla şifreli)
-            # TODO: Cihaz anahtarıyla decrypt
+            # Pending approval durumu (is_sync_enabled = 0)
+            if not row['is_sync_enabled']:
+                # Pending approval için minimal config oluştur
+                temp_config = SyncConfig(
+                    server_url=row['server_url'],
+                    firm_id=row['firm_id'],
+                    device_id=row['device_id'],
+                    firm_key=b"",
+                )
+                self.client = SyncClient(temp_config)
+                self.config = temp_config
+                self.status = SyncStatus.PENDING_APPROVAL
+                logger.info("Pending approval durumu yüklendi")
+                return True
+
+            # Normal durum - tam yapılandırma
             firm_key = row['firm_key_encrypted']
 
             config = SyncConfig(
