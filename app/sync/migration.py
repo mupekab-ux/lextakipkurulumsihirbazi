@@ -277,11 +277,29 @@ class SyncMigration:
                 conn.execute(f"DROP TRIGGER IF EXISTS {table}_sync_insert")
                 conn.execute(f"DROP TRIGGER IF EXISTS {table}_sync_update")
                 conn.execute(f"DROP TRIGGER IF EXISTS {table}_sync_delete")
+                conn.execute(f"DROP TRIGGER IF EXISTS {table}_sync_real_delete")
 
                 # Kolon listesini al (JSON için)
                 columns = []
+                has_id_column = False
                 for row in conn.execute(f"PRAGMA table_info({table})"):
                     columns.append(row[1])
+                    if row[1] == 'id':
+                        has_id_column = True
+
+                # Junction tablolar için (id kolonu olmayan) WHERE koşulu
+                # rowid kullanıyoruz - SQLite'da her tablo için mevcuttur
+                if has_id_column:
+                    where_clause_new = "id = NEW.id"
+                    where_clause_old = "id = OLD.id"
+                    delete_json_new = "json_object('uuid', NEW.uuid, 'id', NEW.id)"
+                    delete_json_old = "json_object('uuid', OLD.uuid, 'id', OLD.id)"
+                else:
+                    # Junction tablolar için rowid kullan
+                    where_clause_new = "rowid = NEW.rowid"
+                    where_clause_old = "rowid = OLD.rowid"
+                    delete_json_new = "json_object('uuid', NEW.uuid)"
+                    delete_json_old = "json_object('uuid', OLD.uuid)"
 
                 # INSERT trigger
                 # Not: uuid trigger içinde üretilecek
@@ -303,7 +321,7 @@ class SyncMigration:
                             revision = COALESCE(revision, 0) + 1,
                             created_at = COALESCE(created_at, CURRENT_TIMESTAMP),
                             updated_at = CURRENT_TIMESTAMP
-                        WHERE id = NEW.id AND NEW.uuid IS NULL;
+                        WHERE {where_clause_new} AND NEW.uuid IS NULL;
                     END;
                 """)
 
@@ -326,7 +344,7 @@ class SyncMigration:
                         UPDATE {table}
                         SET revision = COALESCE(revision, 0) + 1,
                             updated_at = CURRENT_TIMESTAMP
-                        WHERE id = NEW.id;
+                        WHERE {where_clause_new};
                     END;
                 """)
 
@@ -342,7 +360,7 @@ class SyncMigration:
                             NEW.uuid,
                             '{table}',
                             'DELETE',
-                            json_object('uuid', NEW.uuid, 'id', NEW.id)
+                            {delete_json_new}
                         );
                     END;
                 """)
@@ -360,7 +378,7 @@ class SyncMigration:
                             OLD.uuid,
                             '{table}',
                             'DELETE',
-                            json_object('uuid', OLD.uuid, 'id', OLD.id)
+                            {delete_json_old}
                         );
                     END;
                 """)
