@@ -232,16 +232,20 @@ class BuroSettingsTab(QWidget):
             result = self.sync_manager.check_approval_status()
 
             if result.get('is_approved'):
-                QMessageBox.information(
-                    self, "Onaylandı",
-                    "Cihazınız onaylandı! Artık senkronizasyon yapabilirsiniz."
-                )
-                # Butonu normal sync'e geri döndür
-                try:
-                    self.btn_sync_now.clicked.disconnect()
-                except:
-                    pass
-                self.btn_sync_now.clicked.connect(self._sync_now)
+                if result.get('needs_login'):
+                    # Login dialog göster
+                    self._show_login_dialog()
+                else:
+                    QMessageBox.information(
+                        self, "Onaylandı",
+                        "Cihazınız onaylandı! Artık senkronizasyon yapabilirsiniz."
+                    )
+                    # Butonu normal sync'e geri döndür
+                    try:
+                        self.btn_sync_now.clicked.disconnect()
+                    except:
+                        pass
+                    self.btn_sync_now.clicked.connect(self._sync_now)
             else:
                 QMessageBox.information(
                     self, "Onay Bekleniyor",
@@ -254,6 +258,28 @@ class BuroSettingsTab(QWidget):
         finally:
             self.btn_sync_now.setEnabled(True)
             self._refresh()
+
+    def _show_login_dialog(self):
+        """Onay sonrası login dialog'u göster"""
+        dialog = LoginAfterApprovalDialog(self.sync_manager, self)
+        if dialog.exec():
+            QMessageBox.information(
+                self, "Başarılı",
+                "Giriş başarılı! Artık senkronizasyon yapabilirsiniz."
+            )
+            # Butonu normal sync'e geri döndür
+            try:
+                self.btn_sync_now.clicked.disconnect()
+            except:
+                pass
+            self.btn_sync_now.clicked.connect(self._sync_now)
+            self._refresh()
+        else:
+            QMessageBox.warning(
+                self, "Uyarı",
+                "Giriş yapılmadan senkronizasyon kullanılamaz.\n"
+                "Daha sonra 'Onay Durumunu Kontrol Et' butonuna tekrar basabilirsiniz."
+            )
 
     def _sync_now(self):
         """Hemen senkronize et"""
@@ -576,6 +602,105 @@ class DeviceManagementDialog(QDialog):
             self._load_devices()
         except Exception as e:
             QMessageBox.critical(self, "Hata", str(e))
+
+
+class LoginAfterApprovalDialog(QDialog):
+    """Onay sonrası login dialog'u"""
+
+    def __init__(self, sync_manager: SyncManager, parent=None):
+        super().__init__(parent)
+        self.sync_manager = sync_manager
+
+        self.setWindowTitle("Giriş Yapın")
+        self.setMinimumWidth(350)
+
+        layout = QVBoxLayout()
+
+        # Bilgi
+        info_label = QLabel(
+            "Cihazınız onaylandı!\n\n"
+            "Senkronizasyonu başlatmak için lütfen\n"
+            "büro kullanıcı bilgilerinizi girin:"
+        )
+        info_label.setWordWrap(True)
+        layout.addWidget(info_label)
+
+        # Form
+        form_layout = QFormLayout()
+
+        self.txt_username = QLineEdit()
+        self.txt_username.setPlaceholderText("Kullanıcı adınız")
+        form_layout.addRow("Kullanıcı Adı:", self.txt_username)
+
+        self.txt_password = QLineEdit()
+        self.txt_password.setPlaceholderText("Şifreniz")
+        self.txt_password.setEchoMode(QLineEdit.EchoMode.Password)
+        form_layout.addRow("Şifre:", self.txt_password)
+
+        layout.addLayout(form_layout)
+
+        # Hata mesajı
+        self.lbl_error = QLabel()
+        self.lbl_error.setStyleSheet("color: red;")
+        self.lbl_error.setWordWrap(True)
+        self.lbl_error.hide()
+        layout.addWidget(self.lbl_error)
+
+        # Butonlar
+        btn_layout = QHBoxLayout()
+
+        self.btn_login = QPushButton("Giriş Yap")
+        self.btn_login.clicked.connect(self._do_login)
+        self.btn_login.setDefault(True)
+        btn_layout.addWidget(self.btn_login)
+
+        btn_cancel = QPushButton("İptal")
+        btn_cancel.clicked.connect(self.reject)
+        btn_layout.addWidget(btn_cancel)
+
+        layout.addLayout(btn_layout)
+
+        self.setLayout(layout)
+
+        # Enter ile giriş
+        self.txt_password.returnPressed.connect(self._do_login)
+
+    def _do_login(self):
+        """Giriş yap"""
+        username = self.txt_username.text().strip()
+        password = self.txt_password.text()
+
+        if not username or not password:
+            self.lbl_error.setText("Kullanıcı adı ve şifre gerekli")
+            self.lbl_error.show()
+            return
+
+        self.btn_login.setEnabled(False)
+        self.btn_login.setText("Giriş yapılıyor...")
+        self.lbl_error.hide()
+        QApplication.processEvents()
+
+        try:
+            result = self.sync_manager.login_after_approval(username, password)
+            if result.get('success'):
+                self.accept()
+            else:
+                self.lbl_error.setText(result.get('message', 'Giriş başarısız'))
+                self.lbl_error.show()
+
+        except Exception as e:
+            error_msg = str(e)
+            if "401" in error_msg or "Kullanıcı adı veya şifre" in error_msg:
+                self.lbl_error.setText("Kullanıcı adı veya şifre hatalı")
+            elif "403" in error_msg or "onaylanmamış" in error_msg:
+                self.lbl_error.setText("Bu cihaz henüz onaylanmamış")
+            else:
+                self.lbl_error.setText(f"Hata: {error_msg}")
+            self.lbl_error.show()
+
+        finally:
+            self.btn_login.setEnabled(True)
+            self.btn_login.setText("Giriş Yap")
 
 
 class JoinCodeDialog(QDialog):

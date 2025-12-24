@@ -548,7 +548,7 @@ class SyncManager:
         Cihaz onay durumunu kontrol et.
 
         Returns:
-            {is_approved, firm_key?}
+            {is_approved, firm_key?, needs_login?}
         """
         if not self.client:
             raise ValueError("Client yapılandırılmamış")
@@ -559,6 +559,41 @@ class SyncManager:
             # Onaylandı, firm_key'i al
             firm_key = response['firm_key'].encode() if isinstance(response['firm_key'], str) else response['firm_key']
             self.config.firm_key = firm_key
+
+            # NOT: Token almak için login gerekiyor
+            # UI'da login dialog gösterilecek
+            response['needs_login'] = True
+
+            logger.info("Cihaz onaylandı, login gerekiyor")
+
+        return response
+
+    def login_after_approval(self, username: str, password: str) -> Dict[str, Any]:
+        """
+        Onay sonrası login yap ve sync'i başlat.
+
+        Args:
+            username: Kullanıcı adı
+            password: Şifre
+
+        Returns:
+            {success, message}
+        """
+        if not self.client:
+            raise ValueError("Client yapılandırılmamış")
+
+        if not self.config or not self.config.firm_key:
+            raise ValueError("Önce onay durumu kontrol edilmeli")
+
+        try:
+            # Login yap
+            login_result = self.client.login(username, password)
+
+            # Token'ları config'e kaydet
+            self.config.access_token = login_result.get('access_token')
+            self.config.refresh_token = login_result.get('refresh_token')
+
+            # Şimdi tam initialize et
             self.initialize(self.config)
             self.save_config_to_db()
 
@@ -566,14 +601,19 @@ class SyncManager:
             try:
                 migration = SyncMigration(self.db_path)
                 migration.run_all()
-                logger.info("Sync migration tamamlandı (onay sonrası)")
+                logger.info("Sync migration tamamlandı (login sonrası)")
             except Exception as e:
                 logger.error(f"Sync migration hatası: {e}")
 
             self.status = SyncStatus.IDLE
             self._notify_status_change()
 
-        return response
+            logger.info("Login başarılı, sync hazır")
+            return {'success': True, 'message': 'Giriş başarılı, senkronizasyon hazır.'}
+
+        except Exception as e:
+            logger.error(f"Login hatası: {e}")
+            raise
 
     def leave_firm(self, keep_local_data: bool = False) -> Dict[str, Any]:
         """
