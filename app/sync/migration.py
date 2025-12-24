@@ -261,18 +261,40 @@ class SyncMigration:
                 if not has_uuid:
                     continue
 
-                # UUID'si olmayan kayıtları al
-                rows = conn.execute(
-                    f"SELECT id FROM {table} WHERE uuid IS NULL OR uuid = ''"
-                ).fetchall()
+                # id kolonu var mı kontrol et
+                has_id = False
+                for row in conn.execute(f"PRAGMA table_info({table})"):
+                    if row[1] == 'id':
+                        has_id = True
+                        break
 
-                # Her birine UUID ata
-                for row in rows:
-                    new_uuid = str(uuid.uuid4())
-                    conn.execute(
-                        f"UPDATE {table} SET uuid = ? WHERE id = ?",
-                        (new_uuid, row[0])
-                    )
+                # UUID'si olmayan kayıtları al
+                if has_id:
+                    # Normal tablolar için id kullan
+                    rows = conn.execute(
+                        f"SELECT id FROM {table} WHERE uuid IS NULL OR uuid = ''"
+                    ).fetchall()
+
+                    # Her birine UUID ata
+                    for row in rows:
+                        new_uuid = str(uuid.uuid4())
+                        conn.execute(
+                            f"UPDATE {table} SET uuid = ? WHERE id = ?",
+                            (new_uuid, row[0])
+                        )
+                else:
+                    # Junction tablolar için rowid kullan
+                    rows = conn.execute(
+                        f"SELECT rowid FROM {table} WHERE uuid IS NULL OR uuid = ''"
+                    ).fetchall()
+
+                    # Her birine UUID ata
+                    for row in rows:
+                        new_uuid = str(uuid.uuid4())
+                        conn.execute(
+                            f"UPDATE {table} SET uuid = ? WHERE rowid = ?",
+                            (new_uuid, row[0])
+                        )
 
                 if rows:
                     logger.info(f"{table}: {len(rows)} kayda UUID atandı")
