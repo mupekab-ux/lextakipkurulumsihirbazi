@@ -24,7 +24,7 @@ from .models import (
 from .sync_manager import SyncManager
 from .encryption_service import EncryptionService, RecoveryCodeManager
 from .sync_client import SyncClient, FirmMismatchError, DeviceNotApprovedError
-from .migration import SyncMigration, run_migration
+from .migration import SyncMigration, run_migration, recreate_triggers, diagnose_sync
 
 __all__ = [
     # Models
@@ -45,6 +45,8 @@ __all__ = [
     # Migration
     'SyncMigration',
     'run_migration',
+    'recreate_triggers',
+    'diagnose_sync',
 ]
 
 __version__ = '1.0.0'

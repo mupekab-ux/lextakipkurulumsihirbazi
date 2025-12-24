@@ -374,12 +374,14 @@ class SyncMigration:
                 """)
 
                 # UPDATE trigger - Tüm güncellemeleri yakala (uuid varsa)
+                # Not: INSERT trigger'dan gelen uuid atamasını atla
                 conn.execute(f"""
                     CREATE TRIGGER IF NOT EXISTS {table}_sync_update
                     AFTER UPDATE ON {table}
                     WHEN (SELECT COALESCE(is_sync_enabled, 0) FROM sync_metadata LIMIT 1) = 1
                       AND NEW.uuid IS NOT NULL
                       AND NEW.uuid != ''
+                      AND NOT (OLD.uuid IS NULL AND NEW.uuid IS NOT NULL)
                     BEGIN
                         INSERT INTO sync_outbox (uuid, table_name, operation, data_json)
                         VALUES (
@@ -641,6 +643,159 @@ class SyncMigration:
             conn.close()
 
 
+    def diagnose_triggers(self) -> dict:
+        """
+        Trigger durumunu detaylı olarak analiz et.
+
+        Returns:
+            {
+                'sync_enabled': bool,
+                'metadata_row_count': int,
+                'triggers': {table: [trigger_names]},
+                'trigger_count': int,
+                'outbox_pending': int,
+                'outbox_total': int,
+                'issues': [str]
+            }
+        """
+        result = {
+            'sync_enabled': False,
+            'metadata_row_count': 0,
+            'triggers': {},
+            'trigger_count': 0,
+            'outbox_pending': 0,
+            'outbox_total': 0,
+            'issues': [],
+        }
+
+        conn = self._get_connection()
+        try:
+            # sync_metadata durumu
+            try:
+                meta = conn.execute(
+                    "SELECT COUNT(*), COALESCE(MAX(is_sync_enabled), 0) FROM sync_metadata"
+                ).fetchone()
+                result['metadata_row_count'] = meta[0]
+                result['sync_enabled'] = bool(meta[1])
+
+                if meta[0] == 0:
+                    result['issues'].append("sync_metadata tablosunda kayıt yok!")
+                elif not result['sync_enabled']:
+                    result['issues'].append("is_sync_enabled = 0 - trigger'lar çalışmayacak!")
+            except sqlite3.OperationalError:
+                result['issues'].append("sync_metadata tablosu bulunamadı!")
+
+            # Trigger'ları listele
+            triggers = conn.execute("""
+                SELECT name FROM sqlite_master
+                WHERE type = 'trigger'
+                AND name LIKE '%_sync_%'
+                ORDER BY name
+            """).fetchall()
+
+            result['trigger_count'] = len(triggers)
+
+            for trigger in triggers:
+                name = trigger[0]
+                # Parse table name from trigger name (e.g., dosyalar_sync_insert -> dosyalar)
+                parts = name.rsplit('_sync_', 1)
+                if len(parts) == 2:
+                    table = parts[0]
+                    if table not in result['triggers']:
+                        result['triggers'][table] = []
+                    result['triggers'][table].append(name)
+
+            # Beklenen trigger sayısını kontrol et
+            expected_triggers = len(SYNCED_TABLES) * 4  # 4 trigger per table
+            if result['trigger_count'] < expected_triggers:
+                result['issues'].append(
+                    f"Eksik trigger! Beklenen: {expected_triggers}, Mevcut: {result['trigger_count']}"
+                )
+
+            # Outbox durumu
+            try:
+                outbox = conn.execute("""
+                    SELECT COUNT(*) as total,
+                           SUM(CASE WHEN synced = 0 THEN 1 ELSE 0 END) as pending
+                    FROM sync_outbox
+                """).fetchone()
+                result['outbox_total'] = outbox[0] or 0
+                result['outbox_pending'] = outbox[1] or 0
+            except sqlite3.OperationalError:
+                result['issues'].append("sync_outbox tablosu bulunamadı!")
+
+            # Her synced table için trigger kontrolü
+            for table in SYNCED_TABLES:
+                exists = conn.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+                    (table,)
+                ).fetchone()
+
+                if exists and table not in result['triggers']:
+                    result['issues'].append(f"{table} tablosu var ama trigger'ı yok!")
+
+            return result
+
+        finally:
+            conn.close()
+
+    def test_trigger_manually(self, table_name: str = 'statuses') -> dict:
+        """
+        Trigger'ları test etmek için bir kayıt ekle ve sil.
+
+        Args:
+            table_name: Test edilecek tablo (varsayılan: statuses)
+
+        Returns:
+            {success, message, outbox_before, outbox_after}
+        """
+        if table_name not in SYNCED_TABLES:
+            return {'success': False, 'message': f'{table_name} senkronize edilen tablolar listesinde değil'}
+
+        conn = self._get_connection()
+        try:
+            # Önce outbox sayısını al
+            before = conn.execute("SELECT COUNT(*) FROM sync_outbox").fetchone()[0]
+
+            # Test kaydı ekle (statuses için basit bir kayıt)
+            if table_name == 'statuses':
+                test_uuid = str(uuid.uuid4())
+                conn.execute("""
+                    INSERT INTO statuses (uuid, status_type, name, color_hex, display_order)
+                    VALUES (?, 'test', 'TRIGGER_TEST', '#000000', 9999)
+                """, (test_uuid,))
+                conn.commit()
+
+                # Sonra outbox sayısını al
+                after = conn.execute("SELECT COUNT(*) FROM sync_outbox").fetchone()[0]
+
+                # Test kaydını sil
+                conn.execute("DELETE FROM statuses WHERE uuid = ?", (test_uuid,))
+                conn.commit()
+
+                if after > before:
+                    return {
+                        'success': True,
+                        'message': f'Trigger çalışıyor! Outbox: {before} -> {after}',
+                        'outbox_before': before,
+                        'outbox_after': after
+                    }
+                else:
+                    return {
+                        'success': False,
+                        'message': f'Trigger çalışmıyor! Outbox değişmedi: {before}',
+                        'outbox_before': before,
+                        'outbox_after': after
+                    }
+            else:
+                return {'success': False, 'message': f'{table_name} için otomatik test desteklenmiyor'}
+
+        except Exception as e:
+            return {'success': False, 'message': f'Test hatası: {e}'}
+        finally:
+            conn.close()
+
+
 def run_migration(db_path: str) -> Tuple[bool, str]:
     """
     Migration'ı çalıştır.
@@ -653,3 +808,39 @@ def run_migration(db_path: str) -> Tuple[bool, str]:
     """
     migration = SyncMigration(db_path)
     return migration.run_all()
+
+
+def recreate_triggers(db_path: str) -> Tuple[bool, str]:
+    """
+    Sadece trigger'ları yeniden oluştur.
+
+    Mevcut trigger'ları siler ve güncel kodu ile yeniden oluşturur.
+    Migration tamamlanmış ancak trigger'lar düzgün çalışmıyorsa kullanılır.
+
+    Args:
+        db_path: Veritabanı yolu
+
+    Returns:
+        (başarılı, mesaj)
+    """
+    try:
+        migration = SyncMigration(db_path)
+        migration.drop_all_sync_triggers()
+        migration.create_triggers()
+        return True, "Trigger'lar yeniden oluşturuldu"
+    except Exception as e:
+        return False, f"Trigger yenileme hatası: {e}"
+
+
+def diagnose_sync(db_path: str) -> dict:
+    """
+    Sync durumunu analiz et.
+
+    Args:
+        db_path: Veritabanı yolu
+
+    Returns:
+        Detaylı diagnostic bilgisi
+    """
+    migration = SyncMigration(db_path)
+    return migration.diagnose_triggers()
