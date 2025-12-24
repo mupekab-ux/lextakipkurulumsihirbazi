@@ -25,6 +25,7 @@ from .sync_client import SyncClient, FirmMismatchError, DeviceNotApprovedError
 from .outbox_processor import OutboxProcessor
 from .inbox_processor import InboxProcessor
 from .conflict_handler import ConflictHandler
+from .migration import SyncMigration
 
 logger = logging.getLogger(__name__)
 
@@ -429,6 +430,17 @@ class SyncManager:
 
         self.save_config_to_db()
 
+        # Migration çalıştır - trigger'ları ve sync kolonlarını oluştur
+        try:
+            migration = SyncMigration(self.db_path)
+            success, msg = migration.run_all()
+            if success:
+                logger.info("Sync migration tamamlandı")
+            else:
+                logger.warning(f"Sync migration uyarı: {msg}")
+        except Exception as e:
+            logger.error(f"Sync migration hatası: {e}")
+
         # Kurtarma kodu üret
         recovery_manager = RecoveryCodeManager()
         recovery_code = recovery_manager.generate_recovery_code(firm_key)
@@ -504,6 +516,14 @@ class SyncManager:
         self.initialize(self.config)
         self.save_config_to_db()
 
+        # Migration çalıştır
+        try:
+            migration = SyncMigration(self.db_path)
+            migration.run_all()
+            logger.info("Sync migration tamamlandı (join)")
+        except Exception as e:
+            logger.error(f"Sync migration hatası: {e}")
+
         return {
             'status': 'joined',
             'firm_name': response.get('firm_name', ''),
@@ -527,6 +547,14 @@ class SyncManager:
             self.config.firm_key = firm_key
             self.initialize(self.config)
             self.save_config_to_db()
+
+            # Migration çalıştır
+            try:
+                migration = SyncMigration(self.db_path)
+                migration.run_all()
+                logger.info("Sync migration tamamlandı (onay sonrası)")
+            except Exception as e:
+                logger.error(f"Sync migration hatası: {e}")
 
             self.status = SyncStatus.IDLE
             self._notify_status_change()

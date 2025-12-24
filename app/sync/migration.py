@@ -307,12 +307,13 @@ class SyncMigration:
                     END;
                 """)
 
-                # UPDATE trigger
+                # UPDATE trigger - Tüm güncellemeleri yakala (uuid varsa)
                 conn.execute(f"""
                     CREATE TRIGGER IF NOT EXISTS {table}_sync_update
                     AFTER UPDATE ON {table}
                     WHEN (SELECT COALESCE(is_sync_enabled, 0) FROM sync_metadata LIMIT 1) = 1
-                      AND OLD.synced_at IS NOT NULL
+                      AND NEW.uuid IS NOT NULL
+                      AND NEW.uuid != ''
                     BEGIN
                         INSERT INTO sync_outbox (uuid, table_name, operation, data_json)
                         VALUES (
@@ -342,6 +343,24 @@ class SyncMigration:
                             '{table}',
                             'DELETE',
                             json_object('uuid', NEW.uuid, 'id', NEW.id)
+                        );
+                    END;
+                """)
+
+                # REAL DELETE trigger - Gerçek silme işlemleri için
+                conn.execute(f"""
+                    CREATE TRIGGER IF NOT EXISTS {table}_sync_real_delete
+                    BEFORE DELETE ON {table}
+                    WHEN (SELECT COALESCE(is_sync_enabled, 0) FROM sync_metadata LIMIT 1) = 1
+                      AND OLD.uuid IS NOT NULL
+                      AND OLD.uuid != ''
+                    BEGIN
+                        INSERT INTO sync_outbox (uuid, table_name, operation, data_json)
+                        VALUES (
+                            OLD.uuid,
+                            '{table}',
+                            'DELETE',
+                            json_object('uuid', OLD.uuid, 'id', OLD.id)
                         );
                     END;
                 """)
@@ -460,6 +479,7 @@ class SyncMigration:
                 conn.execute(f"DROP TRIGGER IF EXISTS {table}_sync_insert")
                 conn.execute(f"DROP TRIGGER IF EXISTS {table}_sync_update")
                 conn.execute(f"DROP TRIGGER IF EXISTS {table}_sync_delete")
+                conn.execute(f"DROP TRIGGER IF EXISTS {table}_sync_real_delete")
 
             # Sync tablolarını sil
             conn.execute("DROP TABLE IF EXISTS sync_conflicts")

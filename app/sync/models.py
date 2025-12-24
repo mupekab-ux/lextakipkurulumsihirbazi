@@ -194,8 +194,10 @@ class FirmInfo:
 
 # Senkronize edilecek tablolar
 SYNCED_TABLES = [
+    # Ana tablolar
     'dosyalar',
     'finans',
+    'odeme_plani',
     'taksitler',
     'odeme_kayitlari',
     'masraflar',
@@ -203,8 +205,19 @@ SYNCED_TABLES = [
     'tebligatlar',
     'arabuluculuk',
     'gorevler',
+    # Kullanıcı ve yetki
     'users',
+    'permissions',
+    'dosya_atamalar',
+    # Ekler ve sekmeler
     'attachments',
+    'custom_tabs',
+    'custom_tabs_dosyalar',
+    # Zaman çizelgeleri
+    'dosya_timeline',
+    'finans_timeline',
+    # Durum tanımları
+    'statuses',
 ]
 
 # Sync kolonları (mevcut tablolara eklenecek)
