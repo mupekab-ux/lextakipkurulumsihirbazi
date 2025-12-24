@@ -227,6 +227,8 @@ SYNC_COLUMNS = [
     ('revision', 'INTEGER DEFAULT 1'),
     ('is_deleted', 'INTEGER DEFAULT 0'),
     ('synced_at', 'DATETIME'),
+    ('created_at', 'DATETIME'),
+    ('updated_at', 'DATETIME'),
     ('created_by', 'VARCHAR(36)'),
     ('updated_by', 'VARCHAR(36)'),
 ]

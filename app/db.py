@@ -1492,12 +1492,12 @@ def _cleanup_inconsistent_sync_triggers(cur):
     Bu fonksiyon, initialize_database başlamadan önce bu trigger'ları temizler.
     """
     # Sync modülündeki SYNCED_TABLES listesi (circular import'u önlemek için burada tanımlı)
+    # Bu liste app/sync/models.py'deki SYNCED_TABLES ile aynı olmalı
     synced_tables = [
-        'dosyalar', 'taraflar', 'davalar', 'islemler', 'gorevler',
-        'finans', 'tebligatlar', 'arabuluculuk', 'attachments', 'users',
-        'custom_tabs', 'custom_tabs_dosyalar', 'permissions', 'dosya_atamalar',
-        'ayarlar', 'statuses', 'muvekkil_vekaletler', 'muvekkil_vekaletler_dosyalar',
-        'gorev_templates', 'dosya_rapor_templates'
+        'dosyalar', 'finans', 'odeme_plani', 'taksitler', 'odeme_kayitlari',
+        'masraflar', 'muvekkil_kasasi', 'tebligatlar', 'arabuluculuk', 'gorevler',
+        'users', 'permissions', 'dosya_atamalar', 'attachments', 'custom_tabs',
+        'custom_tabs_dosyalar', 'dosya_timeline', 'finans_timeline', 'statuses'
     ]
 
     for table in synced_tables:
