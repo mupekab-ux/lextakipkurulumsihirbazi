@@ -458,6 +458,85 @@ class SyncMigration:
 
         return ', '.join(args)
 
+    def seed_existing_data(self) -> int:
+        """
+        Mevcut verileri sync_outbox'a ekle (ilk senkronizasyon için).
+
+        Trigger'lar sadece yeni işlemleri yakalar. Bu metod, trigger'lar
+        oluşturulmadan önce var olan verileri outbox'a ekleyerek ilk
+        senkronizasyonu mümkün kılar.
+
+        Returns:
+            Eklenen kayıt sayısı
+        """
+        import json
+
+        conn = self._get_connection()
+        total_seeded = 0
+
+        try:
+            for table in SYNCED_TABLES:
+                # Tablo var mı kontrol et
+                exists = conn.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+                    (table,)
+                ).fetchone()
+
+                if not exists:
+                    continue
+
+                # Kolon listesini al
+                columns = []
+                for row in conn.execute(f"PRAGMA table_info({table})"):
+                    col_name = row[1]
+                    if col_name != 'id':  # id hariç
+                        columns.append(col_name)
+
+                if 'uuid' not in columns:
+                    continue
+
+                # UUID'si olan ama outbox'ta olmayan kayıtları bul
+                rows = conn.execute(f"""
+                    SELECT * FROM {table}
+                    WHERE uuid IS NOT NULL AND uuid != ''
+                    AND uuid NOT IN (SELECT uuid FROM sync_outbox WHERE table_name = ?)
+                    AND (is_deleted IS NULL OR is_deleted = 0)
+                """, (table,)).fetchall()
+
+                # Her kayıt için outbox'a INSERT ekle
+                for row in rows:
+                    row_dict = dict(row)
+                    row_uuid = row_dict.get('uuid')
+
+                    if not row_uuid:
+                        continue
+
+                    # id hariç tüm kolonları JSON'a çevir
+                    data = {k: v for k, v in row_dict.items() if k != 'id'}
+
+                    # Datetime'ları string'e çevir
+                    for k, v in data.items():
+                        if hasattr(v, 'isoformat'):
+                            data[k] = v.isoformat()
+
+                    conn.execute("""
+                        INSERT INTO sync_outbox (uuid, table_name, operation, data_json)
+                        VALUES (?, ?, 'INSERT', ?)
+                    """, (row_uuid, table, json.dumps(data, ensure_ascii=False)))
+
+                    total_seeded += 1
+
+                if rows:
+                    logger.info(f"{table}: {len(rows)} mevcut kayıt outbox'a eklendi")
+
+            conn.commit()
+            logger.info(f"Toplam {total_seeded} kayıt outbox'a eklendi (ilk senkronizasyon)")
+
+        finally:
+            conn.close()
+
+        return total_seeded
+
     def check_migration_status(self) -> dict:
         """
         Migration durumunu kontrol et.
