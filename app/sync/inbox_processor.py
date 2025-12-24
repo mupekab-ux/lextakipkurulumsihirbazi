@@ -251,15 +251,19 @@ class InboxProcessor:
         column_names = ','.join(columns)
 
         try:
+            # INSERT OR REPLACE kullan - mevcut kayıt varsa günceller
             conn.execute(
-                f"INSERT INTO {table_name} ({column_names}) VALUES ({placeholders})",
+                f"INSERT OR REPLACE INTO {table_name} ({column_names}) VALUES ({placeholders})",
                 values
             )
         except sqlite3.IntegrityError as e:
             logger.warning(f"INSERT hatası ({table_name}): {e}")
-            # Muhtemelen unique constraint, UPDATE dene
+            # Hala hata varsa UPDATE dene
             if 'uuid' in data:
-                self._apply_update(conn, table_name, data['uuid'], data, {})
+                try:
+                    self._apply_update(conn, table_name, data['uuid'], data, {})
+                except Exception as update_err:
+                    logger.error(f"UPDATE de başarısız ({table_name}): {update_err}")
 
         return None
 
