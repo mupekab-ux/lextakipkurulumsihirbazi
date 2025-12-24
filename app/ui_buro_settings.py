@@ -167,6 +167,14 @@ class BuroSettingsTab(QWidget):
         is_pending = (status == SyncStatus.PENDING_APPROVAL)
 
         self.btn_sync_now.setEnabled(is_configured and status != SyncStatus.SYNCING and not is_pending)
+        self.btn_sync_now.setText("🔄 Şimdi Senkronize Et")
+        # Butonu doğru fonksiyona bağla
+        try:
+            self.btn_sync_now.clicked.disconnect()
+        except:
+            pass
+        self.btn_sync_now.clicked.connect(self._sync_now)
+
         # Bürodan ayrıl butonu pending durumunda da aktif olmalı
         self.btn_leave.setEnabled(is_configured or is_pending)
         self.btn_leave.setText("🚪 Bürodan Ayrıl")  # Normal metin
@@ -197,11 +205,55 @@ class BuroSettingsTab(QWidget):
         self.lbl_last_sync.setText("Henüz senkronize edilmedi")
         self.lbl_pending.setText("-")
 
-        self.btn_sync_now.setEnabled(False)
+        # Onay durumunu kontrol et butonu
+        self.btn_sync_now.setEnabled(True)
+        self.btn_sync_now.setText("🔄 Onay Durumunu Kontrol Et")
+        try:
+            self.btn_sync_now.clicked.disconnect()
+        except:
+            pass
+        self.btn_sync_now.clicked.connect(self._check_approval_status)
+
         self.btn_leave.setEnabled(True)  # Katılım talebini iptal etmek için
         self.btn_leave.setText("🚪 Katılım Talebini İptal Et")
         self.btn_setup.setText("🔧 Büro Kurulumu")
         self.admin_group.setVisible(False)
+
+    def _check_approval_status(self):
+        """Onay durumunu kontrol et"""
+        if not self.sync_manager:
+            return
+
+        self.btn_sync_now.setEnabled(False)
+        self.btn_sync_now.setText("Kontrol ediliyor...")
+        QApplication.processEvents()
+
+        try:
+            result = self.sync_manager.check_approval_status()
+
+            if result.get('is_approved'):
+                QMessageBox.information(
+                    self, "Onaylandı",
+                    "Cihazınız onaylandı! Artık senkronizasyon yapabilirsiniz."
+                )
+                # Butonu normal sync'e geri döndür
+                try:
+                    self.btn_sync_now.clicked.disconnect()
+                except:
+                    pass
+                self.btn_sync_now.clicked.connect(self._sync_now)
+            else:
+                QMessageBox.information(
+                    self, "Onay Bekleniyor",
+                    "Cihazınız henüz onaylanmadı. Yöneticinin onaylamasını bekleyin."
+                )
+
+        except Exception as e:
+            QMessageBox.warning(self, "Hata", f"Kontrol başarısız: {str(e)}")
+
+        finally:
+            self.btn_sync_now.setEnabled(True)
+            self._refresh()
 
     def _sync_now(self):
         """Hemen senkronize et"""
