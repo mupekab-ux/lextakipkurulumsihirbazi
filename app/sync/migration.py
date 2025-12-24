@@ -41,6 +41,28 @@ class SyncMigration:
         conn.row_factory = sqlite3.Row
         return conn
 
+    def drop_all_sync_triggers(self):
+        """
+        Tüm sync trigger'larını sil.
+
+        Bu metod, tutarsız durumları önlemek için migration başında çağrılır.
+        Önceki başarısız migration'lardan kalan trigger'lar temizlenir.
+        """
+        conn = self._get_connection()
+        try:
+            for table in SYNCED_TABLES:
+                # Her tablo için 4 trigger olabilir
+                conn.execute(f"DROP TRIGGER IF EXISTS {table}_sync_insert")
+                conn.execute(f"DROP TRIGGER IF EXISTS {table}_sync_update")
+                conn.execute(f"DROP TRIGGER IF EXISTS {table}_sync_delete")
+                conn.execute(f"DROP TRIGGER IF EXISTS {table}_sync_real_delete")
+            conn.commit()
+            logger.debug("Tüm sync trigger'ları silindi")
+        except Exception as e:
+            logger.warning(f"Trigger temizleme hatası (önemsiz): {e}")
+        finally:
+            conn.close()
+
     def run_all(self) -> Tuple[bool, str]:
         """
         Tüm migration'ları çalıştır.
@@ -50,6 +72,10 @@ class SyncMigration:
         """
         try:
             logger.info("Sync migration başlıyor...")
+
+            # 0. Önce mevcut sync trigger'larını temizle (tutarsız durumları önlemek için)
+            self.drop_all_sync_triggers()
+            logger.info("Mevcut sync trigger'ları temizlendi")
 
             # 1. Sync tablolarını oluştur
             self.create_sync_tables()

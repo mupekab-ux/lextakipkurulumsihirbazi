@@ -1483,9 +1483,40 @@ def _ensure_dosyalar_schema(conn: sqlite3.Connection, cur: sqlite3.Cursor) -> No
         cur.execute("ALTER TABLE dosyalar ADD COLUMN is_archived INTEGER DEFAULT 0")
 
 
+def _cleanup_inconsistent_sync_triggers(cur):
+    """
+    Tutarsız sync trigger'larını temizle.
+
+    Önceki başarısız migration'lardan kalan trigger'lar,
+    henüz eklenmemiş kolonları (updated_at, revision vb.) referans edebilir.
+    Bu fonksiyon, initialize_database başlamadan önce bu trigger'ları temizler.
+    """
+    # Sync modülündeki SYNCED_TABLES listesi (circular import'u önlemek için burada tanımlı)
+    synced_tables = [
+        'dosyalar', 'taraflar', 'davalar', 'islemler', 'gorevler',
+        'finans', 'tebligatlar', 'arabuluculuk', 'attachments', 'users',
+        'custom_tabs', 'custom_tabs_dosyalar', 'permissions', 'dosya_atamalar',
+        'ayarlar', 'statuses', 'muvekkil_vekaletler', 'muvekkil_vekaletler_dosyalar',
+        'gorev_templates', 'dosya_rapor_templates'
+    ]
+
+    for table in synced_tables:
+        try:
+            cur.execute(f"DROP TRIGGER IF EXISTS {table}_sync_insert")
+            cur.execute(f"DROP TRIGGER IF EXISTS {table}_sync_update")
+            cur.execute(f"DROP TRIGGER IF EXISTS {table}_sync_delete")
+            cur.execute(f"DROP TRIGGER IF EXISTS {table}_sync_real_delete")
+        except Exception:
+            pass  # Sessizce devam et
+
+
 def initialize_database():
     conn = get_connection()
     cur = conn.cursor()
+
+    # Tutarsız sync trigger'larını temizle (önceki başarısız migration'lardan kalan)
+    # Bu trigger'lar henüz eklenmemiş kolonları (updated_at vb.) referans edebilir
+    _cleanup_inconsistent_sync_triggers(cur)
 
     _ensure_dosyalar_schema(conn, cur)
     _ensure_table_columns(cur, "dosyalar", DOSYALAR_OPTIONAL_COLUMNS)
