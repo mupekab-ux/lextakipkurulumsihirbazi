@@ -502,11 +502,11 @@ class SyncManager:
         )
 
         if response.get('requires_approval'):
-            # Onay bekliyor
+            # Onay bekliyor - sunucunun oluşturduğu device_id'yi kaydet
             self._save_pending_config(
                 server_url=server_url,
                 firm_id=response['firm_id'],
-                device_id=device_info.device_id,
+                device_id=response['device_id'],  # Sunucunun oluşturduğu device_id
             )
 
             self.status = SyncStatus.PENDING_APPROVAL
@@ -523,7 +523,7 @@ class SyncManager:
         self.config = SyncConfig(
             server_url=server_url,
             firm_id=response['firm_id'],
-            device_id=device_info.device_id,
+            device_id=response['device_id'],  # Sunucunun oluşturduğu device_id
             firm_key=firm_key,
         )
 
