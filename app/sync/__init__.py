@@ -25,6 +25,13 @@ from .sync_manager import SyncManager
 from .encryption_service import EncryptionService, RecoveryCodeManager
 from .sync_client import SyncClient, FirmMismatchError, DeviceNotApprovedError
 from .migration import SyncMigration, run_migration, recreate_triggers, diagnose_sync
+from .sync_service import (
+    SyncService,
+    SyncStatus as ServiceSyncStatus,
+    get_sync_service,
+    init_sync_service,
+    stop_sync_service
+)
 
 __all__ = [
     # Models
@@ -39,6 +46,12 @@ __all__ = [
     'EncryptionService',
     'RecoveryCodeManager',
     'SyncClient',
+    # Background Service
+    'SyncService',
+    'ServiceSyncStatus',
+    'get_sync_service',
+    'init_sync_service',
+    'stop_sync_service',
     # Errors
     'FirmMismatchError',
     'DeviceNotApprovedError',
@@ -49,4 +62,4 @@ __all__ = [
     'diagnose_sync',
 ]
 
-__version__ = '1.0.0'
+__version__ = '2.0.0'

@@ -383,6 +383,373 @@ class SyncManager:
             conn.close()
 
     # ============================================================
+    # KÜNYE TABANLI TAM SENKRONİZASYON
+    # ============================================================
+
+    def full_sync(self) -> Dict[str, Any]:
+        """
+        Künye tabanlı tam senkronizasyon.
+
+        1. Tüm lokal künyeleri topla (uuid + updated_at)
+        2. Sunucuya gönder
+        3. Sunucu eksik/güncel olanları gönderir
+        4. Sunucu bizden istenen verileri alır
+        5. BN değişikliklerini uygula
+
+        Returns:
+            {success, received, sent, bn_changes, errors}
+        """
+        result = {
+            'success': False,
+            'received': 0,
+            'sent': 0,
+            'bn_changes': [],
+            'errors': []
+        }
+
+        if self.status == SyncStatus.NOT_CONFIGURED:
+            result['errors'].append("Sync yapılandırılmamış")
+            return result
+
+        if not self.client:
+            result['errors'].append("Client yapılandırılmamış")
+            return result
+
+        try:
+            # 1. Tüm lokal künyeleri topla
+            kunyeler = self._get_all_kunyeler()
+            logger.debug(f"Toplam {len(kunyeler)} künye toplandı")
+
+            # 2. Outbox'taki bekleyen değişiklikleri al
+            pending_changes = self._get_pending_changes()
+            logger.debug(f"{len(pending_changes)} bekleyen değişiklik")
+
+            # 3. Sunucuya sync isteği gönder
+            response = self._send_sync_request(kunyeler, pending_changes)
+
+            if not response.get('success', False):
+                result['errors'].append(response.get('message', 'Sync başarısız'))
+                return result
+
+            # 4. Sunucudan gelen verileri uygula
+            to_client = response.get('to_client', [])
+            for record in to_client:
+                try:
+                    self._apply_remote_record(record)
+                    result['received'] += 1
+                except Exception as e:
+                    logger.error(f"Kayıt uygulama hatası: {e}")
+                    result['errors'].append(str(e))
+
+            # 5. Sunucunun istediği verileri gönder
+            need_from_client = response.get('need_from_client', [])
+            if need_from_client:
+                sent_count = self._send_requested_records(need_from_client)
+                result['sent'] = sent_count
+
+            # 6. BN değişikliklerini uygula
+            bn_changes = response.get('bn_changes', [])
+            for bn_change in bn_changes:
+                try:
+                    self._apply_bn_change(bn_change)
+                    result['bn_changes'].append(bn_change)
+                except Exception as e:
+                    logger.error(f"BN değişiklik hatası: {e}")
+
+            # 7. Outbox'ı temizle
+            self._mark_changes_synced(pending_changes)
+
+            # 8. Son sync zamanını güncelle
+            self._update_last_sync()
+
+            result['success'] = True
+            logger.info(
+                f"Full sync tamamlandı: {result['received']} alındı, "
+                f"{result['sent']} gönderildi, {len(bn_changes)} BN değişikliği"
+            )
+
+        except Exception as e:
+            logger.error(f"Full sync hatası: {e}")
+            result['errors'].append(str(e))
+
+        return result
+
+    def _get_all_kunyeler(self) -> List[Dict[str, str]]:
+        """Tüm tabloların UUID ve updated_at bilgisini döndür"""
+        kunyeler = []
+        conn = self._get_connection()
+
+        try:
+            for table in SYNCED_TABLES:
+                try:
+                    # Tablo var mı kontrol et
+                    exists = conn.execute(
+                        "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+                        (table,)
+                    ).fetchone()
+
+                    if not exists:
+                        continue
+
+                    # uuid kolonu var mı?
+                    columns = [row[1] for row in conn.execute(f"PRAGMA table_info({table})")]
+                    if 'uuid' not in columns:
+                        continue
+
+                    # updated_at kolonu var mı?
+                    has_updated_at = 'updated_at' in columns
+
+                    if has_updated_at:
+                        rows = conn.execute(f"""
+                            SELECT uuid, updated_at FROM {table}
+                            WHERE uuid IS NOT NULL AND uuid != ''
+                        """).fetchall()
+                    else:
+                        rows = conn.execute(f"""
+                            SELECT uuid, NULL as updated_at FROM {table}
+                            WHERE uuid IS NOT NULL AND uuid != ''
+                        """).fetchall()
+
+                    for row in rows:
+                        kunyeler.append({
+                            'uuid': row[0],
+                            'table_name': table,
+                            'updated_at': row[1] or datetime.now().isoformat()
+                        })
+
+                except sqlite3.OperationalError as e:
+                    logger.debug(f"{table} tablosu okunamadı: {e}")
+                    continue
+
+        finally:
+            conn.close()
+
+        return kunyeler
+
+    def _get_pending_changes(self) -> List[Dict[str, Any]]:
+        """Outbox'taki bekleyen değişiklikleri al"""
+        conn = self._get_connection()
+        changes = []
+
+        try:
+            rows = conn.execute("""
+                SELECT id, uuid, table_name, operation, data_json
+                FROM sync_outbox
+                WHERE synced = 0
+                ORDER BY created_at
+            """).fetchall()
+
+            for row in rows:
+                try:
+                    data = json.loads(row[4]) if row[4] else {}
+                except:
+                    data = {}
+
+                changes.append({
+                    'id': row[0],
+                    'uuid': row[1],
+                    'table_name': row[2],
+                    'operation': row[3],
+                    'data': data
+                })
+
+        finally:
+            conn.close()
+
+        return changes
+
+    def _send_sync_request(
+        self,
+        kunyeler: List[Dict],
+        changes: List[Dict]
+    ) -> Dict[str, Any]:
+        """Sunucuya sync isteği gönder"""
+        try:
+            # Token kontrolü
+            if not self.config.access_token:
+                return {'success': False, 'message': 'Token yok, login gerekli'}
+
+            # API çağrısı
+            response = self.client._session.post(
+                self.client._get_url('/api/sync'),
+                json={
+                    'kunyeler': kunyeler,
+                    'changes': changes
+                },
+                timeout=120,
+                verify=False
+            )
+
+            if response.status_code == 401:
+                # Token yenilemeyi dene
+                try:
+                    self.client.refresh_token()
+                    # Tekrar dene
+                    response = self.client._session.post(
+                        self.client._get_url('/api/sync'),
+                        json={
+                            'kunyeler': kunyeler,
+                            'changes': changes
+                        },
+                        timeout=120,
+                        verify=False
+                    )
+                except:
+                    return {'success': False, 'message': 'Token yenilenemedi'}
+
+            response.raise_for_status()
+            return response.json()
+
+        except Exception as e:
+            logger.error(f"Sync request hatası: {e}")
+            return {'success': False, 'message': str(e)}
+
+    def _apply_remote_record(self, record: Dict[str, Any]):
+        """Sunucudan gelen kaydı lokal veritabanına uygula"""
+        uuid = record.get('uuid')
+        table_name = record.get('table_name')
+        operation = record.get('operation', 'INSERT')
+        data = record.get('data', {})
+
+        if not uuid or not table_name:
+            return
+
+        if table_name not in SYNCED_TABLES:
+            logger.warning(f"Bilinmeyen tablo: {table_name}")
+            return
+
+        conn = self._get_connection()
+        try:
+            if operation == 'DELETE':
+                # Soft delete
+                conn.execute(
+                    f"UPDATE {table_name} SET is_deleted = 1 WHERE uuid = ?",
+                    (uuid,)
+                )
+            else:
+                # INSERT veya UPDATE
+                # Mevcut kaydı kontrol et
+                existing = conn.execute(
+                    f"SELECT uuid FROM {table_name} WHERE uuid = ?",
+                    (uuid,)
+                ).fetchone()
+
+                # Kolon listesini al
+                columns = [row[1] for row in conn.execute(f"PRAGMA table_info({table_name})")]
+
+                # Sadece mevcut kolonları filtrele
+                filtered_data = {k: v for k, v in data.items() if k in columns and k != 'id'}
+
+                if existing:
+                    # UPDATE
+                    if filtered_data:
+                        set_clause = ", ".join([f"{k} = ?" for k in filtered_data.keys()])
+                        values = list(filtered_data.values()) + [uuid]
+                        conn.execute(
+                            f"UPDATE {table_name} SET {set_clause} WHERE uuid = ?",
+                            values
+                        )
+                else:
+                    # INSERT
+                    filtered_data['uuid'] = uuid
+                    columns_str = ", ".join(filtered_data.keys())
+                    placeholders = ", ".join(["?" for _ in filtered_data])
+                    conn.execute(
+                        f"INSERT OR REPLACE INTO {table_name} ({columns_str}) VALUES ({placeholders})",
+                        list(filtered_data.values())
+                    )
+
+            conn.commit()
+
+        except Exception as e:
+            conn.rollback()
+            logger.error(f"Kayıt uygulama hatası ({table_name}): {e}")
+            raise
+        finally:
+            conn.close()
+
+    def _send_requested_records(self, uuids: List[str]) -> int:
+        """Sunucunun istediği kayıtları gönder"""
+        sent = 0
+        conn = self._get_connection()
+
+        try:
+            for record_uuid in uuids:
+                # Tüm tablolarda ara
+                for table in SYNCED_TABLES:
+                    try:
+                        row = conn.execute(
+                            f"SELECT * FROM {table} WHERE uuid = ?",
+                            (record_uuid,)
+                        ).fetchone()
+
+                        if row:
+                            # Kayıt bulundu, gönder
+                            data = dict(row)
+                            change = {
+                                'uuid': record_uuid,
+                                'table_name': table,
+                                'operation': 'INSERT',
+                                'data': data
+                            }
+
+                            # Push
+                            self.client._session.post(
+                                self.client._get_url('/api/sync/push'),
+                                json={'changes': [change]},
+                                timeout=30,
+                                verify=False
+                            )
+                            sent += 1
+                            break
+
+                    except sqlite3.OperationalError:
+                        continue
+
+        finally:
+            conn.close()
+
+        return sent
+
+    def _apply_bn_change(self, bn_change: Dict[str, Any]):
+        """BN değişikliğini lokal veritabanına uygula"""
+        record_uuid = bn_change.get('uuid')
+        new_bn = bn_change.get('new_bn')
+        old_bn = bn_change.get('old_bn')
+
+        if not record_uuid or not new_bn:
+            return
+
+        conn = self._get_connection()
+        try:
+            conn.execute(
+                "UPDATE dosyalar SET buro_takip_no = ? WHERE uuid = ?",
+                (new_bn, record_uuid)
+            )
+            conn.commit()
+            logger.info(f"BN değişikliği uygulandı: {old_bn} → {new_bn} (uuid={record_uuid})")
+        finally:
+            conn.close()
+
+    def _mark_changes_synced(self, changes: List[Dict]):
+        """Gönderilen değişiklikleri synced olarak işaretle"""
+        if not changes:
+            return
+
+        conn = self._get_connection()
+        try:
+            ids = [c['id'] for c in changes if 'id' in c]
+            if ids:
+                placeholders = ",".join(["?" for _ in ids])
+                conn.execute(
+                    f"UPDATE sync_outbox SET synced = 1, synced_at = ? WHERE id IN ({placeholders})",
+                    [datetime.now().isoformat()] + ids
+                )
+                conn.commit()
+        finally:
+            conn.close()
+
+    # ============================================================
     # BÜRO YÖNETİMİ
     # ============================================================
 
