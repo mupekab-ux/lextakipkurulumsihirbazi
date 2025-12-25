@@ -925,6 +925,15 @@ class SyncManager:
                 device_id=response['device_id'],  # Sunucunun oluşturduğu device_id
             )
 
+            # Config ve client'ı ayarla (status kontrolü için gerekli)
+            self.config = SyncConfig(
+                server_url=server_url,
+                firm_id=response['firm_id'],
+                device_id=response['device_id'],
+                firm_key=b"",  # Henüz yok, onaydan sonra gelecek
+            )
+            self.client = SyncClient(self.config)
+
             self.status = SyncStatus.PENDING_APPROVAL
             self._notify_status_change()
 
