@@ -255,6 +255,14 @@ class FinansHariciDialog(QDialog):
         self.contract_total_label = QLabel("0,00 ₺")
         form.addRow("Hesaplanan Toplam Ücret", self.contract_total_label)
 
+        # Karşı taraf vekalet ücreti
+        self.karsi_vekalet_amount = self._create_amount_spinbox()
+        self.karsi_vekalet_amount.setToolTip(
+            "Mahkeme lehimize sonuçlandığında karşı taraftan hükmedilen vekalet ücreti.\n"
+            "Bu tutar müvekkilin borcundan düşülmez, doğrudan büro geliridir."
+        )
+        form.addRow("Karşı Vekalet Ücreti", self.karsi_vekalet_amount)
+
         self.contract_notes = QTextEdit()
         form.addRow("Notlar", self.contract_notes)
 
@@ -280,6 +288,7 @@ class FinansHariciDialog(QDialog):
         self.fixed_amount.setValue((self.finans.get("sabit_ucret_cents") or 0) / 100)
         self.percent_rate.setValue(float(self.finans.get("yuzde_orani") or 0))
         self.percent_target.setValue((self.finans.get("tahsil_hedef_cents") or 0) / 100)
+        self.karsi_vekalet_amount.setValue((self.finans.get("karsi_vekalet_ucreti_cents") or 0) / 100)
         self.contract_notes.setPlainText(self.finans.get("notlar") or "")
         self.percent_deferred_checkbox.setChecked(
             bool(self.finans.get("yuzde_is_sonu"))
@@ -311,6 +320,7 @@ class FinansHariciDialog(QDialog):
                 harici_bn=self.bn_input.text().strip() or None,
                 harici_muvekkil=self.client_input.text().strip() or None,
                 harici_esas_no=self.esas_input.text().strip() or None,
+                karsi_vekalet_ucreti_cents=tl_to_cents(self.karsi_vekalet_amount.value()),
             )
         except Exception as exc:  # pragma: no cover - GUI safety
             QMessageBox.critical(self, "Hata", f"Sözleşme kaydedilemedi:\n{exc}")

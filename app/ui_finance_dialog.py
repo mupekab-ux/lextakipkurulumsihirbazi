@@ -363,6 +363,14 @@ class FinanceDialog(QDialog):
         self.contract_total_label = QLabel("0,00 ₺")
         form.addRow("Hesaplanan Toplam Ücret", self.contract_total_label)
 
+        # Karşı taraf vekalet ücreti - mahkeme lehimize sonuçlandığında karşı taraftan alınır
+        self.karsi_vekalet_amount = self._create_amount_spinbox()
+        self.karsi_vekalet_amount.setToolTip(
+            "Mahkeme lehimize sonuçlandığında karşı taraftan hükmedilen vekalet ücreti.\n"
+            "Bu tutar müvekkilin borcundan düşülmez, doğrudan büro geliridir."
+        )
+        form.addRow("Karşı Vekalet Ücreti", self.karsi_vekalet_amount)
+
         self.contract_notes = QTextEdit()
         form.addRow("Notlar", self.contract_notes)
 
@@ -386,6 +394,8 @@ class FinanceDialog(QDialog):
         self.percent_rate.setValue(self._to_float(self.finans.get("sozlesme_yuzdesi")))
         target_cents = self._to_int(self.finans.get("tahsil_hedef_cents"))
         self.percent_target.setValue(target_cents / 100)
+        karsi_vekalet_cents = self._to_int(self.finans.get("karsi_vekalet_ucreti_cents"))
+        self.karsi_vekalet_amount.setValue(karsi_vekalet_cents / 100)
         self.contract_notes.setPlainText(self.finans.get("notlar") or "")
         self.percent_deferred_checkbox.setChecked(
             bool(self.finans.get("yuzde_is_sonu"))
@@ -410,6 +420,7 @@ class FinanceDialog(QDialog):
         try:
             fixed_value = float(self.fixed_amount.value())
             percent_value = round(float(self.percent_rate.value()), 2)
+            karsi_vekalet_cents = tl_to_cents(self.karsi_vekalet_amount.value())
             success = update_finans_contract(
                 self.dosya_id,
                 finans_id=self.finans_id,
@@ -418,6 +429,7 @@ class FinanceDialog(QDialog):
                 tahsil_hedef_cents=tl_to_cents(self.percent_target.value()),
                 notlar=self.contract_notes.toPlainText().strip() or None,
                 yuzde_is_sonu=self.percent_deferred_checkbox.isChecked(),
+                karsi_vekalet_ucreti_cents=karsi_vekalet_cents,
             )
             self.refresh_finance_data()
             if success:

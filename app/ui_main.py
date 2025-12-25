@@ -2885,14 +2885,16 @@ class FinanceTableModel(QAbstractTableModel):
         "Sabit Ücret",
         "Toplam Ücret",
         "Tahsil Edilen",
+        "Karşı Vekalet",
+        "Toplam Gelir",
         "% Oran",
         "Masraf Toplam",
         "Masraf Tahsil",
         "Kalan Bakiye",
     ]
 
-    currency_columns = {3, 4, 5, 7, 8, 9}
-    COL_KALAN_BAKIYE = 9
+    currency_columns = {3, 4, 5, 6, 7, 9, 10, 11}
+    COL_KALAN_BAKIYE = 11
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -2913,7 +2915,12 @@ class FinanceTableModel(QAbstractTableModel):
             display[2] = str(item.get("muvekkil_adi") or "")
             display[3] = format_tl(item.get("sozlesme_ucreti_cents") or 0)
             display[4] = format_tl(item.get("toplam_ucret_cents", 0))
-            display[5] = format_tl(item.get("tahsil_edilen_cents", 0))
+            tahsil_edilen = item.get("tahsil_edilen_cents", 0) or 0
+            karsi_vekalet = item.get("karsi_vekalet_ucreti_cents", 0) or 0
+            toplam_gelir = tahsil_edilen + karsi_vekalet
+            display[5] = format_tl(tahsil_edilen)
+            display[6] = format_tl(karsi_vekalet)
+            display[7] = format_tl(toplam_gelir)
             percent_raw = item.get("sozlesme_yuzdesi")
             percent_value: float | None
             try:
@@ -2923,12 +2930,12 @@ class FinanceTableModel(QAbstractTableModel):
             if percent_value is not None:
                 base = item.get("tahsil_hedef_cents") or 0
                 base_text = f" / {format_tl(base)}" if base else ""
-                display[6] = f"{percent_value:.2f} %{base_text}"
+                display[8] = f"{percent_value:.2f} %{base_text}"
             else:
-                display[6] = ""
-            display[7] = format_tl(item.get("masraf_toplam_cents", 0))
-            display[8] = format_tl(item.get("masraf_tahsil_cents", 0))
-            display[9] = format_tl(item.get("kalan_bakiye_cents", 0))
+                display[8] = ""
+            display[9] = format_tl(item.get("masraf_toplam_cents", 0))
+            display[10] = format_tl(item.get("masraf_tahsil_cents", 0))
+            display[11] = format_tl(item.get("kalan_bakiye_cents", 0))
             item["_display"] = display
             item["_user_roles"] = user_roles
             prepared.append(item)
@@ -2968,7 +2975,7 @@ class FinanceTableModel(QAbstractTableModel):
         if role == Qt.ItemDataRole.TextAlignmentRole:
             if column in self.currency_columns:
                 return Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
-            if column == 6:
+            if column == 8:  # % Oran kolonu
                 return Qt.AlignmentFlag.AlignCenter
         return None
 
@@ -3092,14 +3099,16 @@ class HariciFinanceTableModel(QAbstractTableModel):
         "Sabit Ücret",
         "Toplam Ücret",
         "Tahsil Edilen",
+        "Karşı Vekalet",
+        "Toplam Gelir",
         "% Oran",
         "Masraf Toplam",
         "Masraf Tahsil",
         "Kalan Bakiye",
     ]
 
-    currency_columns = {3, 4, 5, 7, 8, 9}
-    COL_KALAN_BAKIYE = 9
+    currency_columns = {3, 4, 5, 6, 7, 9, 10, 11}
+    COL_KALAN_BAKIYE = 11
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
@@ -3120,7 +3129,12 @@ class HariciFinanceTableModel(QAbstractTableModel):
             display[2] = str(item.get("harici_muvekkil") or "")
             display[3] = format_tl(item.get("sabit_ucret_cents") or 0)
             display[4] = format_tl(item.get("toplam_ucret_cents") or 0)
-            display[5] = format_tl(item.get("tahsil_edilen_cents") or 0)
+            tahsil_edilen = item.get("tahsil_edilen_cents", 0) or 0
+            karsi_vekalet = item.get("karsi_vekalet_ucreti_cents", 0) or 0
+            toplam_gelir = tahsil_edilen + karsi_vekalet
+            display[5] = format_tl(tahsil_edilen)
+            display[6] = format_tl(karsi_vekalet)
+            display[7] = format_tl(toplam_gelir)
             percent_raw = item.get("yuzde_orani")
             percent_value: float | None
             try:
@@ -3130,12 +3144,12 @@ class HariciFinanceTableModel(QAbstractTableModel):
             if percent_value is not None:
                 base = item.get("tahsil_hedef_cents") or 0
                 base_text = f" / {format_tl(base)}" if base else ""
-                display[6] = f"{percent_value:.2f} %{base_text}"
+                display[8] = f"{percent_value:.2f} %{base_text}"
             else:
-                display[6] = ""
-            display[7] = format_tl(item.get("masraf_toplam_cents") or 0)
-            display[8] = format_tl(item.get("masraf_tahsil_cents") or 0)
-            display[9] = format_tl(item.get("kalan_bakiye_cents") or 0)
+                display[8] = ""
+            display[9] = format_tl(item.get("masraf_toplam_cents") or 0)
+            display[10] = format_tl(item.get("masraf_tahsil_cents") or 0)
+            display[11] = format_tl(item.get("kalan_bakiye_cents") or 0)
             item["_display"] = display
             item["_user_roles"] = user_roles
             prepared.append(item)
@@ -3167,7 +3181,7 @@ class HariciFinanceTableModel(QAbstractTableModel):
         if role == Qt.ItemDataRole.TextAlignmentRole:
             if column in self.currency_columns:
                 return Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
-            if column == 6:
+            if column == 8:  # % Oran kolonu
                 return Qt.AlignmentFlag.AlignCenter
         return None
 
