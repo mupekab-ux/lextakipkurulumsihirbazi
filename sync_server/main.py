@@ -200,7 +200,7 @@ def get_server_info(
 
     return {
         "version": "2.0.0",
-        "firm_id": firm.uuid if firm else None,
+        "firm_id": to_str(firm.id) if firm else None,
         "firm_name": firm.name if firm else None,
         "timestamp": datetime.utcnow().isoformat()
     }
@@ -235,7 +235,7 @@ def init_firm(request: InitFirmRequest, db: Session = Depends(get_db)):
 
     # Admin kullanıcı oluştur
     admin = User(
-        firm_id=firm.uuid,
+        firm_id=firm.id,
         username=request.admin_username,
         password_hash=get_password_hash(request.admin_password),
         email=request.admin_email,
@@ -245,7 +245,7 @@ def init_firm(request: InitFirmRequest, db: Session = Depends(get_db)):
 
     # Cihaz kaydet
     device = Device(
-        firm_id=firm.uuid,
+        firm_id=firm.id,
         device_id=request.device_id or secrets.token_hex(16),
         device_name=request.device_name or "Ana Bilgisayar",
         is_approved=True,
@@ -254,12 +254,12 @@ def init_firm(request: InitFirmRequest, db: Session = Depends(get_db)):
     db.add(device)
 
     # Global revision başlat
-    db.add(GlobalRevision(firm_id=firm.uuid, current_revision=0))
+    db.add(GlobalRevision(firm_id=firm.id, current_revision=0))
 
     # Katılım kodu oluştur
     join_code = f"BURO-{secrets.token_hex(2).upper()}-{secrets.token_hex(2).upper()}-{secrets.token_hex(2).upper()}"
     code = JoinCode(
-        firm_id=firm.uuid,
+        firm_id=firm.id,
         code=join_code,
         max_uses=100,
         expires_at=datetime.utcnow() + timedelta(days=365),
@@ -269,11 +269,11 @@ def init_firm(request: InitFirmRequest, db: Session = Depends(get_db)):
 
     db.commit()
 
-    logger.info(f"Yeni büro oluşturuldu: {firm.name} ({firm.uuid})")
+    logger.info(f"Yeni büro oluşturuldu: {firm.name} ({to_str(firm.id)})")
 
     return InitFirmResponse(
         success=True,
-        firm_id=firm.uuid,
+        firm_id=to_str(firm.id),
         device_id=device.device_id,
         recovery_code=recovery_code,
         join_code=join_code,
