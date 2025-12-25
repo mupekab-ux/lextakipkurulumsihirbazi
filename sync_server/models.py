@@ -28,11 +28,16 @@ class Firm(Base):
     """Büro/Firma bilgileri"""
     __tablename__ = "firms"
 
-    uuid = Column(String(36), primary_key=True, default=generate_uuid)
+    id = Column(String(36), primary_key=True, default=generate_uuid)  # Mevcut DB'de 'id' olarak adlandırılmış
     name = Column(String(255), nullable=False)
     firm_key = Column(Text, nullable=True)  # Şifreleme anahtarı (encrypted)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    # Alias for backward compatibility
+    @property
+    def uuid(self):
+        return self.id
 
 
 class User(Base):
@@ -40,7 +45,7 @@ class User(Base):
     __tablename__ = "users"
 
     uuid = Column(String(36), primary_key=True, default=generate_uuid)
-    firm_id = Column(String(36), ForeignKey("firms.uuid"), nullable=False, index=True)
+    firm_id = Column(String(36), ForeignKey("firms.id"), nullable=False, index=True)
     username = Column(String(100), nullable=False)
     password_hash = Column(String(255), nullable=False)
     email = Column(String(255), nullable=True)
@@ -59,7 +64,7 @@ class Device(Base):
     __tablename__ = "devices"
 
     uuid = Column(String(36), primary_key=True, default=generate_uuid)
-    firm_id = Column(String(36), ForeignKey("firms.uuid"), nullable=False, index=True)
+    firm_id = Column(String(36), ForeignKey("firms.id"), nullable=False, index=True)
     device_id = Column(String(100), nullable=False)  # Client tarafından üretilen ID
     device_name = Column(String(255), nullable=True)
     device_info = Column(JSON, nullable=True)
@@ -78,7 +83,7 @@ class JoinCode(Base):
     __tablename__ = "join_codes"
 
     uuid = Column(String(36), primary_key=True, default=generate_uuid)
-    firm_id = Column(String(36), ForeignKey("firms.uuid"), nullable=False, index=True)
+    firm_id = Column(String(36), ForeignKey("firms.id"), nullable=False, index=True)
     code = Column(String(50), unique=True, nullable=False)  # BURO-XXXX-XXXX-XXXX
     max_uses = Column(Integer, default=10)
     use_count = Column(Integer, default=0)
@@ -114,7 +119,7 @@ class SyncRecord(Base):
     __tablename__ = "sync_records"
 
     uuid = Column(String(36), primary_key=True)  # Client tarafından üretilen UUID
-    firm_id = Column(String(36), ForeignKey("firms.uuid"), nullable=False, index=True)
+    firm_id = Column(String(36), ForeignKey("firms.id"), nullable=False, index=True)
     table_name = Column(String(50), nullable=False, index=True)  # dosyalar, finans, vb.
 
     # Veri
@@ -156,7 +161,7 @@ class GlobalRevision(Base):
     """Firma başına global revision sayacı"""
     __tablename__ = "global_revisions"
 
-    firm_id = Column(String(36), ForeignKey("firms.uuid"), primary_key=True)
+    firm_id = Column(String(36), ForeignKey("firms.id"), primary_key=True)
     current_revision = Column(Integer, default=0, nullable=False)
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 

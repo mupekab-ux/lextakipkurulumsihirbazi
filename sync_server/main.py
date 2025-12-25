@@ -182,7 +182,7 @@ def get_server_info(
     """Sunucu bilgileri"""
     firm = None
     if x_firm_id:
-        firm = db.query(Firm).filter(Firm.uuid == x_firm_id).first()
+        firm = db.query(Firm).filter(Firm.id == x_firm_id).first()
 
     return {
         "version": "2.0.0",
@@ -297,7 +297,7 @@ def join_firm(
 
     if existing_device:
         # Cihaz zaten kayıtlı
-        firm = db.query(Firm).filter(Firm.uuid == code.firm_id).first()
+        firm = db.query(Firm).filter(Firm.id == code.firm_id).first()
         return JoinFirmResponse(
             success=True,
             firm_id=code.firm_id,
@@ -343,7 +343,7 @@ def get_device_status(device_id: str, db: Session = Depends(get_db)):
     if not device:
         raise HTTPException(status_code=404, detail="Cihaz bulunamadı")
 
-    firm = db.query(Firm).filter(Firm.uuid == device.firm_id).first()
+    firm = db.query(Firm).filter(Firm.id == device.firm_id).first()
 
     return {
         "is_approved": device.is_approved,
@@ -866,7 +866,7 @@ def approve_device(
     device.is_approved = True
     db.commit()
 
-    firm = db.query(Firm).filter(Firm.uuid == user.firm_id).first()
+    firm = db.query(Firm).filter(Firm.id == user.firm_id).first()
 
     return {
         'success': True,

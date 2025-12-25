@@ -51,7 +51,7 @@ def run_migration():
                 session.execute(text("""
                     CREATE TABLE users (
                         uuid VARCHAR(36) PRIMARY KEY DEFAULT gen_random_uuid()::text,
-                        firm_id VARCHAR(36) NOT NULL REFERENCES firms(uuid),
+                        firm_id VARCHAR(36) NOT NULL REFERENCES firms(id),
                         username VARCHAR(100) NOT NULL,
                         password_hash VARCHAR(255) NOT NULL,
                         email VARCHAR(255),
@@ -83,7 +83,7 @@ def run_migration():
                 session.execute(text("""
                     CREATE TABLE users (
                         uuid VARCHAR(36) PRIMARY KEY DEFAULT gen_random_uuid()::text,
-                        firm_id VARCHAR(36) NOT NULL REFERENCES firms(uuid),
+                        firm_id VARCHAR(36) NOT NULL REFERENCES firms(id),
                         username VARCHAR(100) NOT NULL,
                         password_hash VARCHAR(255) NOT NULL,
                         email VARCHAR(255),
@@ -117,7 +117,7 @@ def run_migration():
             session.execute(text("""
                 CREATE TABLE devices (
                     uuid VARCHAR(36) PRIMARY KEY DEFAULT gen_random_uuid()::text,
-                    firm_id VARCHAR(36) NOT NULL REFERENCES firms(uuid),
+                    firm_id VARCHAR(36) NOT NULL REFERENCES firms(id),
                     device_id VARCHAR(100) NOT NULL,
                     device_name VARCHAR(255),
                     device_info JSONB,
@@ -136,7 +136,7 @@ def run_migration():
             session.execute(text("""
                 CREATE TABLE join_codes (
                     uuid VARCHAR(36) PRIMARY KEY DEFAULT gen_random_uuid()::text,
-                    firm_id VARCHAR(36) NOT NULL REFERENCES firms(uuid),
+                    firm_id VARCHAR(36) NOT NULL REFERENCES firms(id),
                     code VARCHAR(50) UNIQUE NOT NULL,
                     max_uses INTEGER DEFAULT 10,
                     use_count INTEGER DEFAULT 0,
@@ -172,7 +172,7 @@ def run_migration():
             session.execute(text("""
                 CREATE TABLE sync_records (
                     uuid VARCHAR(36) PRIMARY KEY,
-                    firm_id VARCHAR(36) NOT NULL REFERENCES firms(uuid),
+                    firm_id VARCHAR(36) NOT NULL REFERENCES firms(id),
                     table_name VARCHAR(50) NOT NULL,
                     data JSONB NOT NULL,
                     data_encrypted TEXT,
@@ -229,7 +229,7 @@ def run_migration():
             logger.info("global_revisions tablosu oluşturuluyor...")
             session.execute(text("""
                 CREATE TABLE global_revisions (
-                    firm_id VARCHAR(36) PRIMARY KEY REFERENCES firms(uuid),
+                    firm_id VARCHAR(36) PRIMARY KEY REFERENCES firms(id),
                     current_revision INTEGER DEFAULT 0 NOT NULL,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
@@ -238,7 +238,7 @@ def run_migration():
             # Mevcut firmalar için revision oluştur
             session.execute(text("""
                 INSERT INTO global_revisions (firm_id, current_revision)
-                SELECT uuid, 0 FROM firms
+                SELECT id, 0 FROM firms
                 ON CONFLICT (firm_id) DO NOTHING
             """))
             logger.info("✓ global_revisions tablosu oluşturuldu")
