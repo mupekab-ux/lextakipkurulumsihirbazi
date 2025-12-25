@@ -128,6 +128,40 @@ class SyncService:
         """
         return self._do_sync()
 
+    def force_sync_all(self) -> Dict[str, Any]:
+        """
+        Tüm mevcut verileri zorla senkronize et.
+
+        Mevcut verileri outbox'a ekler ve tam senkronizasyon yapar.
+
+        Returns:
+            {success, seeded, received, sent, errors}
+        """
+        with self._lock:
+            self._set_status(SyncStatus.SYNCING)
+
+            try:
+                result = self.sync_manager.force_sync_all()
+
+                if result.get('success'):
+                    self._sync_count += 1
+                    self._last_sync = datetime.now()
+                    self._last_error = None
+                    self._set_status(SyncStatus.ONLINE)
+                else:
+                    errors = result.get('errors', [])
+                    self._last_error = errors[0] if errors else 'Bilinmeyen hata'
+                    self._set_status(SyncStatus.ERROR)
+
+                return result
+
+            except Exception as e:
+                self._error_count += 1
+                self._last_error = str(e)
+                self._set_status(SyncStatus.ERROR)
+                logger.error(f"Force sync hatası: {e}")
+                return {'success': False, 'errors': [str(e)]}
+
     def _run_loop(self):
         """Ana döngü"""
         while self._running:

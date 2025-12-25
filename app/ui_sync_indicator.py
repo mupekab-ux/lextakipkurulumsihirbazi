@@ -207,6 +207,21 @@ class SyncIndicator(QWidget):
         if status_info.get('last_sync_at'):
             self.set_last_sync(status_info['last_sync_at'])
 
+    def _on_force_sync_clicked(self):
+        """Zorla senkronize et butonu tıklandığında"""
+        if self.sync_manager:
+            self.set_status(SyncStatus.SYNCING, "Tüm veriler senkronize ediliyor...")
+            result = self.sync_manager.force_sync_all()
+            if result.get('success'):
+                seeded = result.get('seeded', 0)
+                received = result.get('received', 0)
+                sent = result.get('sent', 0)
+                detail = f"{seeded} eklendi, {received} alındı, {sent} gönderildi"
+                self.set_status(SyncStatus.IDLE, detail)
+            else:
+                errors = result.get('errors', ['Bilinmeyen hata'])
+                self.set_status(SyncStatus.ERROR, errors[0] if errors else None)
+
     def _show_context_menu(self, pos):
         """Context menu göster"""
         menu = QMenu(self)
@@ -214,6 +229,11 @@ class SyncIndicator(QWidget):
         # Şimdi senkronize et
         sync_action = menu.addAction("🔄 Şimdi Senkronize Et")
         sync_action.triggered.connect(self._on_sync_clicked)
+
+        # Tüm verileri senkronize et
+        force_sync_action = menu.addAction("📤 Tüm Verileri Senkronize Et")
+        force_sync_action.triggered.connect(self._on_force_sync_clicked)
+        force_sync_action.setToolTip("Mevcut tüm verileri sunucuya gönderir")
 
         menu.addSeparator()
 
@@ -283,10 +303,15 @@ class SyncStatusWidget(QWidget):
         self.btn_sync = QPushButton("🔄 Şimdi Senkronize Et")
         self.btn_sync.clicked.connect(self._on_sync)
 
+        self.btn_force_sync = QPushButton("📤 Tüm Verileri Senkronize Et")
+        self.btn_force_sync.clicked.connect(self._on_force_sync)
+        self.btn_force_sync.setToolTip("Mevcut tüm verileri sunucuya gönderir")
+
         self.btn_refresh = QPushButton("🔃 Yenile")
         self.btn_refresh.clicked.connect(self.refresh)
 
         btn_layout.addWidget(self.btn_sync)
+        btn_layout.addWidget(self.btn_force_sync)
         btn_layout.addWidget(self.btn_refresh)
         btn_layout.addStretch()
 
@@ -329,4 +354,37 @@ class SyncStatusWidget(QWidget):
 
             self.btn_sync.setEnabled(True)
             self.btn_sync.setText("🔄 Şimdi Senkronize Et")
+            self.refresh()
+
+    def _on_force_sync(self):
+        """Zorla senkronize et butonu"""
+        if self.sync_manager:
+            self.btn_force_sync.setEnabled(False)
+            self.btn_force_sync.setText("Tüm veriler senkronize ediliyor...")
+
+            result = self.sync_manager.force_sync_all()
+
+            self.btn_force_sync.setEnabled(True)
+            self.btn_force_sync.setText("📤 Tüm Verileri Senkronize Et")
+
+            if result.get('success'):
+                seeded = result.get('seeded', 0)
+                from PyQt6.QtWidgets import QMessageBox
+                QMessageBox.information(
+                    self,
+                    "Senkronizasyon Tamamlandı",
+                    f"Tüm veriler senkronize edildi.\n\n"
+                    f"Eklenen kayıt: {seeded}\n"
+                    f"Alınan: {result.get('received', 0)}\n"
+                    f"Gönderilen: {result.get('sent', 0)}"
+                )
+            else:
+                from PyQt6.QtWidgets import QMessageBox
+                errors = result.get('errors', ['Bilinmeyen hata'])
+                QMessageBox.warning(
+                    self,
+                    "Senkronizasyon Hatası",
+                    f"Senkronizasyon sırasında hata oluştu:\n\n{errors[0]}"
+                )
+
             self.refresh()

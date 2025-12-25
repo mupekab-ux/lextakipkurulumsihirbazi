@@ -474,6 +474,55 @@ class SyncManager:
 
         return result
 
+    def force_sync_all(self) -> Dict[str, Any]:
+        """
+        Tüm mevcut verileri zorla senkronize et.
+
+        Bu metod:
+        1. Mevcut verileri outbox'a ekler (seed_existing_data)
+        2. Full sync çalıştırır
+
+        Returns:
+            {success, seeded, received, sent, errors}
+        """
+        result = {
+            'success': False,
+            'seeded': 0,
+            'received': 0,
+            'sent': 0,
+            'errors': []
+        }
+
+        if self.status == SyncStatus.NOT_CONFIGURED:
+            result['errors'].append("Sync yapılandırılmamış")
+            return result
+
+        try:
+            # 1. Mevcut verileri outbox'a ekle
+            migration = SyncMigration(self.db_path)
+            seeded = migration.seed_existing_data()
+            result['seeded'] = seeded
+            logger.info(f"Force sync: {seeded} kayıt outbox'a eklendi")
+
+            # 2. Full sync çalıştır
+            sync_result = self.full_sync()
+            result['received'] = sync_result.get('received', 0)
+            result['sent'] = sync_result.get('sent', 0)
+            result['errors'].extend(sync_result.get('errors', []))
+            result['success'] = sync_result.get('success', False)
+
+            if result['success']:
+                logger.info(
+                    f"Force sync tamamlandı: {seeded} seeded, "
+                    f"{result['received']} alındı, {result['sent']} gönderildi"
+                )
+
+        except Exception as e:
+            logger.error(f"Force sync hatası: {e}")
+            result['errors'].append(str(e))
+
+        return result
+
     def _get_all_kunyeler(self) -> List[Dict[str, str]]:
         """Tüm tabloların UUID ve updated_at bilgisini döndür"""
         kunyeler = []
@@ -969,6 +1018,11 @@ class SyncManager:
                 migration = SyncMigration(self.db_path)
                 migration.run_all()
                 logger.info("Sync migration tamamlandı (login sonrası)")
+
+                # Mevcut verileri outbox'a ekle (ilk senkronizasyon için)
+                seeded_count = migration.seed_existing_data()
+                if seeded_count > 0:
+                    logger.info(f"{seeded_count} mevcut kayıt outbox'a eklendi")
             except Exception as e:
                 logger.error(f"Sync migration hatası: {e}")
 

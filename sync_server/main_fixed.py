@@ -139,6 +139,10 @@ class SyncChange(BaseModel):
     data: Dict[str, Any]
 
 
+class PushRequest(BaseModel):
+    changes: List[Dict[str, Any]] = []
+
+
 class SyncResponse(BaseModel):
     success: bool
     to_client: List[Dict[str, Any]] = []
@@ -719,7 +723,7 @@ def process_incoming_change(
 
 @app.post("/api/sync/push")
 def push_changes(
-    changes: List[Dict[str, Any]],
+    request: PushRequest,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     x_device_id: str = Header(None)
@@ -729,7 +733,7 @@ def push_changes(
     bn_changes = []
     firm_id = to_str(user.firm_id)
 
-    for change in changes:
+    for change in request.changes:
         result = process_incoming_change(db, firm_id, change, x_device_id)
         results.append(result)
         if result.get('bn_changed'):

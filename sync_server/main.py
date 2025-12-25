@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 import secrets
 import logging
+import uuid as uuid_module
 
 from config import settings
 from database import engine, get_db
@@ -47,6 +48,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+def to_str(val):
+    """UUID'yi string'e dönüştür (JSON serileştirme için)"""
+    if val is None:
+        return None
+    if isinstance(val, uuid_module.UUID):
+        return str(val)
+    return str(val)
 
 
 # ============================================================
@@ -121,6 +131,10 @@ class SyncChange(BaseModel):
     table_name: str
     operation: str  # INSERT, UPDATE, DELETE
     data: Dict[str, Any]
+
+
+class PushRequest(BaseModel):
+    changes: List[Dict[str, Any]] = []
 
 
 class SyncResponse(BaseModel):
@@ -509,7 +523,7 @@ def full_sync(
     4. Client'tan istenen verileri alır
     5. BN çakışmalarını çözer
     """
-    firm_id = user.firm_id
+    firm_id = to_str(user.firm_id)
     to_client = []
     need_from_client = []
     bn_changes = []
@@ -531,12 +545,13 @@ def full_sync(
     server_uuids = set()
 
     for record in server_records:
-        server_uuids.add(record.uuid)
+        record_uuid = to_str(record.uuid)
+        server_uuids.add(record_uuid)
 
-        if record.uuid not in client_kunyeler:
+        if record_uuid not in client_kunyeler:
             # Client'ta yok → gönder
             to_client.append({
-                'uuid': record.uuid,
+                'uuid': record_uuid,
                 'table_name': record.table_name,
                 'operation': 'DELETE' if record.is_deleted else 'INSERT',
                 'data': record.data,
@@ -544,7 +559,7 @@ def full_sync(
             })
         else:
             # İkisinde de var → timestamp karşılaştır
-            client_kunye = client_kunyeler[record.uuid]
+            client_kunye = client_kunyeler[record_uuid]
             try:
                 client_time = datetime.fromisoformat(client_kunye.updated_at.replace('Z', '+00:00'))
             except:
@@ -555,7 +570,7 @@ def full_sync(
             if server_time > client_time:
                 # Sunucu daha yeni → client'a gönder
                 to_client.append({
-                    'uuid': record.uuid,
+                    'uuid': record_uuid,
                     'table_name': record.table_name,
                     'operation': 'UPDATE',
                     'data': record.data,
@@ -563,7 +578,7 @@ def full_sync(
                 })
             elif client_time > server_time:
                 # Client daha yeni → client'tan iste
-                need_from_client.append(record.uuid)
+                need_from_client.append(record_uuid)
 
     # 4. Client'ta olup sunucuda olmayan (yeni kayıtlar)
     for uuid in client_kunyeler:
@@ -732,7 +747,7 @@ def process_incoming_change(
 
 @app.post("/api/sync/push")
 def push_changes(
-    changes: List[Dict[str, Any]],
+    request: PushRequest,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     x_device_id: str = Header(None)
@@ -740,9 +755,10 @@ def push_changes(
     """Değişiklikleri gönder (eski API uyumluluğu)"""
     results = []
     bn_changes = []
+    firm_id = to_str(user.firm_id)
 
-    for change in changes:
-        result = process_incoming_change(db, user.firm_id, change, x_device_id)
+    for change in request.changes:
+        result = process_incoming_change(db, firm_id, change, x_device_id)
         results.append(result)
         if result.get('bn_changed'):
             bn_changes.append(result)
@@ -764,15 +780,16 @@ def pull_changes(
     db: Session = Depends(get_db)
 ):
     """Değişiklikleri çek (eski API uyumluluğu)"""
+    firm_id = to_str(user.firm_id)
     records = db.query(SyncRecord).filter(
-        SyncRecord.firm_id == user.firm_id,
+        SyncRecord.firm_id == firm_id,
         SyncRecord.revision > since_revision
     ).order_by(SyncRecord.revision).all()
 
     changes = []
     for record in records:
         changes.append({
-            'uuid': record.uuid,
+            'uuid': to_str(record.uuid),
             'table_name': record.table_name,
             'operation': 'DELETE' if record.is_deleted else 'UPSERT',
             'data': record.data,
@@ -780,7 +797,7 @@ def pull_changes(
         })
 
     rev = db.query(GlobalRevision).filter(
-        GlobalRevision.firm_id == user.firm_id
+        GlobalRevision.firm_id == firm_id
     ).first()
 
     return {
@@ -795,12 +812,13 @@ def get_sync_status(
     db: Session = Depends(get_db)
 ):
     """Senkronizasyon durumu"""
+    firm_id = to_str(user.firm_id)
     rev = db.query(GlobalRevision).filter(
-        GlobalRevision.firm_id == user.firm_id
+        GlobalRevision.firm_id == firm_id
     ).first()
 
     record_count = db.query(func.count(SyncRecord.uuid)).filter(
-        SyncRecord.firm_id == user.firm_id,
+        SyncRecord.firm_id == firm_id,
         SyncRecord.is_deleted == False
     ).scalar()
 
