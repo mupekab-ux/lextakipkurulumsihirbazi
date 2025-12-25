@@ -65,6 +65,12 @@ class BuroSettingsTab(QWidget):
         self.btn_sync_now.clicked.connect(self._sync_now)
         actions_layout.addWidget(self.btn_sync_now)
 
+        # Tüm verileri senkronize et butonu
+        self.btn_force_sync = QPushButton("📤 Tüm Verileri Senkronize Et")
+        self.btn_force_sync.setToolTip("Mevcut tüm verileri sunucuya gönderir ve sunucudan alır")
+        self.btn_force_sync.clicked.connect(self._force_sync_all)
+        actions_layout.addWidget(self.btn_force_sync)
+
         # Çakışmalar butonu
         self.btn_view_conflicts = QPushButton("⚠️ Çakışmaları Görüntüle")
         self.btn_view_conflicts.clicked.connect(self._view_conflicts)
@@ -313,6 +319,53 @@ class BuroSettingsTab(QWidget):
         finally:
             self.btn_sync_now.setEnabled(True)
             self.btn_sync_now.setText("🔄 Şimdi Senkronize Et")
+            self._refresh()
+
+    def _force_sync_all(self):
+        """Tüm verileri zorla senkronize et"""
+        if not self.sync_manager:
+            return
+
+        # Onay al
+        reply = QMessageBox.question(
+            self, "Tüm Verileri Senkronize Et",
+            "Bu işlem mevcut tüm verileri sunucuya gönderecek ve "
+            "sunucudaki verileri alacaktır.\n\n"
+            "Devam etmek istiyor musunuz?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        self.btn_force_sync.setEnabled(False)
+        self.btn_force_sync.setText("Senkronize ediliyor...")
+        QApplication.processEvents()
+
+        try:
+            result = self.sync_manager.force_sync_all()
+
+            if result.get('success'):
+                QMessageBox.information(
+                    self, "Senkronizasyon",
+                    f"Tam senkronizasyon tamamlandı.\n\n"
+                    f"Outbox'a eklenen: {result.get('seeded', 0)}\n"
+                    f"Gönderilen: {result.get('sent', 0)}\n"
+                    f"Alınan: {result.get('received', 0)}"
+                )
+            else:
+                errors = result.get('errors', ['Bilinmeyen hata'])
+                QMessageBox.warning(
+                    self, "Senkronizasyon",
+                    f"Senkronizasyon başarısız.\n\n{', '.join(errors)}"
+                )
+
+        except Exception as e:
+            QMessageBox.critical(self, "Hata", str(e))
+
+        finally:
+            self.btn_force_sync.setEnabled(True)
+            self.btn_force_sync.setText("📤 Tüm Verileri Senkronize Et")
             self._refresh()
 
     def _view_conflicts(self):
