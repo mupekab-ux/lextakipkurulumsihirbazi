@@ -316,8 +316,8 @@ def join_firm(
         firm = db.query(Firm).filter(Firm.id == code.firm_id).first()
         return JoinFirmResponse(
             success=True,
-            firm_id=code.firm_id,
-            device_id=existing_device.uuid,
+            firm_id=to_str(code.firm_id),
+            device_id=to_str(existing_device.uuid),
             requires_approval=not existing_device.is_approved,
             firm_key=firm.firm_key if existing_device.is_approved else None
         )
@@ -342,8 +342,8 @@ def join_firm(
 
     return JoinFirmResponse(
         success=True,
-        firm_id=code.firm_id,
-        device_id=device.uuid,
+        firm_id=to_str(code.firm_id),
+        device_id=to_str(device.uuid),
         requires_approval=True,
         firm_key=None
     )
@@ -364,7 +364,7 @@ def get_device_status(device_id: str, db: Session = Depends(get_db)):
     return {
         "is_approved": device.is_approved,
         "is_active": device.is_active,
-        "firm_id": device.firm_id,
+        "firm_id": to_str(device.firm_id),
         "firm_key": firm.firm_key if device.is_approved else None,
         "needs_login": device.is_approved  # Onaylandıysa login gerekli
     }
@@ -419,11 +419,11 @@ def login(
 
     # Token'lar oluştur
     access_token, expires_in = create_access_token(
-        user_uuid=user.uuid,
-        firm_id=user.firm_id,
+        user_uuid=to_str(user.uuid),
+        firm_id=to_str(user.firm_id),
         device_id=device_id
     )
-    refresh_token = create_refresh_token(db, user.uuid, device_id)
+    refresh_token = create_refresh_token(db, to_str(user.uuid), device_id)
 
     db.commit()
 
@@ -432,8 +432,8 @@ def login(
         access_token=access_token,
         refresh_token=refresh_token,
         expires_in=expires_in,
-        user_uuid=user.uuid,
-        firm_id=user.firm_id,
+        user_uuid=to_str(user.uuid),
+        firm_id=to_str(user.firm_id),
         role=user.role
     )
 
@@ -451,8 +451,8 @@ def refresh_token(request: RefreshRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Kullanıcı bulunamadı")
 
     access_token, expires_in = create_access_token(
-        user_uuid=user.uuid,
-        firm_id=user.firm_id,
+        user_uuid=to_str(user.uuid),
+        firm_id=to_str(user.firm_id),
         device_id=refresh.device_id
     )
 
@@ -852,13 +852,13 @@ def get_devices(
     return {
         'devices': [
             {
-                'uuid': d.uuid,
+                'uuid': to_str(d.uuid),
                 'device_id': d.device_id,
                 'device_name': d.device_name,
                 'is_approved': d.is_approved,
                 'is_active': d.is_active,
                 'last_seen_at': d.last_seen_at.isoformat() if d.last_seen_at else None,
-                'created_at': d.created_at.isoformat()
+                'created_at': d.created_at.isoformat() if d.created_at else None
             }
             for d in devices
         ]
@@ -890,7 +890,7 @@ def approve_device(
 
     return {
         'success': True,
-        'device_id': device.uuid,
+        'device_id': to_str(device.uuid),
         'firm_key': firm.firm_key
     }
 
@@ -964,12 +964,12 @@ def get_users(
     return {
         'users': [
             {
-                'uuid': u.uuid,
+                'uuid': to_str(u.uuid),
                 'username': u.username,
                 'email': u.email,
                 'role': u.role,
                 'is_active': u.is_active,
-                'created_at': u.created_at.isoformat()
+                'created_at': u.created_at.isoformat() if u.created_at else None
             }
             for u in users
         ]
@@ -1010,7 +1010,7 @@ def create_user(
 
     return {
         'success': True,
-        'user_uuid': new_user.uuid
+        'user_uuid': to_str(new_user.uuid)
     }
 
 
