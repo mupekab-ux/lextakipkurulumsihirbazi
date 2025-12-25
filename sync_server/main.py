@@ -138,8 +138,29 @@ class SyncResponse(BaseModel):
 
 @app.on_event("startup")
 def startup():
-    """Uygulama başlangıcında tabloları oluştur"""
-    Base.metadata.create_all(bind=engine)
+    """Uygulama başlangıcında veritabanı kontrolü"""
+    from sqlalchemy import inspect
+    inspector = inspect(engine)
+    existing_tables = inspector.get_table_names()
+
+    required_tables = ['firms', 'users', 'devices', 'sync_records', 'global_revisions']
+    missing = [t for t in required_tables if t not in existing_tables]
+
+    if missing:
+        logger.warning(f"Eksik tablolar: {missing}")
+        logger.info("Migrasyon çalıştırılıyor...")
+        try:
+            from migrate import run_migration
+            run_migration()
+        except Exception as e:
+            logger.error(f"Migrasyon hatası: {e}")
+            # Eğer migrate modülü yoksa, direkt create_all dene
+            try:
+                Base.metadata.create_all(bind=engine)
+            except Exception as e2:
+                logger.error(f"Tablo oluşturma hatası: {e2}")
+                raise
+
     logger.info("Sync Server başlatıldı")
 
 
