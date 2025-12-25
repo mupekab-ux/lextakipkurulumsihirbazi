@@ -24,7 +24,16 @@ from .models import (
 from .sync_manager import SyncManager
 from .encryption_service import EncryptionService, RecoveryCodeManager
 from .sync_client import SyncClient, FirmMismatchError, DeviceNotApprovedError
-from .migration import SyncMigration, run_migration, recreate_triggers, diagnose_sync
+from .migration import (
+    SyncMigration,
+    run_migration,
+    recreate_triggers,
+    diagnose_sync,
+    UUIDFKMigration,
+    run_uuid_fk_migration,
+    check_uuid_fk_status,
+    UUID_FK_RELATIONS,
+)
 from .sync_service import (
     SyncService,
     SyncStatus as ServiceSyncStatus,
@@ -60,6 +69,11 @@ __all__ = [
     'run_migration',
     'recreate_triggers',
     'diagnose_sync',
+    # UUID FK Migration
+    'UUIDFKMigration',
+    'run_uuid_fk_migration',
+    'check_uuid_fk_status',
+    'UUID_FK_RELATIONS',
 ]
 
 __version__ = '2.0.0'

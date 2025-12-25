@@ -844,3 +844,315 @@ def diagnose_sync(db_path: str) -> dict:
     """
     migration = SyncMigration(db_path)
     return migration.diagnose_triggers()
+
+
+# ============================================================
+# UUID TABANLI FK MİGRASYONU
+# ============================================================
+
+# FK İlişkileri: (tablo, yeni_kolon, referans_tablo, mevcut_fk_kolon)
+UUID_FK_RELATIONS = [
+    # Level 2: dosyalar'a bağlı tablolar
+    ('finans', 'dosya_uuid', 'dosyalar', 'dosya_id'),
+    ('muvekkil_kasasi', 'dosya_uuid', 'dosyalar', 'dosya_id'),
+    ('tebligatlar', 'dosya_uuid', 'dosyalar', 'dosya_id'),
+    ('arabuluculuk', 'dosya_uuid', 'dosyalar', 'dosya_id'),
+    ('gorevler', 'dosya_uuid', 'dosyalar', 'dosya_id'),
+    ('attachments', 'dosya_uuid', 'dosyalar', 'dosya_id'),
+    ('dosya_timeline', 'dosya_uuid', 'dosyalar', 'dosya_id'),
+    ('dosya_atamalar', 'dosya_uuid', 'dosyalar', 'dosya_id'),
+    ('custom_tabs_dosyalar', 'dosya_uuid', 'dosyalar', 'dosya_id'),
+    ('finans_timeline', 'dosya_uuid', 'dosyalar', 'dosya_id'),
+
+    # Level 2: users'a bağlı tablolar
+    ('dosya_atamalar', 'user_uuid', 'users', 'user_id'),
+    ('permissions', 'user_uuid', 'users', 'user_id'),
+
+    # Level 2: custom_tabs'a bağlı tablolar
+    ('custom_tabs_dosyalar', 'custom_tab_uuid', 'custom_tabs', 'custom_tab_id'),
+
+    # Level 3: finans'a bağlı tablolar
+    ('odeme_plani', 'finans_uuid', 'finans', 'finans_id'),
+    ('taksitler', 'finans_uuid', 'finans', 'finans_id'),
+    ('masraflar', 'finans_uuid', 'finans', 'finans_id'),
+    ('odeme_kayitlari', 'finans_uuid', 'finans', 'finans_id'),
+
+    # Level 4: taksitler'e bağlı tablolar
+    ('odeme_kayitlari', 'taksit_uuid', 'taksitler', 'taksit_id'),
+]
+
+
+class UUIDFKMigration:
+    """
+    UUID tabanlı Foreign Key migration.
+
+    INTEGER FK'ları UUID FK'lara dönüştürür:
+    1. Yeni _uuid kolonları ekler
+    2. Mevcut FK değerlerinden UUID'leri doldurur
+    3. İndeksler oluşturur
+    """
+
+    def __init__(self, db_path: str):
+        self.db_path = db_path
+
+    def _get_connection(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        return conn
+
+    def _table_exists(self, conn: sqlite3.Connection, table_name: str) -> bool:
+        """Tablo var mı kontrol et"""
+        result = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+            (table_name,)
+        ).fetchone()
+        return result is not None
+
+    def _column_exists(self, conn: sqlite3.Connection, table_name: str, column_name: str) -> bool:
+        """Kolon var mı kontrol et"""
+        columns = [row[1] for row in conn.execute(f"PRAGMA table_info({table_name})")]
+        return column_name in columns
+
+    def add_uuid_fk_columns(self) -> Tuple[int, List[str]]:
+        """
+        UUID FK kolonlarını ekle.
+
+        Returns:
+            (eklenen_kolon_sayısı, [mesajlar])
+        """
+        conn = self._get_connection()
+        added = 0
+        messages = []
+
+        try:
+            for table, uuid_col, ref_table, int_col in UUID_FK_RELATIONS:
+                # Tablo var mı?
+                if not self._table_exists(conn, table):
+                    messages.append(f"⚠️ {table} tablosu bulunamadı, atlanıyor")
+                    continue
+
+                # Kolon zaten var mı?
+                if self._column_exists(conn, table, uuid_col):
+                    messages.append(f"✓ {table}.{uuid_col} zaten mevcut")
+                    continue
+
+                # Kolonu ekle
+                try:
+                    conn.execute(f"ALTER TABLE {table} ADD COLUMN {uuid_col} VARCHAR(36)")
+                    added += 1
+                    messages.append(f"✓ {table}.{uuid_col} eklendi")
+                except Exception as e:
+                    messages.append(f"✗ {table}.{uuid_col} eklenemedi: {e}")
+
+            conn.commit()
+            logger.info(f"UUID FK kolonları eklendi: {added} yeni kolon")
+
+        finally:
+            conn.close()
+
+        return added, messages
+
+    def populate_uuid_fk_values(self) -> Tuple[int, List[str]]:
+        """
+        UUID FK değerlerini mevcut INTEGER FK'lardan doldur.
+
+        Returns:
+            (güncellenen_kayıt_sayısı, [mesajlar])
+        """
+        conn = self._get_connection()
+        updated = 0
+        messages = []
+
+        try:
+            for table, uuid_col, ref_table, int_col in UUID_FK_RELATIONS:
+                # Tablolar var mı?
+                if not self._table_exists(conn, table):
+                    continue
+                if not self._table_exists(conn, ref_table):
+                    messages.append(f"⚠️ {ref_table} tablosu bulunamadı")
+                    continue
+
+                # Kolonlar var mı?
+                if not self._column_exists(conn, table, uuid_col):
+                    messages.append(f"⚠️ {table}.{uuid_col} kolonu bulunamadı")
+                    continue
+                if not self._column_exists(conn, table, int_col):
+                    messages.append(f"⚠️ {table}.{int_col} kolonu bulunamadı")
+                    continue
+                if not self._column_exists(conn, ref_table, 'uuid'):
+                    messages.append(f"⚠️ {ref_table}.uuid kolonu bulunamadı")
+                    continue
+
+                # UUID FK değerlerini doldur
+                try:
+                    cursor = conn.execute(f"""
+                        UPDATE {table}
+                        SET {uuid_col} = (
+                            SELECT uuid FROM {ref_table}
+                            WHERE {ref_table}.id = {table}.{int_col}
+                        )
+                        WHERE {int_col} IS NOT NULL
+                        AND ({uuid_col} IS NULL OR {uuid_col} = '')
+                    """)
+                    count = cursor.rowcount
+                    if count > 0:
+                        updated += count
+                        messages.append(f"✓ {table}.{uuid_col}: {count} kayıt güncellendi")
+                    else:
+                        messages.append(f"○ {table}.{uuid_col}: güncelleme gerekmiyor")
+
+                except Exception as e:
+                    messages.append(f"✗ {table}.{uuid_col} doldurulamadı: {e}")
+
+            conn.commit()
+            logger.info(f"UUID FK değerleri dolduruldu: {updated} kayıt güncellendi")
+
+        finally:
+            conn.close()
+
+        return updated, messages
+
+    def create_uuid_fk_indexes(self) -> Tuple[int, List[str]]:
+        """
+        UUID FK kolonlarına index ekle.
+
+        Returns:
+            (oluşturulan_index_sayısı, [mesajlar])
+        """
+        conn = self._get_connection()
+        created = 0
+        messages = []
+
+        try:
+            for table, uuid_col, ref_table, int_col in UUID_FK_RELATIONS:
+                if not self._table_exists(conn, table):
+                    continue
+                if not self._column_exists(conn, table, uuid_col):
+                    continue
+
+                index_name = f"idx_{table}_{uuid_col}"
+
+                try:
+                    conn.execute(f"CREATE INDEX IF NOT EXISTS {index_name} ON {table}({uuid_col})")
+                    created += 1
+                    messages.append(f"✓ {index_name} oluşturuldu")
+                except Exception as e:
+                    messages.append(f"✗ {index_name} oluşturulamadı: {e}")
+
+            conn.commit()
+            logger.info(f"UUID FK indexleri oluşturuldu: {created} index")
+
+        finally:
+            conn.close()
+
+        return created, messages
+
+    def run_full_migration(self) -> dict:
+        """
+        Tam UUID FK migration'ı çalıştır.
+
+        Returns:
+            {success, columns_added, values_updated, indexes_created, messages}
+        """
+        logger.info("UUID FK migration başlatılıyor...")
+        all_messages = []
+
+        # Step 1: Kolonları ekle
+        cols_added, msgs = self.add_uuid_fk_columns()
+        all_messages.extend(msgs)
+        all_messages.append(f"\n--- Kolonlar: {cols_added} eklendi ---\n")
+
+        # Step 2: Değerleri doldur
+        vals_updated, msgs = self.populate_uuid_fk_values()
+        all_messages.extend(msgs)
+        all_messages.append(f"\n--- Değerler: {vals_updated} güncellendi ---\n")
+
+        # Step 3: İndexleri oluştur
+        idxs_created, msgs = self.create_uuid_fk_indexes()
+        all_messages.extend(msgs)
+        all_messages.append(f"\n--- İndeksler: {idxs_created} oluşturuldu ---\n")
+
+        logger.info(f"UUID FK migration tamamlandı: {cols_added} kolon, {vals_updated} değer, {idxs_created} index")
+
+        return {
+            'success': True,
+            'columns_added': cols_added,
+            'values_updated': vals_updated,
+            'indexes_created': idxs_created,
+            'messages': all_messages
+        }
+
+    def check_migration_status(self) -> dict:
+        """
+        Migration durumunu kontrol et.
+
+        Returns:
+            {complete, missing_columns, empty_values, details}
+        """
+        conn = self._get_connection()
+        missing_columns = []
+        empty_values = []
+        details = []
+
+        try:
+            for table, uuid_col, ref_table, int_col in UUID_FK_RELATIONS:
+                if not self._table_exists(conn, table):
+                    continue
+
+                # Kolon var mı?
+                if not self._column_exists(conn, table, uuid_col):
+                    missing_columns.append(f"{table}.{uuid_col}")
+                    details.append(f"✗ {table}.{uuid_col} eksik")
+                    continue
+
+                # Boş değer var mı?
+                if self._column_exists(conn, table, int_col):
+                    empty_count = conn.execute(f"""
+                        SELECT COUNT(*) FROM {table}
+                        WHERE {int_col} IS NOT NULL
+                        AND ({uuid_col} IS NULL OR {uuid_col} = '')
+                    """).fetchone()[0]
+
+                    if empty_count > 0:
+                        empty_values.append(f"{table}.{uuid_col}: {empty_count}")
+                        details.append(f"⚠️ {table}.{uuid_col}: {empty_count} boş değer")
+                    else:
+                        details.append(f"✓ {table}.{uuid_col} tamam")
+
+        finally:
+            conn.close()
+
+        return {
+            'complete': len(missing_columns) == 0 and len(empty_values) == 0,
+            'missing_columns': missing_columns,
+            'empty_values': empty_values,
+            'details': details
+        }
+
+
+def run_uuid_fk_migration(db_path: str) -> dict:
+    """
+    UUID FK migration'ı çalıştır.
+
+    Args:
+        db_path: Veritabanı yolu
+
+    Returns:
+        Migration sonucu
+    """
+    migration = UUIDFKMigration(db_path)
+    return migration.run_full_migration()
+
+
+def check_uuid_fk_status(db_path: str) -> dict:
+    """
+    UUID FK migration durumunu kontrol et.
+
+    Args:
+        db_path: Veritabanı yolu
+
+    Returns:
+        Durum bilgisi
+    """
+    migration = UUIDFKMigration(db_path)
+    return migration.check_migration_status()
