@@ -13,10 +13,12 @@ from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from sqlalchemy import func
+from cryptography.fernet import Fernet
 import secrets
 import logging
 import uuid as uuid_module
 import base64
+import json
 
 from config import settings
 from database import engine, get_db
@@ -530,9 +532,13 @@ def full_sync(
     need_from_client = []
     bn_changes = []
 
+    # Firma bilgisini al (decrypt için firm_key gerekli)
+    firm = db.query(Firm).filter(Firm.id == user.firm_id).first()
+    firm_key = firm.firm_key if firm else None
+
     # 1. Önce gelen değişiklikleri işle
     for change in request.changes:
-        result = process_incoming_change(db, firm_id, change, x_device_id)
+        result = process_incoming_change(db, firm_id, change, x_device_id, firm_key)
         if result.get('bn_changed'):
             bn_changes.append(result)
 
@@ -616,17 +622,34 @@ def process_incoming_change(
     db: Session,
     firm_id: str,
     change: Dict[str, Any],
-    device_id: str = None
+    device_id: str = None,
+    firm_key: str = None
 ) -> Dict[str, Any]:
     """
     Gelen değişikliği işle.
 
     BN çakışma kontrolü yapar.
+    Hem 'data' (plain) hem 'data_encrypted' (şifreli) destekler.
     """
     uuid = change.get('uuid')
     table_name = change.get('table_name')
     operation = change.get('operation', 'INSERT')
+
+    # data veya data_encrypted'dan veriyi al
     data = change.get('data', {})
+    data_encrypted = change.get('data_encrypted')
+
+    # Eğer şifreli veri varsa, decrypt et
+    if data_encrypted and firm_key:
+        try:
+            fernet = Fernet(firm_key.encode() if isinstance(firm_key, str) else firm_key)
+            decrypted_bytes = fernet.decrypt(bytes.fromhex(data_encrypted))
+            data = json.loads(decrypted_bytes.decode('utf-8'))
+            logger.debug(f"Veri decrypt edildi: {uuid}")
+        except Exception as e:
+            logger.error(f"Decrypt hatası ({uuid}): {e}")
+            # Decrypt başarısız olursa boş data ile devam et
+            data = {}
 
     if not uuid or not table_name:
         return {'error': 'uuid ve table_name gerekli'}
@@ -759,8 +782,12 @@ def push_changes(
     bn_changes = []
     firm_id = to_str(user.firm_id)
 
+    # Firma bilgisini al (decrypt için firm_key gerekli)
+    firm = db.query(Firm).filter(Firm.id == user.firm_id).first()
+    firm_key = firm.firm_key if firm else None
+
     for change in request.changes:
-        result = process_incoming_change(db, firm_id, change, x_device_id)
+        result = process_incoming_change(db, firm_id, change, x_device_id, firm_key)
         results.append(result)
         if result.get('bn_changed'):
             bn_changes.append(result)
