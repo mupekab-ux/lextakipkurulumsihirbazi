@@ -63,11 +63,11 @@ def run_migration():
                     )
                 """))
 
-                # firm_users'dan veri migrate et
+                # firm_users'dan veri migrate et (firm_users'ta uuid kolonu olmayabilir)
                 session.execute(text("""
                     INSERT INTO users (uuid, firm_id, username, password_hash, email, role, is_active, created_at)
                     SELECT
-                        COALESCE(uuid::uuid, gen_random_uuid()),
+                        gen_random_uuid(),
                         firm_id,
                         username,
                         password_hash,
