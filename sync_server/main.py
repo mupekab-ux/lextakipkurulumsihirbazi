@@ -353,7 +353,7 @@ def join_firm(
 def get_device_status(device_id: str, db: Session = Depends(get_db)):
     """Cihaz onay durumunu kontrol et"""
     device = db.query(Device).filter(
-        (Device.device_id == device_id) | (Device.uuid == device_id)
+        Device.device_id == device_id
     ).first()
 
     if not device:
@@ -875,8 +875,9 @@ def approve_device(
     if user.role != 'admin':
         raise HTTPException(status_code=403, detail="Admin yetkisi gerekli")
 
+    # device_id string olarak gelir, Device.device_id ile karşılaştır
     device = db.query(Device).filter(
-        (Device.uuid == device_id) | (Device.device_id == device_id),
+        Device.device_id == device_id,
         Device.firm_id == user.firm_id
     ).first()
 
@@ -906,7 +907,7 @@ def deactivate_device(
         raise HTTPException(status_code=403, detail="Admin yetkisi gerekli")
 
     device = db.query(Device).filter(
-        (Device.uuid == device_id) | (Device.device_id == device_id),
+        Device.device_id == device_id,
         Device.firm_id == user.firm_id
     ).first()
 
