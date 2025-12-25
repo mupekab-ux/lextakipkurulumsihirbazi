@@ -71,6 +71,15 @@ class BuroSettingsTab(QWidget):
         self.btn_force_sync.clicked.connect(self._force_sync_all)
         actions_layout.addWidget(self.btn_force_sync)
 
+        # Sync durumunu sıfırla butonu
+        self.btn_reset_sync = QPushButton("🔄 Sync Durumunu Sıfırla")
+        self.btn_reset_sync.setToolTip(
+            "Sync sorunlarını çözmek için: lokal sync verilerini temizler, "
+            "sunucuyu sıfırlar ve tam senkronizasyon yapar"
+        )
+        self.btn_reset_sync.clicked.connect(self._reset_sync_state)
+        actions_layout.addWidget(self.btn_reset_sync)
+
         # Çakışmalar butonu
         self.btn_view_conflicts = QPushButton("⚠️ Çakışmaları Görüntüle")
         self.btn_view_conflicts.clicked.connect(self._view_conflicts)
@@ -366,6 +375,56 @@ class BuroSettingsTab(QWidget):
         finally:
             self.btn_force_sync.setEnabled(True)
             self.btn_force_sync.setText("📤 Tüm Verileri Senkronize Et")
+            self._refresh()
+
+    def _reset_sync_state(self):
+        """Sync durumunu sıfırla"""
+        if not self.sync_manager:
+            return
+
+        # Onay al
+        reply = QMessageBox.question(
+            self, "Sync Durumunu Sıfırla",
+            "Bu işlem:\n"
+            "• Lokal sync tablolarını temizleyecek\n"
+            "• Sunucudaki sync verilerini sıfırlayacak\n"
+            "• Tüm verileri yeniden senkronize edecek\n\n"
+            "Bu işlem sync sorunlarını çözmek için kullanılır.\n"
+            "Verileriniz SİLİNMEZ, sadece yeniden senkronize edilir.\n\n"
+            "Devam etmek istiyor musunuz?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+
+        self.btn_reset_sync.setEnabled(False)
+        self.btn_reset_sync.setText("Sıfırlanıyor...")
+        QApplication.processEvents()
+
+        try:
+            result = self.sync_manager.reset_sync_state()
+
+            if result.get('success'):
+                QMessageBox.information(
+                    self, "Sync Sıfırlandı",
+                    f"Sync durumu başarıyla sıfırlandı.\n\n"
+                    f"Outbox'a eklenen: {result.get('seeded', 0)}\n"
+                    f"Gönderilen: {result.get('sent', 0)}\n"
+                    f"Alınan: {result.get('received', 0)}"
+                )
+            else:
+                QMessageBox.warning(
+                    self, "Sync Sıfırlama",
+                    f"İşlem kısmen başarılı.\n\n{result.get('message', 'Bilinmeyen hata')}"
+                )
+
+        except Exception as e:
+            QMessageBox.critical(self, "Hata", str(e))
+
+        finally:
+            self.btn_reset_sync.setEnabled(True)
+            self.btn_reset_sync.setText("🔄 Sync Durumunu Sıfırla")
             self._refresh()
 
     def _view_conflicts(self):

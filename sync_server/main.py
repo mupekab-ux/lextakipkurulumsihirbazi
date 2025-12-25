@@ -802,6 +802,49 @@ def push_changes(
     }
 
 
+@app.post("/api/sync/reset")
+def reset_sync_state(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Büro sync durumunu sıfırla.
+
+    Bu endpoint:
+    1. Büronun tüm sync_records kayıtlarını siler
+    2. Global revision'ı sıfırlar
+
+    Kullanım: Cihazlar arası sync sorunlarını çözmek için.
+    """
+    firm_id = to_str(user.firm_id)
+
+    try:
+        # sync_records temizle
+        deleted_records = db.query(SyncRecord).filter(
+            SyncRecord.firm_id == firm_id
+        ).delete()
+
+        # global_revision sıfırla
+        db.query(GlobalRevision).filter(
+            GlobalRevision.firm_id == firm_id
+        ).delete()
+
+        db.commit()
+
+        logger.info(f"Sync durumu sıfırlandı (firm_id={firm_id[:8]}...): {deleted_records} kayıt silindi")
+
+        return {
+            'success': True,
+            'message': f'Sync durumu sıfırlandı. {deleted_records} kayıt silindi.',
+            'deleted_records': deleted_records
+        }
+
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Sync sıfırlama hatası: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/sync/pull")
 def pull_changes(
     since_revision: int = 0,

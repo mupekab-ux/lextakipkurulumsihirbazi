@@ -349,32 +349,74 @@ class SyncMigration:
                     delete_json_new = "json_object('uuid', NEW.uuid)"
                     delete_json_old = "json_object('uuid', OLD.uuid)"
 
-                # INSERT trigger
-                # Not: uuid trigger içinde üretilecek
+                # UUID FK güncellemelerini hazırla
+                uuid_fk_updates = self._get_uuid_fk_updates_for_table(table, columns)
+
+                # INSERT trigger - UUID FK'ları da populate eder
+                # Yeni yaklaşım:
+                # 1. Önce kaydı güncelle (uuid, uuid_fks, revision, timestamps)
+                # 2. Sonra güncel veriyi outbox'a ekle (SELECT ile)
+                if uuid_fk_updates:
+                    # UUID FK'ları olan tablolar için özel trigger
+                    update_set_clause = f"""
+                        uuid = COALESCE(NEW.uuid, lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' || substr(hex(randomblob(2)),2) || '-' || substr('89ab',abs(random()) % 4 + 1, 1) || substr(hex(randomblob(2)),2) || '-' || hex(randomblob(6)))),
+                        {uuid_fk_updates},
+                        revision = COALESCE(revision, 0) + 1,
+                        created_at = COALESCE(created_at, CURRENT_TIMESTAMP),
+                        updated_at = CURRENT_TIMESTAMP
+                    """
+                else:
+                    # UUID FK'sı olmayan tablolar için basit trigger
+                    update_set_clause = f"""
+                        uuid = COALESCE(NEW.uuid, lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' || substr(hex(randomblob(2)),2) || '-' || substr('89ab',abs(random()) % 4 + 1, 1) || substr(hex(randomblob(2)),2) || '-' || hex(randomblob(6)))),
+                        revision = COALESCE(revision, 0) + 1,
+                        created_at = COALESCE(created_at, CURRENT_TIMESTAMP),
+                        updated_at = CURRENT_TIMESTAMP
+                    """
+
+                # WHERE koşulu için doğru referans
+                if has_id_column:
+                    select_where = "t.id = NEW.id"
+                else:
+                    select_where = "t.rowid = NEW.rowid"
+
                 conn.execute(f"""
                     CREATE TRIGGER IF NOT EXISTS {table}_sync_insert
                     AFTER INSERT ON {table}
                     WHEN (SELECT COALESCE(is_sync_enabled, 0) FROM sync_metadata LIMIT 1) = 1
                     BEGIN
+                        -- Step 1: Kaydı güncelle (uuid, uuid_fks, revision, timestamps)
+                        UPDATE {table}
+                        SET {update_set_clause}
+                        WHERE {where_clause_new};
+
+                        -- Step 2: Güncel veriyi outbox'a ekle (SELECT ile taze veri alır)
                         INSERT INTO sync_outbox (uuid, table_name, operation, data_json)
                         SELECT
-                            COALESCE(NEW.uuid, lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-4' || substr(hex(randomblob(2)),2) || '-' || substr('89ab',abs(random()) % 4 + 1, 1) || substr(hex(randomblob(2)),2) || '-' || hex(randomblob(6)))),
+                            t.uuid,
                             '{table}',
                             'INSERT',
-                            json_object({self._build_json_object_args(columns, 'NEW')})
-                        WHERE NEW.uuid IS NOT NULL OR 1=1;
-
-                        UPDATE {table}
-                        SET uuid = (SELECT uuid FROM sync_outbox ORDER BY id DESC LIMIT 1),
-                            revision = COALESCE(revision, 0) + 1,
-                            created_at = COALESCE(created_at, CURRENT_TIMESTAMP),
-                            updated_at = CURRENT_TIMESTAMP
-                        WHERE {where_clause_new} AND NEW.uuid IS NULL;
+                            json_object({self._build_json_object_args_from_table(columns, 't')})
+                        FROM {table} t
+                        WHERE {select_where};
                     END;
                 """)
 
                 # UPDATE trigger - Tüm güncellemeleri yakala (uuid varsa)
                 # Not: INSERT trigger'dan gelen uuid atamasını atla
+                # UUID FK'ları da günceller (integer FK değiştiyse)
+                if uuid_fk_updates:
+                    update_trigger_set = f"""
+                        {uuid_fk_updates},
+                        revision = COALESCE(revision, 0) + 1,
+                        updated_at = CURRENT_TIMESTAMP
+                    """
+                else:
+                    update_trigger_set = """
+                        revision = COALESCE(revision, 0) + 1,
+                        updated_at = CURRENT_TIMESTAMP
+                    """
+
                 conn.execute(f"""
                     CREATE TRIGGER IF NOT EXISTS {table}_sync_update
                     AFTER UPDATE ON {table}
@@ -383,18 +425,20 @@ class SyncMigration:
                       AND NEW.uuid != ''
                       AND NOT (OLD.uuid IS NULL AND NEW.uuid IS NOT NULL)
                     BEGIN
+                        -- Step 1: UUID FK'ları ve metadata'yı güncelle
+                        UPDATE {table}
+                        SET {update_trigger_set}
+                        WHERE {where_clause_new};
+
+                        -- Step 2: Güncel veriyi outbox'a ekle
                         INSERT INTO sync_outbox (uuid, table_name, operation, data_json)
-                        VALUES (
-                            NEW.uuid,
+                        SELECT
+                            t.uuid,
                             '{table}',
                             'UPDATE',
-                            json_object({self._build_json_object_args(columns, 'NEW')})
-                        );
-
-                        UPDATE {table}
-                        SET revision = COALESCE(revision, 0) + 1,
-                            updated_at = CURRENT_TIMESTAMP
-                        WHERE {where_clause_new};
+                            json_object({self._build_json_object_args_from_table(columns, 't')})
+                        FROM {table} t
+                        WHERE {select_where};
                     END;
                 """)
 
@@ -459,6 +503,43 @@ class SyncMigration:
                 args.append(f"'{col}', {prefix}.{col}")
 
         return ', '.join(args)
+
+    def _build_json_object_args_from_table(self, columns: List[str], table_alias: str = 't') -> str:
+        """
+        Tablo SELECT'i için json_object() argümanları oluştur.
+
+        Args:
+            columns: Kolon isimleri
+            table_alias: Tablo alias'ı
+
+        Returns:
+            "'col1', t.col1, 'col2', t.col2, ..."
+        """
+        exclude = {'id'}
+        args = []
+        for col in columns:
+            if col not in exclude:
+                args.append(f"'{col}', {table_alias}.{col}")
+        return ', '.join(args)
+
+    def _get_uuid_fk_updates_for_table(self, table: str, columns: List[str]) -> str:
+        """
+        Belirli bir tablo için UUID FK güncellemelerini oluştur.
+
+        Args:
+            table: Tablo adı
+            columns: Tablodaki kolonlar
+
+        Returns:
+            "dosya_uuid = (SELECT uuid FROM dosyalar WHERE id = NEW.dosya_id), ..."
+        """
+        updates = []
+        for fk_table, uuid_col, ref_table, int_col in UUID_FK_RELATIONS:
+            if fk_table == table and uuid_col in columns and int_col in columns:
+                updates.append(
+                    f"{uuid_col} = (SELECT uuid FROM {ref_table} WHERE id = NEW.{int_col})"
+                )
+        return ', '.join(updates) if updates else None
 
     def seed_existing_data(self) -> int:
         """

@@ -25,7 +25,7 @@ from .sync_client import SyncClient, FirmMismatchError, DeviceNotApprovedError
 from .outbox_processor import OutboxProcessor
 from .inbox_processor import InboxProcessor
 from .conflict_handler import ConflictHandler
-from .migration import SyncMigration
+from .migration import SyncMigration, UUID_FK_RELATIONS
 
 logger = logging.getLogger(__name__)
 
@@ -655,12 +655,12 @@ class SyncManager:
 
     def _apply_remote_record(self, record: Dict[str, Any]):
         """Sunucudan gelen kaydı lokal veritabanına uygula"""
-        uuid = record.get('uuid')
+        record_uuid = record.get('uuid')
         table_name = record.get('table_name')
         operation = record.get('operation', 'INSERT')
         data = record.get('data', {})
 
-        if not uuid or not table_name:
+        if not record_uuid or not table_name:
             return
 
         if table_name not in SYNCED_TABLES:
@@ -673,14 +673,14 @@ class SyncManager:
                 # Soft delete
                 conn.execute(
                     f"UPDATE {table_name} SET is_deleted = 1 WHERE uuid = ?",
-                    (uuid,)
+                    (record_uuid,)
                 )
             else:
                 # INSERT veya UPDATE
                 # Mevcut kaydı kontrol et
                 existing = conn.execute(
                     f"SELECT uuid FROM {table_name} WHERE uuid = ?",
-                    (uuid,)
+                    (record_uuid,)
                 ).fetchone()
 
                 # Kolon listesini al
@@ -689,18 +689,50 @@ class SyncManager:
                 # Sadece mevcut kolonları filtrele
                 filtered_data = {k: v for k, v in data.items() if k in columns and k != 'id'}
 
+                # ============================================================
+                # UUID FK -> INTEGER FK ÇÖZÜMLEME
+                # Sunucudan gelen UUID FK değerlerini lokal integer ID'lere çevir
+                # ============================================================
+                for fk_table, uuid_col, ref_table, int_col in UUID_FK_RELATIONS:
+                    if table_name == fk_table and uuid_col in filtered_data:
+                        ref_uuid = filtered_data.get(uuid_col)
+                        if ref_uuid:
+                            # Referans tablodaki lokal integer ID'yi bul
+                            ref_row = conn.execute(
+                                f"SELECT id FROM {ref_table} WHERE uuid = ?",
+                                (ref_uuid,)
+                            ).fetchone()
+
+                            if ref_row:
+                                # Lokal integer FK'yı ayarla
+                                if int_col in columns:
+                                    filtered_data[int_col] = ref_row[0]
+                                logger.debug(
+                                    f"{table_name}.{uuid_col}={ref_uuid} -> "
+                                    f"{int_col}={ref_row[0]}"
+                                )
+                            else:
+                                # Referans kayıt henüz yok, integer FK'yı NULL bırak
+                                # (daha sonra sync edildiğinde düzelecek)
+                                logger.warning(
+                                    f"Referans kayıt bulunamadı: {ref_table}.uuid={ref_uuid}"
+                                )
+                                if int_col in columns:
+                                    filtered_data[int_col] = None
+                # ============================================================
+
                 if existing:
                     # UPDATE
                     if filtered_data:
                         set_clause = ", ".join([f"{k} = ?" for k in filtered_data.keys()])
-                        values = list(filtered_data.values()) + [uuid]
+                        values = list(filtered_data.values()) + [record_uuid]
                         conn.execute(
                             f"UPDATE {table_name} SET {set_clause} WHERE uuid = ?",
                             values
                         )
                 else:
                     # INSERT
-                    filtered_data['uuid'] = uuid
+                    filtered_data['uuid'] = record_uuid
                     columns_str = ", ".join(filtered_data.keys())
                     placeholders = ", ".join(["?" for _ in filtered_data])
                     conn.execute(
@@ -1076,6 +1108,108 @@ class SyncManager:
             'status': 'left',
             'backup_path': backup_path,
         }
+
+    def reset_sync_state(self) -> Dict[str, Any]:
+        """
+        Sync durumunu sıfırla - sunucu verilerini silmeden lokal sync'i yeniden başlat.
+
+        Bu işlem:
+        1. Lokal sync tablolarını temizler (outbox, revision)
+        2. Sunucuya sıfırlama isteği gönderir
+        3. Mevcut lokal verileri outbox'a ekler
+        4. Full sync çalıştırır
+
+        Returns:
+            {success, message, seeded, received, sent}
+        """
+        result = {
+            'success': False,
+            'message': '',
+            'seeded': 0,
+            'received': 0,
+            'sent': 0,
+        }
+
+        if self.status == SyncStatus.NOT_CONFIGURED:
+            result['message'] = "Sync yapılandırılmamış"
+            return result
+
+        if not self.client:
+            result['message'] = "Client yapılandırılmamış"
+            return result
+
+        conn = self._get_connection()
+        try:
+            logger.info("Sync durumu sıfırlanıyor...")
+
+            # Step 1: Lokal sync tablolarını temizle
+            conn.execute("DELETE FROM sync_outbox")
+            conn.execute("UPDATE sync_metadata SET last_sync_revision = 0")
+            conn.commit()
+            logger.info("Lokal sync tabloları temizlendi")
+
+            # Step 2: Sunucuya sıfırlama isteği gönder
+            try:
+                response = self.client._session.post(
+                    self.client._get_url('/api/sync/reset'),
+                    timeout=30,
+                    verify=False
+                )
+                if response.status_code == 200:
+                    logger.info("Sunucu sync durumu sıfırlandı")
+                else:
+                    logger.warning(f"Sunucu sıfırlama yanıtı: {response.status_code}")
+            except Exception as e:
+                logger.warning(f"Sunucu sıfırlama hatası (devam edilecek): {e}")
+
+            # Step 3: Trigger'ları yeniden oluştur (UUID FK desteği ile)
+            try:
+                from .migration import SyncMigration, UUIDFKMigration
+
+                # UUID FK migration'ı çalıştır
+                uuid_migration = UUIDFKMigration(self.db_path)
+                uuid_result = uuid_migration.run_full_migration()
+                logger.info(f"UUID FK migration: {uuid_result}")
+
+                # Trigger'ları yeniden oluştur
+                migration = SyncMigration(self.db_path)
+                migration.drop_all_sync_triggers()
+                migration.create_triggers()
+                logger.info("Trigger'lar yeniden oluşturuldu")
+            except Exception as e:
+                logger.error(f"Migration hatası: {e}")
+
+            # Step 4: Mevcut lokal verileri outbox'a ekle
+            migration = SyncMigration(self.db_path)
+            seeded = migration.seed_existing_data()
+            result['seeded'] = seeded
+            logger.info(f"{seeded} mevcut kayıt outbox'a eklendi")
+
+            # Step 5: Full sync çalıştır
+            sync_result = self.full_sync()
+            result['received'] = sync_result.get('received', 0)
+            result['sent'] = sync_result.get('sent', 0)
+
+            if sync_result.get('success'):
+                result['success'] = True
+                result['message'] = (
+                    f"Sync durumu sıfırlandı. "
+                    f"{seeded} kayıt gönderildi, "
+                    f"{result['received']} kayıt alındı."
+                )
+            else:
+                result['message'] = f"Sync kısmen başarılı: {sync_result.get('errors', [])}"
+
+            logger.info(f"Sync sıfırlama tamamlandı: {result}")
+
+        except Exception as e:
+            logger.error(f"Sync sıfırlama hatası: {e}")
+            result['message'] = str(e)
+            conn.rollback()
+        finally:
+            conn.close()
+
+        return result
 
     # ============================================================
     # YARDIMCI METODLAR
