@@ -9,6 +9,7 @@ from sqlalchemy import (
     Column, String, Integer, Boolean, Text, DateTime,
     ForeignKey, Index, UniqueConstraint, JSON
 )
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.sql import func
 from sqlalchemy.ext.declarative import declarative_base
 import uuid
@@ -17,7 +18,7 @@ Base = declarative_base()
 
 
 def generate_uuid():
-    return str(uuid.uuid4())
+    return uuid.uuid4()
 
 
 # ============================================================
@@ -28,7 +29,7 @@ class Firm(Base):
     """Büro/Firma bilgileri"""
     __tablename__ = "firms"
 
-    id = Column(String(36), primary_key=True, default=generate_uuid)  # Mevcut DB'de 'id' olarak adlandırılmış
+    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=generate_uuid)
     name = Column(String(255), nullable=False)
     firm_key = Column(Text, nullable=True)  # Şifreleme anahtarı (encrypted)
     created_at = Column(DateTime, server_default=func.now())
@@ -37,15 +38,15 @@ class Firm(Base):
     # Alias for backward compatibility
     @property
     def uuid(self):
-        return self.id
+        return str(self.id) if self.id else None
 
 
 class User(Base):
     """Kullanıcılar (her büroya ait)"""
     __tablename__ = "users"
 
-    uuid = Column(String(36), primary_key=True, default=generate_uuid)
-    firm_id = Column(String(36), ForeignKey("firms.id"), nullable=False, index=True)
+    uuid = Column(PG_UUID(as_uuid=True), primary_key=True, default=generate_uuid)
+    firm_id = Column(PG_UUID(as_uuid=True), ForeignKey("firms.id"), nullable=False, index=True)
     username = Column(String(100), nullable=False)
     password_hash = Column(String(255), nullable=False)
     email = Column(String(255), nullable=True)
@@ -63,8 +64,8 @@ class Device(Base):
     """Cihazlar (her büroya ait)"""
     __tablename__ = "devices"
 
-    uuid = Column(String(36), primary_key=True, default=generate_uuid)
-    firm_id = Column(String(36), ForeignKey("firms.id"), nullable=False, index=True)
+    uuid = Column(PG_UUID(as_uuid=True), primary_key=True, default=generate_uuid)
+    firm_id = Column(PG_UUID(as_uuid=True), ForeignKey("firms.id"), nullable=False, index=True)
     device_id = Column(String(100), nullable=False)  # Client tarafından üretilen ID
     device_name = Column(String(255), nullable=True)
     device_info = Column(JSON, nullable=True)
@@ -82,23 +83,23 @@ class JoinCode(Base):
     """Büroya katılım kodları"""
     __tablename__ = "join_codes"
 
-    uuid = Column(String(36), primary_key=True, default=generate_uuid)
-    firm_id = Column(String(36), ForeignKey("firms.id"), nullable=False, index=True)
+    uuid = Column(PG_UUID(as_uuid=True), primary_key=True, default=generate_uuid)
+    firm_id = Column(PG_UUID(as_uuid=True), ForeignKey("firms.id"), nullable=False, index=True)
     code = Column(String(50), unique=True, nullable=False)  # BURO-XXXX-XXXX-XXXX
     max_uses = Column(Integer, default=10)
     use_count = Column(Integer, default=0)
     expires_at = Column(DateTime, nullable=False)
     created_at = Column(DateTime, server_default=func.now())
-    created_by = Column(String(36), nullable=True)  # User UUID
+    created_by = Column(PG_UUID(as_uuid=True), nullable=True)  # User UUID
 
 
 class RefreshToken(Base):
     """Refresh token'lar"""
     __tablename__ = "refresh_tokens"
 
-    uuid = Column(String(36), primary_key=True, default=generate_uuid)
-    user_id = Column(String(36), ForeignKey("users.uuid"), nullable=False, index=True)
-    device_id = Column(String(36), nullable=True)
+    uuid = Column(PG_UUID(as_uuid=True), primary_key=True, default=generate_uuid)
+    user_id = Column(PG_UUID(as_uuid=True), ForeignKey("users.uuid"), nullable=False, index=True)
+    device_id = Column(PG_UUID(as_uuid=True), nullable=True)
     token_hash = Column(String(255), nullable=False)
     expires_at = Column(DateTime, nullable=False)
     created_at = Column(DateTime, server_default=func.now())
@@ -118,8 +119,8 @@ class SyncRecord(Base):
     """
     __tablename__ = "sync_records"
 
-    uuid = Column(String(36), primary_key=True)  # Client tarafından üretilen UUID
-    firm_id = Column(String(36), ForeignKey("firms.id"), nullable=False, index=True)
+    uuid = Column(PG_UUID(as_uuid=True), primary_key=True)  # Client tarafından üretilen UUID
+    firm_id = Column(PG_UUID(as_uuid=True), ForeignKey("firms.id"), nullable=False, index=True)
     table_name = Column(String(50), nullable=False, index=True)  # dosyalar, finans, vb.
 
     # Veri
@@ -140,8 +141,8 @@ class SyncRecord(Base):
     server_updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
     # Device tracking
-    created_by_device = Column(String(36), nullable=True)
-    updated_by_device = Column(String(36), nullable=True)
+    created_by_device = Column(PG_UUID(as_uuid=True), nullable=True)
+    updated_by_device = Column(PG_UUID(as_uuid=True), nullable=True)
 
     __table_args__ = (
         # BN benzersizliği (firma başına, silinmemiş dosyalar için)
@@ -161,7 +162,7 @@ class GlobalRevision(Base):
     """Firma başına global revision sayacı"""
     __tablename__ = "global_revisions"
 
-    firm_id = Column(String(36), ForeignKey("firms.id"), primary_key=True)
+    firm_id = Column(PG_UUID(as_uuid=True), ForeignKey("firms.id"), primary_key=True)
     current_revision = Column(Integer, default=0, nullable=False)
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
@@ -171,10 +172,10 @@ class SyncLog(Base):
     __tablename__ = "sync_logs"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    firm_id = Column(String(36), index=True)
-    device_id = Column(String(36), nullable=True)
+    firm_id = Column(PG_UUID(as_uuid=True), index=True)
+    device_id = Column(PG_UUID(as_uuid=True), nullable=True)
     action = Column(String(50))  # push, pull, conflict, bn_reassign
-    record_uuid = Column(String(36), nullable=True)
+    record_uuid = Column(PG_UUID(as_uuid=True), nullable=True)
     table_name = Column(String(50), nullable=True)
     details = Column(JSON, nullable=True)
     created_at = Column(DateTime, server_default=func.now())

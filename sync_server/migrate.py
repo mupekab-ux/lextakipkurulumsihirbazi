@@ -34,7 +34,7 @@ def run_migration():
             logger.info("firms tablosu oluşturuluyor...")
             session.execute(text("""
                 CREATE TABLE firms (
-                    uuid VARCHAR(36) PRIMARY KEY,
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                     name VARCHAR(255) NOT NULL,
                     firm_key TEXT,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -47,11 +47,11 @@ def run_migration():
         if 'users' not in existing_tables:
             if 'firm_users' in existing_tables:
                 logger.info("firm_users → users tablosuna migrate ediliyor...")
-                # Yeni users tablosunu oluştur
+                # Yeni users tablosunu oluştur (UUID tipli firm_id)
                 session.execute(text("""
                     CREATE TABLE users (
-                        uuid VARCHAR(36) PRIMARY KEY DEFAULT gen_random_uuid()::text,
-                        firm_id VARCHAR(36) NOT NULL REFERENCES firms(id),
+                        uuid UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                        firm_id UUID NOT NULL REFERENCES firms(id),
                         username VARCHAR(100) NOT NULL,
                         password_hash VARCHAR(255) NOT NULL,
                         email VARCHAR(255),
@@ -67,7 +67,7 @@ def run_migration():
                 session.execute(text("""
                     INSERT INTO users (uuid, firm_id, username, password_hash, email, role, is_active, created_at)
                     SELECT
-                        COALESCE(uuid, gen_random_uuid()::text),
+                        COALESCE(uuid::uuid, gen_random_uuid()),
                         firm_id,
                         username,
                         password_hash,
@@ -82,8 +82,8 @@ def run_migration():
                 logger.info("users tablosu oluşturuluyor...")
                 session.execute(text("""
                     CREATE TABLE users (
-                        uuid VARCHAR(36) PRIMARY KEY DEFAULT gen_random_uuid()::text,
-                        firm_id VARCHAR(36) NOT NULL REFERENCES firms(id),
+                        uuid UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                        firm_id UUID NOT NULL REFERENCES firms(id),
                         username VARCHAR(100) NOT NULL,
                         password_hash VARCHAR(255) NOT NULL,
                         email VARCHAR(255),
@@ -116,8 +116,8 @@ def run_migration():
             logger.info("devices tablosu oluşturuluyor...")
             session.execute(text("""
                 CREATE TABLE devices (
-                    uuid VARCHAR(36) PRIMARY KEY DEFAULT gen_random_uuid()::text,
-                    firm_id VARCHAR(36) NOT NULL REFERENCES firms(id),
+                    uuid UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    firm_id UUID NOT NULL REFERENCES firms(id),
                     device_id VARCHAR(100) NOT NULL,
                     device_name VARCHAR(255),
                     device_info JSONB,
@@ -135,14 +135,14 @@ def run_migration():
             logger.info("join_codes tablosu oluşturuluyor...")
             session.execute(text("""
                 CREATE TABLE join_codes (
-                    uuid VARCHAR(36) PRIMARY KEY DEFAULT gen_random_uuid()::text,
-                    firm_id VARCHAR(36) NOT NULL REFERENCES firms(id),
+                    uuid UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    firm_id UUID NOT NULL REFERENCES firms(id),
                     code VARCHAR(50) UNIQUE NOT NULL,
                     max_uses INTEGER DEFAULT 10,
                     use_count INTEGER DEFAULT 0,
                     expires_at TIMESTAMP NOT NULL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    created_by VARCHAR(36)
+                    created_by UUID
                 )
             """))
             logger.info("✓ join_codes tablosu oluşturuldu")
@@ -154,9 +154,9 @@ def run_migration():
             logger.info("refresh_tokens tablosu oluşturuluyor...")
             session.execute(text("""
                 CREATE TABLE refresh_tokens (
-                    uuid VARCHAR(36) PRIMARY KEY DEFAULT gen_random_uuid()::text,
-                    user_id VARCHAR(36) NOT NULL REFERENCES users(uuid),
-                    device_id VARCHAR(36),
+                    uuid UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    user_id UUID NOT NULL REFERENCES users(uuid),
+                    device_id UUID,
                     token_hash VARCHAR(255) NOT NULL,
                     expires_at TIMESTAMP NOT NULL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -171,8 +171,8 @@ def run_migration():
             logger.info("sync_records tablosu oluşturuluyor...")
             session.execute(text("""
                 CREATE TABLE sync_records (
-                    uuid VARCHAR(36) PRIMARY KEY,
-                    firm_id VARCHAR(36) NOT NULL REFERENCES firms(id),
+                    uuid UUID PRIMARY KEY,
+                    firm_id UUID NOT NULL REFERENCES firms(id),
                     table_name VARCHAR(50) NOT NULL,
                     data JSONB NOT NULL,
                     data_encrypted TEXT,
@@ -183,8 +183,8 @@ def run_migration():
                     updated_at TIMESTAMP NOT NULL,
                     server_created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     server_updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    created_by_device VARCHAR(36),
-                    updated_by_device VARCHAR(36)
+                    created_by_device UUID,
+                    updated_by_device UUID
                 )
             """))
 
@@ -206,7 +206,7 @@ def run_migration():
                     session.execute(text("""
                         INSERT INTO sync_records (uuid, firm_id, table_name, data, revision, is_deleted, created_at, updated_at)
                         SELECT
-                            uuid,
+                            uuid::uuid,
                             firm_id,
                             table_name,
                             data::jsonb,
@@ -215,7 +215,7 @@ def run_migration():
                             COALESCE(created_at, CURRENT_TIMESTAMP),
                             COALESCE(updated_at, CURRENT_TIMESTAMP)
                         FROM sync_data
-                        WHERE data IS NOT NULL
+                        WHERE data IS NOT NULL AND uuid IS NOT NULL
                     """))
                     count = session.execute(text("SELECT COUNT(*) FROM sync_records")).scalar()
                     logger.info(f"✓ {count} kayıt sync_data'dan migrate edildi")
@@ -229,7 +229,7 @@ def run_migration():
             logger.info("global_revisions tablosu oluşturuluyor...")
             session.execute(text("""
                 CREATE TABLE global_revisions (
-                    firm_id VARCHAR(36) PRIMARY KEY REFERENCES firms(id),
+                    firm_id UUID PRIMARY KEY REFERENCES firms(id),
                     current_revision INTEGER DEFAULT 0 NOT NULL,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
@@ -249,10 +249,10 @@ def run_migration():
             session.execute(text("""
                 CREATE TABLE sync_logs (
                     id SERIAL PRIMARY KEY,
-                    firm_id VARCHAR(36),
-                    device_id VARCHAR(36),
+                    firm_id UUID,
+                    device_id UUID,
                     action VARCHAR(50),
-                    record_uuid VARCHAR(36),
+                    record_uuid UUID,
                     table_name VARCHAR(50),
                     details JSONB,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
