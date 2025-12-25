@@ -317,7 +317,7 @@ def join_firm(
         return JoinFirmResponse(
             success=True,
             firm_id=to_str(code.firm_id),
-            device_id=to_str(existing_device.uuid),
+            device_id=existing_device.device_id,  # device_id string, uuid değil
             requires_approval=not existing_device.is_approved,
             firm_key=firm.firm_key if existing_device.is_approved else None
         )
@@ -343,7 +343,7 @@ def join_firm(
     return JoinFirmResponse(
         success=True,
         firm_id=to_str(code.firm_id),
-        device_id=to_str(device.uuid),
+        device_id=device.device_id,  # device_id string, uuid değil
         requires_approval=True,
         firm_key=None
     )
@@ -891,7 +891,7 @@ def approve_device(
 
     return {
         'success': True,
-        'device_id': to_str(device.uuid),
+        'device_id': device.device_id,
         'firm_key': firm.firm_key
     }
 
