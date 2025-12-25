@@ -80,6 +80,14 @@ class BuroSettingsTab(QWidget):
         self.btn_reset_sync.clicked.connect(self._reset_sync_state)
         actions_layout.addWidget(self.btn_reset_sync)
 
+        # Yeniden giriş yap butonu
+        self.btn_relogin = QPushButton("🔑 Yeniden Giriş Yap")
+        self.btn_relogin.setToolTip(
+            "Oturum süresi dolduğunda veya 401 hatası aldığınızda kullanın"
+        )
+        self.btn_relogin.clicked.connect(self._relogin)
+        actions_layout.addWidget(self.btn_relogin)
+
         # Çakışmalar butonu
         self.btn_view_conflicts = QPushButton("⚠️ Çakışmaları Görüntüle")
         self.btn_view_conflicts.clicked.connect(self._view_conflicts)
@@ -445,6 +453,33 @@ class BuroSettingsTab(QWidget):
             QMessageBox.information(
                 self, "Kurulum",
                 "Büro kurulumu tamamlandı!"
+            )
+
+    def _relogin(self):
+        """Yeniden giriş yap - 401 hataları için"""
+        if not self.sync_manager:
+            QMessageBox.warning(self, "Uyarı", "Sync yapılandırılmamış.")
+            return
+
+        if self.sync_manager.status == SyncStatus.NOT_CONFIGURED:
+            QMessageBox.warning(
+                self, "Uyarı",
+                "Önce büro kurulumu yapmalısınız."
+            )
+            return
+
+        # Login dialog'unu göster
+        dialog = LoginAfterApprovalDialog(self.sync_manager, self)
+        if dialog.exec():
+            QMessageBox.information(
+                self, "Başarılı",
+                "Giriş başarılı! Artık senkronizasyon yapabilirsiniz."
+            )
+            self._refresh()
+        else:
+            QMessageBox.warning(
+                self, "Uyarı",
+                "Giriş iptal edildi."
             )
 
     def _leave_firm(self):

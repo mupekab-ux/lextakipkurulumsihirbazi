@@ -1150,11 +1150,31 @@ class SyncManager:
 
             # Step 2: Sunucuya sıfırlama isteği gönder
             try:
+                # Authentication header ekle
+                if self.config.access_token:
+                    self.client._session.headers['Authorization'] = f'Bearer {self.config.access_token}'
+
                 response = self.client._session.post(
                     self.client._get_url('/api/sync/reset'),
                     timeout=30,
                     verify=False
                 )
+
+                # 401 durumunda token yenilemeyi dene
+                if response.status_code == 401:
+                    try:
+                        self.client.refresh_token()
+                        # Tekrar dene
+                        response = self.client._session.post(
+                            self.client._get_url('/api/sync/reset'),
+                            timeout=30,
+                            verify=False
+                        )
+                    except Exception as auth_err:
+                        logger.warning(f"Token yenileme hatası: {auth_err}")
+                        result['message'] = "Oturum süresi doldu. Lütfen 'Yeniden Giriş Yap' butonunu kullanın."
+                        return result
+
                 if response.status_code == 200:
                     logger.info("Sunucu sync durumu sıfırlandı")
                 else:
