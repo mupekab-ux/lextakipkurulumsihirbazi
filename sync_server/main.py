@@ -16,6 +16,7 @@ from sqlalchemy import func
 import secrets
 import logging
 import uuid as uuid_module
+import base64
 
 from config import settings
 from database import engine, get_db
@@ -223,7 +224,8 @@ def init_firm(request: InitFirmRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Sunucu zaten kurulmuş")
 
     # Firma oluştur
-    firm_key = secrets.token_urlsafe(32)
+    # Fernet uyumlu 32-byte key (base64 encoded = 44 karakter)
+    firm_key = base64.urlsafe_b64encode(secrets.token_bytes(32)).decode('utf-8')
     recovery_code = "-".join([secrets.token_hex(4).upper() for _ in range(4)])
 
     firm = Firm(
