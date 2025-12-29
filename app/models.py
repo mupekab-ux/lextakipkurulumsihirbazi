@@ -2223,7 +2223,6 @@ def harici_update_contract(
     harici_bn: str | None,
     harici_muvekkil: str | None,
     harici_esas_no: str | None,
-    karsi_vekalet_ucreti_cents: int = 0,
 ) -> None:
     """Persist contract information for an external finance record."""
 
@@ -2241,7 +2240,6 @@ def harici_update_contract(
                    harici_bn = ?,
                    harici_muvekkil = ?,
                    harici_esas_no = ?,
-                   karsi_vekalet_ucreti_cents = ?,
                    updated_at = CURRENT_TIMESTAMP
              WHERE id = ?
             """,
@@ -2254,7 +2252,6 @@ def harici_update_contract(
                 harici_bn or None,
                 harici_muvekkil or None,
                 harici_esas_no or None,
-                int(karsi_vekalet_ucreti_cents or 0),
                 hid,
             ),
         )
@@ -3703,7 +3700,6 @@ def update_finans_contract(
     tahsil_hedef_cents: int,
     notlar: str | None,
     yuzde_is_sonu: bool,
-    karsi_vekalet_ucreti_cents: int = 0,
 ) -> bool:
     """Finans sözleşme bilgilerini günceller.
 
@@ -3742,7 +3738,6 @@ def update_finans_contract(
                 tahsil_hedef_cents = ?,
                 notlar = ?,
                 yuzde_is_sonu = ?,
-                karsi_vekalet_ucreti_cents = ?,
                 son_guncelleme = ?
             WHERE {where_clause}
         """
@@ -3753,7 +3748,6 @@ def update_finans_contract(
             target_value,
             notlar,
             1 if yuzde_is_sonu else 0,
-            int(karsi_vekalet_ucreti_cents or 0),
             datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             where_value,
         )

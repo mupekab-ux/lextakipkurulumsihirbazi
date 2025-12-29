@@ -388,7 +388,6 @@ FINANS_TABLE_SCHEMA = """
     tahsil_edilen_cents INTEGER NOT NULL DEFAULT 0,
     masraf_toplam_cents INTEGER NOT NULL DEFAULT 0,
     masraf_tahsil_cents INTEGER NOT NULL DEFAULT 0,
-    karsi_vekalet_ucreti_cents INTEGER NOT NULL DEFAULT 0,
     notlar TEXT,
     yuzde_is_sonu INTEGER NOT NULL DEFAULT 0,
     son_guncelleme DATETIME,
@@ -403,7 +402,6 @@ FINANS_COLUMNS = [
     ("tahsil_edilen_cents", "INTEGER NOT NULL DEFAULT 0"),
     ("masraf_toplam_cents", "INTEGER NOT NULL DEFAULT 0"),
     ("masraf_tahsil_cents", "INTEGER NOT NULL DEFAULT 0"),
-    ("karsi_vekalet_ucreti_cents", "INTEGER NOT NULL DEFAULT 0"),
     ("notlar", "TEXT"),
     ("yuzde_is_sonu", "INTEGER NOT NULL DEFAULT 0"),
     ("son_guncelleme", "DATETIME"),
@@ -916,7 +914,6 @@ def ensure_finans_harici_columns(conn: sqlite3.Connection) -> None:
         _add_column("toplam_ucret_cents", "INTEGER NOT NULL DEFAULT 0")
         _add_column("kalan_bakiye_cents", "INTEGER NOT NULL DEFAULT 0")
         _add_column("has_overdue_installment", "INTEGER NOT NULL DEFAULT 0")
-        _add_column("karsi_vekalet_ucreti_cents", "INTEGER NOT NULL DEFAULT 0")
         _add_column("plan_taksit_sayisi", "INTEGER NOT NULL DEFAULT 0")
         _add_column("plan_periyot", "TEXT")
         _add_column("plan_vade_gunu", "INTEGER NOT NULL DEFAULT 0")
@@ -1331,7 +1328,6 @@ def migrate_harici_finans(conn: sqlite3.Connection) -> None:
                 tahsil_edilen_cents INTEGER DEFAULT 0,
                 masraf_toplam_cents INTEGER DEFAULT 0,
                 masraf_tahsil_cents INTEGER DEFAULT 0,
-                karsi_vekalet_ucreti_cents INTEGER NOT NULL DEFAULT 0,
                 tahsil_hedef_cents INTEGER NOT NULL DEFAULT 0,
                 yuzde_is_sonu INTEGER NOT NULL DEFAULT 0,
                 toplam_ucret_cents INTEGER NOT NULL DEFAULT 0,
