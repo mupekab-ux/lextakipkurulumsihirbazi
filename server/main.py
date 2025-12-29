@@ -4,13 +4,15 @@ TakibiEsasi License & Admin API
 FastAPI backend for license management and admin panel
 """
 
-from fastapi import FastAPI, HTTPException, Header, UploadFile, File, Request
+from fastapi import FastAPI, HTTPException, Header, UploadFile, File, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.base import BaseHTTPMiddleware
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Dict
 from datetime import datetime, timedelta
+from collections import defaultdict
 import psycopg2
 import psycopg2.extras
 import secrets
@@ -25,17 +27,110 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import threading
+import time
+import html
 
 app = FastAPI(title="TakibiEsasi API", version="1.0.0")
 
-# CORS
+# CORS - Sadece izinli domainler
+ALLOWED_ORIGINS = [
+    "https://takibiesasi.com",
+    "https://www.takibiesasi.com",
+    "https://api.takibiesasi.com",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
+
+# ============ SECURITY MIDDLEWARE ============
+
+# Rate Limiting - Basit in-memory rate limiter
+class RateLimitMiddleware(BaseHTTPMiddleware):
+    def __init__(self, app, rate_limit: int = 100, window_seconds: int = 60):
+        super().__init__(app)
+        self.rate_limit = rate_limit
+        self.window_seconds = window_seconds
+        self.requests: Dict[str, list] = defaultdict(list)
+        # Özel limitler - hassas endpointler için
+        self.special_limits = {
+            "/api/auth/login": (5, 60),           # 5 istek/dakika
+            "/api/auth/register": (3, 60),         # 3 istek/dakika
+            "/api/auth/forgot-password": (3, 300), # 3 istek/5 dakika
+            "/api/admin/login": (5, 60),           # 5 istek/dakika
+            "/api/contact": (5, 60),               # 5 istek/dakika
+            "/api/demo/register": (3, 60),         # 3 istek/dakika
+        }
+
+    def _get_client_ip(self, request: Request) -> str:
+        forwarded = request.headers.get("X-Forwarded-For")
+        if forwarded:
+            return forwarded.split(",")[0].strip()
+        return request.client.host if request.client else "unknown"
+
+    def _clean_old_requests(self, ip: str, window: int):
+        now = time.time()
+        self.requests[ip] = [t for t in self.requests[ip] if now - t < window]
+
+    async def dispatch(self, request: Request, call_next):
+        client_ip = self._get_client_ip(request)
+        path = request.url.path
+
+        # Özel limit kontrolü
+        if path in self.special_limits:
+            limit, window = self.special_limits[path]
+        else:
+            limit, window = self.rate_limit, self.window_seconds
+
+        key = f"{client_ip}:{path}"
+        self._clean_old_requests(key, window)
+
+        if len(self.requests[key]) >= limit:
+            return Response(
+                content='{"error": "Çok fazla istek. Lütfen bekleyin."}',
+                status_code=429,
+                media_type="application/json"
+            )
+
+        self.requests[key].append(time.time())
+        return await call_next(request)
+
+# Security Headers Middleware
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+        # HSTS - sadece HTTPS için
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        return response
+
+# Middleware'leri ekle
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RateLimitMiddleware, rate_limit=100, window_seconds=60)
+
+# ============ HELPER FUNCTIONS ============
+
+def sanitize_html(text: str) -> str:
+    """XSS koruması için HTML karakterlerini escape et"""
+    if text is None:
+        return ""
+    return html.escape(str(text))
+
+def sanitize_dict(data: dict, fields: list) -> dict:
+    """Belirtilen alanları sanitize et"""
+    result = data.copy()
+    for field in fields:
+        if field in result and result[field]:
+            result[field] = sanitize_html(result[field])
+    return result
 
 # Configuration - Sensitive data from environment variables
 DB_CONFIG = {
@@ -47,9 +142,33 @@ DB_CONFIG = {
 
 ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
-JWT_SECRET = os.environ.get("JWT_SECRET", "change-this-secret-key")
-OFFLINE_TOKEN_SECRET = os.environ.get("OFFLINE_TOKEN_SECRET", "change-this-offline-secret")
+JWT_SECRET = os.environ.get("JWT_SECRET", "")
+OFFLINE_TOKEN_SECRET = os.environ.get("OFFLINE_TOKEN_SECRET", "")
 OFFLINE_TOKEN_DAYS = 30  # Offline token geçerlilik süresi
+
+# Güvenlik kontrolü - Secret key'ler ayarlanmalı
+def check_security_config():
+    """Kritik güvenlik ayarlarını kontrol et"""
+    errors = []
+    if not JWT_SECRET or JWT_SECRET == "change-this-secret-key":
+        errors.append("JWT_SECRET environment variable ayarlanmalı!")
+    if not OFFLINE_TOKEN_SECRET or OFFLINE_TOKEN_SECRET == "change-this-offline-secret":
+        errors.append("OFFLINE_TOKEN_SECRET environment variable ayarlanmalı!")
+    if not ADMIN_PASSWORD:
+        errors.append("ADMIN_PASSWORD environment variable ayarlanmalı!")
+    if not DB_CONFIG.get("password"):
+        errors.append("DB_PASSWORD environment variable ayarlanmalı!")
+
+    if errors:
+        print("=" * 60)
+        print("⚠️  GÜVENLİK UYARISI - KRİTİK YAPILANDIRMA EKSİK!")
+        print("=" * 60)
+        for error in errors:
+            print(f"  ❌ {error}")
+        print("=" * 60)
+        print("Lütfen environment variable'ları ayarlayın.")
+        print("Örnek: export JWT_SECRET=$(openssl rand -hex 32)")
+        print("=" * 60)
 
 DOWNLOAD_DIR = "/var/www/takibiesasi/download"
 RELEASES_FILE = "/var/www/takibiesasi/releases/latest.json"
@@ -402,6 +521,7 @@ def init_db():
 # Initialize on startup
 @app.on_event("startup")
 async def startup():
+    check_security_config()  # Güvenlik ayarlarını kontrol et
     init_db()
     init_default_email_templates()
 
@@ -684,7 +804,8 @@ def verify_offline_token(token: str, machine_id: str) -> dict:
     except jwt.InvalidTokenError:
         return {"valid": False, "error": "Geçersiz token", "license_key": None}
     except Exception as e:
-        return {"valid": False, "error": str(e), "license_key": None}
+        print(f"Token verification error: {e}")  # Sunucu loguna yaz
+        return {"valid": False, "error": "Token doğrulama hatası", "license_key": None}
 
 
 def get_current_release():
@@ -2028,7 +2149,8 @@ async def notify_buro(req: NotifyRequest):
         conn.commit()
         return {"success": True, "message": "E-posta kaydedildi"}
     except Exception as e:
-        return {"success": False, "error": str(e)}
+        print(f"Notify subscribe error: {e}")
+        return {"success": False, "error": "Kayıt yapılamadı, lütfen tekrar deneyin"}
     finally:
         cur.close()
         conn.close()
@@ -2319,23 +2441,59 @@ async def admin_get_media(authorization: str = Header(None)):
 
     return items
 
+# Dosya yükleme güvenlik sabitleri
+MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
+ALLOWED_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.webp'}
+# Magic bytes for image validation
+IMAGE_MAGIC_BYTES = {
+    b'\xff\xd8\xff': 'image/jpeg',      # JPEG
+    b'\x89PNG\r\n\x1a\n': 'image/png',  # PNG
+    b'GIF87a': 'image/gif',              # GIF87a
+    b'GIF89a': 'image/gif',              # GIF89a
+    b'RIFF': 'image/webp',               # WEBP (RIFF....WEBP)
+}
+
+def validate_image_magic_bytes(content: bytes) -> bool:
+    """Dosyanın gerçek bir resim olduğunu magic bytes ile doğrula"""
+    for magic, mime in IMAGE_MAGIC_BYTES.items():
+        if content.startswith(magic):
+            return True
+    # WEBP için özel kontrol (RIFF....WEBP)
+    if content[:4] == b'RIFF' and content[8:12] == b'WEBP':
+        return True
+    return False
+
 @app.post("/api/admin/media/upload")
 async def admin_upload_media(file: UploadFile = File(...), authorization: str = Header(None)):
     """Upload a media file (image)"""
     verify_admin_token(authorization)
 
-    # Validate file type
-    allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml']
-    if file.content_type not in allowed_types:
-        raise HTTPException(status_code=400, detail="Sadece resim dosyaları yüklenebilir (jpg, png, gif, webp, svg)")
+    # 1. Uzantı kontrolü (SVG kaldırıldı - XSS riski)
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(status_code=400, detail=f"İzin verilen uzantılar: {', '.join(ALLOWED_EXTENSIONS)}")
 
-    # Generate unique filename
-    ext = os.path.splitext(file.filename)[1]
+    # 2. Content-Type kontrolü
+    allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="Sadece resim dosyaları yüklenebilir (jpg, png, gif, webp)")
+
+    # 3. Dosya içeriğini oku
+    content = await file.read()
+
+    # 4. Boyut kontrolü
+    if len(content) > MAX_FILE_SIZE:
+        raise HTTPException(status_code=400, detail=f"Dosya boyutu maksimum {MAX_FILE_SIZE // (1024*1024)} MB olabilir")
+
+    # 5. Magic bytes kontrolü - gerçek resim mi?
+    if not validate_image_magic_bytes(content):
+        raise HTTPException(status_code=400, detail="Geçersiz resim dosyası. Dosya içeriği resim formatına uymuyor.")
+
+    # 6. Güvenli dosya adı oluştur
     unique_name = f"{secrets.token_hex(16)}{ext}"
     filepath = os.path.join(MEDIA_DIR, unique_name)
 
-    # Save file
-    content = await file.read()
+    # 7. Dosyayı kaydet
     with open(filepath, 'wb') as f:
         f.write(content)
 
@@ -2584,7 +2742,8 @@ async def register_demo(req: DemoRegisterRequest, request: Request):
 
     except Exception as e:
         conn.rollback()
-        raise HTTPException(status_code=500, detail=f"Kayıt hatası: {str(e)}")
+        print(f"Demo registration error: {e}")
+        raise HTTPException(status_code=500, detail="Kayıt işlemi başarısız oldu, lütfen tekrar deneyin")
     finally:
         cur.close()
         conn.close()
@@ -2978,7 +3137,8 @@ async def mark_demo_converted(reg_id: int, authorization: str = Header(None)):
 
     except Exception as e:
         conn.rollback()
-        return {"success": False, "error": f"Hata: {str(e)}"}
+        print(f"Demo to license conversion error: {e}")
+        return {"success": False, "error": "Lisans oluşturulamadı, lütfen tekrar deneyin"}
 
     finally:
         cur.close()
@@ -3088,7 +3248,8 @@ async def user_register(req: UserRegisterRequest, request: Request):
 
     except Exception as e:
         conn.rollback()
-        return {"success": False, "error": f"Kayıt sırasında bir hata oluştu: {str(e)}"}
+        print(f"User registration error: {e}")
+        return {"success": False, "error": "Kayıt işlemi başarısız oldu, lütfen tekrar deneyin"}
 
     finally:
         cur.close()
@@ -3865,7 +4026,8 @@ async def create_order(req: CreateOrderRequest, authorization: str = Header(None
 
     except Exception as e:
         conn.rollback()
-        return {"success": False, "error": f"Sipariş oluşturulamadı: {str(e)}"}
+        print(f"Order creation error: {e}")
+        return {"success": False, "error": "Sipariş oluşturulamadı, lütfen tekrar deneyin"}
 
     finally:
         cur.close()
@@ -4082,7 +4244,8 @@ async def mock_payment(order_id: int, req: MockPaymentRequest, authorization: st
 
     except Exception as e:
         conn.rollback()
-        return {"success": False, "error": f"Ödeme işlemi başarısız: {str(e)}"}
+        print(f"Payment processing error: {e}")
+        return {"success": False, "error": "Ödeme işlemi başarısız oldu, lütfen tekrar deneyin"}
 
     finally:
         cur.close()
@@ -5422,7 +5585,8 @@ async def admin_send_test_email(template_key: str, test_email: str, authorizatio
         else:
             return {"success": False, "error": "E-posta gönderilemedi"}
     except Exception as e:
-        return {"success": False, "error": str(e)}
+        print(f"Test email error: {e}")
+        return {"success": False, "error": "E-posta gönderimi başarısız oldu"}
 
 
 @app.get("/api/admin/email/logs")
