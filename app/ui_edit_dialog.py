@@ -1586,14 +1586,15 @@ class EditDialog(QDialog):
 
         Kurallar:
         - Dava durumu boşsa → is_tarihi devre dışı + temizle
-        - Dava durumu değiştiyse (eski değer doluydu) → tamamlanan görevi kaydet + is_tarihi temizle
         - Dava durumu doluysa → is_tarihi aktif
+
+        NOT: Görev kaydetme işlemi sadece save() sırasında _handle_status_change'de yapılır.
+        Bu fonksiyon sadece widget durumlarını yönetir.
         """
         if self._suppress_status_change_handler:
             return
 
         new_value = new_value.strip()
-        old_value = self._last_dava_durumu
 
         # Widget'ları güncelle
         is_tarihi_edit = self._job_date_edits.get("is_tarihi")
@@ -1611,34 +1612,6 @@ class EditDialog(QDialog):
             is_tarihi_edit.setEnabled(True)
             self.aciklama_edit.setEnabled(True)
 
-            # Dava durumu değiştiyse ve eski değer doluydu → tamamlanan görevi kaydet + temizle
-            # NOT: Kısa değerler (< 3 karakter) için görev oluşturma - bu kullanıcı yazarken
-            # oluşan ara kayıtları önler
-            if old_value and old_value != new_value and len(old_value.strip()) >= 3:
-                # Tamamlanan görevi kaydet
-                old_is_tarihi = self._get_job_date_value("is_tarihi")
-                old_aciklama = self.aciklama_edit.toPlainText().strip()
-                if old_is_tarihi:
-                    user_name = (
-                        self.current_user.get("username")
-                        or self.current_user.get("kullanici_adi")
-                        or ""
-                    )
-                    try:
-                        insert_completed_task(
-                            tarih=old_is_tarihi,
-                            konu=old_value,
-                            aciklama=old_aciklama or f"Dava durumu değişti: {old_value} → {new_value}",
-                            olusturan_kullanici=user_name,
-                            gorev_turu="IS_TARIHI",
-                            dosya_id=self.dosya_id,
-                        )
-                    except Exception:
-                        pass
-                # is_tarihi ve aciklama'yı temizle
-                self._set_job_date_value("is_tarihi", None)
-                self.aciklama_edit.setPlainText("")
-
         self._last_dava_durumu = new_value
 
     def _on_dava_durumu_2_changed(self, new_value: str) -> None:
@@ -1646,14 +1619,15 @@ class EditDialog(QDialog):
 
         Kurallar:
         - Dava durumu 2 boşsa → is_tarihi_2 ve aciklama_2 devre dışı + temizle
-        - Dava durumu 2 değiştiyse (eski değer doluydu) → tamamlanan görevi kaydet + is_tarihi_2 ve aciklama_2 temizle
         - Dava durumu 2 doluysa → is_tarihi_2 ve aciklama_2 aktif
+
+        NOT: Görev kaydetme işlemi sadece save() sırasında _handle_status_change'de yapılır.
+        Bu fonksiyon sadece widget durumlarını yönetir.
         """
         if self._suppress_status_change_handler:
             return
 
         new_value = new_value.strip()
-        old_value = self._last_dava_durumu_2
 
         # Widget'ları güncelle
         is_tarihi_2_edit = self._job_date_edits.get("is_tarihi_2")
@@ -1670,34 +1644,6 @@ class EditDialog(QDialog):
             # Dava durumu 2 dolu → is_tarihi_2 ve aciklama_2 aktif
             is_tarihi_2_edit.setEnabled(True)
             self.aciklama2_edit.setEnabled(True)
-
-            # Dava durumu 2 değiştiyse ve eski değer doluydu → tamamlanan görevi kaydet + temizle
-            # NOT: Kısa değerler (< 3 karakter) için görev oluşturma - bu kullanıcı yazarken
-            # oluşan ara kayıtları önler
-            if old_value and old_value != new_value and len(old_value.strip()) >= 3:
-                # Tamamlanan görevi kaydet
-                old_is_tarihi_2 = self._get_job_date_value("is_tarihi_2")
-                old_aciklama_2 = self.aciklama2_edit.toPlainText().strip()
-                if old_is_tarihi_2:
-                    user_name = (
-                        self.current_user.get("username")
-                        or self.current_user.get("kullanici_adi")
-                        or ""
-                    )
-                    try:
-                        insert_completed_task(
-                            tarih=old_is_tarihi_2,
-                            konu=old_value,
-                            aciklama=old_aciklama_2 or f"Dava durumu 2 değişti: {old_value} → {new_value}",
-                            olusturan_kullanici=user_name,
-                            gorev_turu="IS_TARIHI_2",
-                            dosya_id=self.dosya_id,
-                        )
-                    except Exception:
-                        pass
-                # is_tarihi_2 ve aciklama_2'yi temizle
-                self._set_job_date_value("is_tarihi_2", None)
-                self.aciklama2_edit.setPlainText("")
 
         self._last_dava_durumu_2 = new_value
 
