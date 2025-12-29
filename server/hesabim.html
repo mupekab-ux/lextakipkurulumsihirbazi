@@ -774,6 +774,14 @@
     <script>
         const API_BASE = '';
 
+        // XSS Koruması - HTML karakterlerini escape et
+        function sanitize(str) {
+            if (str === null || str === undefined) return '';
+            const div = document.createElement('div');
+            div.textContent = String(str);
+            return div.innerHTML;
+        }
+
         // Sayfa yüklendiğinde
         document.addEventListener('DOMContentLoaded', () => {
             checkAuth();
@@ -917,11 +925,21 @@
                 return;
             }
 
-            container.innerHTML = licenses.map(license => `
+            // Lisans anahtarlarını güvenli şekilde sakla
+            window._licenseKeys = {};
+
+            container.innerHTML = licenses.map((license, index) => {
+                // Lisans anahtarını güvenli şekilde sakla (XSS koruması)
+                window._licenseKeys[index] = license.license_key;
+
+                const machineInfo = sanitize(license.machine_name || license.machine_id || 'Henüz aktive edilmedi');
+                const transfersRemaining = parseInt(license.transfers_remaining) || 0;
+
+                return `
                 <div class="license-item">
                     <div class="license-header">
-                        <span class="license-key" onclick="copyLicenseKey('${license.license_key}')" title="Kopyalamak için tıklayın">
-                            <i class="fas fa-copy"></i> ${license.masked_key}
+                        <span class="license-key" data-license-index="${index}" title="Kopyalamak için tıklayın">
+                            <i class="fas fa-copy"></i> ${sanitize(license.masked_key)}
                         </span>
                         <div class="license-status">
                             <span class="badge ${license.is_active ? 'badge-active' : 'badge-expired'}">
@@ -932,25 +950,34 @@
                     <div class="license-details">
                         <div class="license-detail">
                             <span class="label">Bilgisayar</span>
-                            <span class="value">${license.machine_name || license.machine_id || 'Henüz aktive edilmedi'}</span>
+                            <span class="value">${machineInfo}</span>
                         </div>
                         <div class="license-detail">
                             <span class="label">Transfer Hakkı</span>
-                            <span class="value ${license.transfers_remaining === 0 ? 'warning' : 'success'}">
-                                ${license.transfers_remaining}/2 kalan
+                            <span class="value ${transfersRemaining === 0 ? 'warning' : 'success'}">
+                                ${transfersRemaining}/2 kalan
                             </span>
                         </div>
                         <div class="license-detail">
                             <span class="label">Aktifleştirilme</span>
-                            <span class="value">${license.activated_at ? formatDate(license.activated_at) : 'Aktive edilmedi'}</span>
+                            <span class="value">${license.activated_at ? sanitize(formatDate(license.activated_at)) : 'Aktive edilmedi'}</span>
                         </div>
                         <div class="license-detail">
                             <span class="label">Son Kontrol</span>
-                            <span class="value">${license.last_check ? formatDate(license.last_check) : '-'}</span>
+                            <span class="value">${license.last_check ? sanitize(formatDate(license.last_check)) : '-'}</span>
                         </div>
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
+
+            // Event delegation ile lisans kopyalama (XSS koruması için inline onclick kullanmıyoruz)
+            container.querySelectorAll('.license-key[data-license-index]').forEach(el => {
+                el.addEventListener('click', function() {
+                    const index = this.getAttribute('data-license-index');
+                    const key = window._licenseKeys[index];
+                    if (key) copyLicenseKey(key);
+                });
+            });
         }
 
         // Lisans anahtarını kopyala
@@ -1056,17 +1083,23 @@
                 return;
             }
 
-            list.innerHTML = activities.map(act => `
+            list.innerHTML = activities.map(act => {
+                // Güvenli ikon seçimi (sadece izin verilen değerler)
+                const iconMap = { login: 'sign-in-alt', download: 'download', order: 'shopping-cart' };
+                const icon = iconMap[act.type] || 'circle';
+                const cssClass = ['login', 'download', 'order'].includes(act.type) ? act.type : '';
+
+                return `
                 <li class="activity-item">
-                    <div class="activity-icon ${act.type}">
-                        <i class="fas fa-${act.type === 'login' ? 'sign-in-alt' : act.type === 'download' ? 'download' : 'shopping-cart'}"></i>
+                    <div class="activity-icon ${cssClass}">
+                        <i class="fas fa-${icon}"></i>
                     </div>
                     <div class="activity-content">
-                        <div class="activity-title">${act.title}</div>
-                        <div class="activity-time">${formatDate(act.time)}</div>
+                        <div class="activity-title">${sanitize(act.title)}</div>
+                        <div class="activity-time">${sanitize(formatDate(act.time))}</div>
                     </div>
                 </li>
-            `).join('');
+            `}).join('');
         }
 
         // Tarih formatla

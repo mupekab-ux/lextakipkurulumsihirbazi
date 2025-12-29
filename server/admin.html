@@ -867,6 +867,25 @@
 
     <script>
         const API_BASE = '/api';
+
+        // XSS Koruması - HTML karakterlerini escape et
+        function sanitize(str) {
+            if (str === null || str === undefined) return '';
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // URL doğrulama - javascript: protocol engelle
+        function sanitizeUrl(url) {
+            if (!url) return '#';
+            const lower = url.toLowerCase().trim();
+            if (lower.startsWith('javascript:') || lower.startsWith('data:') || lower.startsWith('vbscript:')) {
+                return '#';
+            }
+            return url;
+        }
+
         let authToken = localStorage.getItem('adminToken');
         let monthlyChart = null;
         let dailyChart = null;
@@ -877,7 +896,7 @@
             const container = document.getElementById('toastContainer');
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
-            toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'times-circle' : 'info-circle'}"></i><span>${message}</span>`;
+            toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'times-circle' : 'info-circle'}"></i><span>${sanitize(message)}</span>`;
             container.appendChild(toast);
             setTimeout(() => toast.remove(), 3000);
         }

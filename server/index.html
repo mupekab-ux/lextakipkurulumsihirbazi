@@ -2553,6 +2553,24 @@
     <script>
         const API_BASE = '';
 
+        // XSS Koruması - HTML karakterlerini escape et
+        function sanitize(str) {
+            if (str === null || str === undefined) return '';
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // URL doğrulama - javascript: protocol engelle
+        function sanitizeUrl(url) {
+            if (!url) return '#';
+            const lower = url.toLowerCase().trim();
+            if (lower.startsWith('javascript:') || lower.startsWith('data:') || lower.startsWith('vbscript:')) {
+                return '#';
+            }
+            return url;
+        }
+
         // Initialize AOS
         AOS.init({
             duration: 800,
@@ -2594,9 +2612,9 @@
                     const socialTwitter = document.getElementById('social-twitter');
                     const socialLinkedin = document.getElementById('social-linkedin');
                     const socialInstagram = document.getElementById('social-instagram');
-                    if (socialTwitter && settings.social_twitter) { socialTwitter.href = settings.social_twitter; socialTwitter.title = 'Twitter'; }
-                    if (socialLinkedin && settings.social_linkedin) { socialLinkedin.href = settings.social_linkedin; socialLinkedin.title = 'LinkedIn'; }
-                    if (socialInstagram && settings.social_instagram) { socialInstagram.href = settings.social_instagram; socialInstagram.title = 'Instagram'; }
+                    if (socialTwitter && settings.social_twitter) { socialTwitter.href = sanitizeUrl(settings.social_twitter); socialTwitter.title = 'Twitter'; }
+                    if (socialLinkedin && settings.social_linkedin) { socialLinkedin.href = sanitizeUrl(settings.social_linkedin); socialLinkedin.title = 'LinkedIn'; }
+                    if (socialInstagram && settings.social_instagram) { socialInstagram.href = sanitizeUrl(settings.social_instagram); socialInstagram.title = 'Instagram'; }
                 }
             } catch (e) { console.log('Site settings load error'); }
         }
@@ -2699,19 +2717,25 @@
             const dots = document.getElementById('galleryDots');
 
             // Render slides
-            track.innerHTML = screenshotData.map((s, i) => `
+            track.innerHTML = screenshotData.map((s, i) => {
+                const safeTitle = sanitize(s.title || 'Ekran Görüntüsü');
+                const safeUrl = sanitizeUrl(s.image_url);
+                return `
                 <div class="gallery-slide">
-                    <img src="${s.image_url}" alt="${s.title || 'Ekran Görüntüsü'}" loading="lazy">
-                    ${s.title ? `<div class="slide-caption">${s.title}</div>` : ''}
+                    <img src="${safeUrl}" alt="${safeTitle}" loading="lazy">
+                    ${s.title ? `<div class="slide-caption">${safeTitle}</div>` : ''}
                 </div>
-            `).join('');
+            `}).join('');
 
             // Render thumbnails
-            thumbs.innerHTML = screenshotData.map((s, i) => `
+            thumbs.innerHTML = screenshotData.map((s, i) => {
+                const safeTitle = sanitize(s.title || 'Thumbnail');
+                const safeUrl = sanitizeUrl(s.image_url);
+                return `
                 <div class="thumb-item ${i === 0 ? 'active' : ''}" onclick="goToSlide(${i})">
-                    <img src="${s.image_url}" alt="${s.title || 'Thumbnail'}" loading="lazy">
+                    <img src="${safeUrl}" alt="${safeTitle}" loading="lazy">
                 </div>
-            `).join('');
+            `}).join('');
 
             // Render dots
             dots.innerHTML = screenshotData.map((_, i) => `
@@ -2832,7 +2856,9 @@
                             const isComingSoon = plan.period === 'Yakında' || plan.price === 0;
                             const cardClass = isComingSoon ? 'coming-soon' : (plan.is_popular ? 'popular' : '');
                             const badge = isComingSoon ? '<span class="coming-soon-badge">Yakında</span>' : (plan.is_popular ? '<span class="pricing-badge">Önerilen</span>' : '');
-                            const priceDisplay = isComingSoon ? '<div class="price" style="font-size: 32px;">Çok Yakında</div>' : `<div class="price">₺${plan.price}<span>/${plan.period || 'ay'}</span></div>`;
+                            const safePeriod = sanitize(plan.period || 'ay');
+                            const safePrice = parseFloat(plan.price) || 0;
+                            const priceDisplay = isComingSoon ? '<div class="price" style="font-size: 32px;">Çok Yakında</div>' : `<div class="price">₺${safePrice}<span>/${safePeriod}</span></div>`;
                             let buttonHtml;
                             if (isComingSoon) {
                                 buttonHtml = '<button class="btn btn-outline" disabled style="opacity: 0.6; cursor: not-allowed;">Yakında</button>';
@@ -2845,10 +2871,10 @@
                             return `
                                 <div class="pricing-card ${cardClass}" data-aos="fade-up" data-aos-delay="${index * 100}">
                                     ${badge}
-                                    <h3>${plan.name}</h3>
+                                    <h3>${sanitize(plan.name)}</h3>
                                     ${priceDisplay}
                                     <ul class="pricing-features">
-                                        ${features.map(f => `<li><i class="fas fa-check"></i> ${f}</li>`).join('')}
+                                        ${features.map(f => `<li><i class="fas fa-check"></i> ${sanitize(f)}</li>`).join('')}
                                     </ul>
                                     ${buttonHtml}
                                 </div>
@@ -2873,20 +2899,24 @@
 
                         // Tüm testimonial kartlarını oluştur
                         const cardsHtml = testimonials.map((t, index) => {
-                            const initials = t.name.split(' ').map(n => n[0]).join('').toUpperCase();
+                            const safeName = sanitize(t.name || '');
+                            const safeContent = sanitize(t.content || '');
+                            const safeTitle = sanitize(t.title || '');
+                            const initials = safeName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+                            const safeRating = Math.min(Math.max(parseInt(t.rating) || 5, 0), 5);
                             return `
                                 <div class="testimonial-card" data-index="${index}">
                                     <div class="testimonial-quote">"</div>
-                                    <p class="testimonial-text">${t.content}</p>
+                                    <p class="testimonial-text">${safeContent}</p>
                                     <div class="testimonial-author">
                                         <div class="testimonial-avatar">${initials}</div>
                                         <div class="testimonial-info">
-                                            <h4>${t.name}</h4>
-                                            <p>${t.title || ''}</p>
+                                            <h4>${safeName}</h4>
+                                            <p>${safeTitle}</p>
                                         </div>
                                     </div>
                                     <div class="testimonial-rating">
-                                        ${'<i class="fas fa-star"></i>'.repeat(t.rating || 5)}
+                                        ${'<i class="fas fa-star"></i>'.repeat(safeRating)}
                                     </div>
                                 </div>
                             `;
@@ -2948,11 +2978,11 @@
                         document.getElementById('faq-list').innerHTML = faqs.map((faq, index) => `
                             <div class="faq-item ${index === 0 ? 'active' : ''}">
                                 <button class="faq-question">
-                                    ${faq.question}
+                                    ${sanitize(faq.question)}
                                     <i class="fas fa-chevron-down"></i>
                                 </button>
                                 <div class="faq-answer">
-                                    <p>${faq.answer}</p>
+                                    <p>${sanitize(faq.answer)}</p>
                                 </div>
                             </div>
                         `).join('');
