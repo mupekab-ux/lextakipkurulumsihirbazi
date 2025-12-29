@@ -1267,8 +1267,22 @@
         }
 
         .testimonials-slider {
-            max-width: 850px;
+            max-width: 950px;
             margin: 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            position: relative;
+        }
+
+        .testimonial-cards-wrapper {
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .testimonial-cards {
+            display: flex;
+            transition: transform 0.5s ease-in-out;
         }
 
         .testimonial-card {
@@ -1277,6 +1291,60 @@
             border-radius: 24px;
             padding: 56px;
             text-align: center;
+            min-width: 100%;
+            box-sizing: border-box;
+        }
+
+        .testimonial-nav {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-white);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .testimonial-nav:hover {
+            background: var(--gold-light);
+            color: var(--bg-black);
+            border-color: var(--gold-light);
+        }
+
+        .testimonial-nav:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .testimonial-dots {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 32px;
+        }
+
+        .testimonial-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .testimonial-dot:hover {
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        .testimonial-dot.active {
+            background: var(--gold-light);
+            transform: scale(1.2);
         }
 
         .testimonial-quote {
@@ -1335,6 +1403,30 @@
 
         .testimonial-rating i {
             margin: 0 2px;
+        }
+
+        @media (max-width: 768px) {
+            .testimonial-nav {
+                width: 40px;
+                height: 40px;
+                font-size: 14px;
+            }
+
+            .testimonials-slider {
+                gap: 10px;
+            }
+
+            .testimonial-card {
+                padding: 32px 24px;
+            }
+
+            .testimonial-text {
+                font-size: 20px;
+            }
+
+            .testimonial-quote {
+                font-size: 48px;
+            }
         }
 
         /* ==================== FAQ ==================== */
@@ -2254,9 +2346,20 @@
             </div>
 
             <div class="testimonials-slider" data-aos="fade-up" data-aos-delay="100">
-                <div class="testimonial-card" id="testimonial-card">
-                    <!-- Yorumlar admin panelinden eklenir -->
+                <button class="testimonial-nav testimonial-prev" onclick="prevTestimonial()">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <div class="testimonial-cards-wrapper">
+                    <div class="testimonial-cards" id="testimonial-cards">
+                        <!-- Yorumlar admin panelinden eklenir -->
+                    </div>
                 </div>
+                <button class="testimonial-nav testimonial-next" onclick="nextTestimonial()">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            <div class="testimonial-dots" id="testimonial-dots">
+                <!-- Dots dinamik eklenir -->
             </div>
         </div>
     </section>
@@ -2756,31 +2859,84 @@
             } catch (e) { console.log('Pricing load error'); }
         }
 
+        // Testimonials Slider
+        let currentTestimonialIndex = 0;
+        let totalTestimonials = 0;
+
         async function loadTestimonials() {
             try {
                 const response = await fetch(API_BASE + '/api/site/testimonials');
                 if (response.ok) {
                     const testimonials = await response.json();
                     if (testimonials && testimonials.length > 0) {
-                        const t = testimonials[0];
-                        const initials = t.name.split(' ').map(n => n[0]).join('').toUpperCase();
-                        document.getElementById('testimonial-card').innerHTML = `
-                            <div class="testimonial-quote">"</div>
-                            <p class="testimonial-text">${t.content}</p>
-                            <div class="testimonial-author">
-                                <div class="testimonial-avatar">${initials}</div>
-                                <div class="testimonial-info">
-                                    <h4>${t.name}</h4>
-                                    <p>${t.title || ''}</p>
+                        totalTestimonials = testimonials.length;
+
+                        // Tüm testimonial kartlarını oluştur
+                        const cardsHtml = testimonials.map((t, index) => {
+                            const initials = t.name.split(' ').map(n => n[0]).join('').toUpperCase();
+                            return `
+                                <div class="testimonial-card" data-index="${index}">
+                                    <div class="testimonial-quote">"</div>
+                                    <p class="testimonial-text">${t.content}</p>
+                                    <div class="testimonial-author">
+                                        <div class="testimonial-avatar">${initials}</div>
+                                        <div class="testimonial-info">
+                                            <h4>${t.name}</h4>
+                                            <p>${t.title || ''}</p>
+                                        </div>
+                                    </div>
+                                    <div class="testimonial-rating">
+                                        ${'<i class="fas fa-star"></i>'.repeat(t.rating || 5)}
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="testimonial-rating">
-                                ${'<i class="fas fa-star"></i>'.repeat(t.rating || 5)}
-                            </div>
-                        `;
+                            `;
+                        }).join('');
+
+                        document.getElementById('testimonial-cards').innerHTML = cardsHtml;
+
+                        // Navigasyon noktalarını oluştur
+                        const dotsHtml = testimonials.map((_, index) =>
+                            `<span class="testimonial-dot ${index === 0 ? 'active' : ''}" onclick="goToTestimonial(${index})"></span>`
+                        ).join('');
+                        document.getElementById('testimonial-dots').innerHTML = dotsHtml;
+
+                        // İlk testimonial'ı göster
+                        updateSlider();
                     }
                 }
             } catch (e) { console.log('Testimonials load error'); }
+        }
+
+        function updateSlider() {
+            const cardsContainer = document.getElementById('testimonial-cards');
+            const dots = document.querySelectorAll('.testimonial-dot');
+
+            if (cardsContainer) {
+                cardsContainer.style.transform = `translateX(-${currentTestimonialIndex * 100}%)`;
+            }
+
+            dots.forEach((dot, index) => {
+                dot.classList.toggle('active', index === currentTestimonialIndex);
+            });
+        }
+
+        function prevTestimonial() {
+            if (totalTestimonials === 0) return;
+            currentTestimonialIndex = (currentTestimonialIndex - 1 + totalTestimonials) % totalTestimonials;
+            updateSlider();
+        }
+
+        function nextTestimonial() {
+            if (totalTestimonials === 0) return;
+            currentTestimonialIndex = (currentTestimonialIndex + 1) % totalTestimonials;
+            updateSlider();
+        }
+
+        function goToTestimonial(index) {
+            if (index >= 0 && index < totalTestimonials) {
+                currentTestimonialIndex = index;
+                updateSlider();
+            }
         }
 
         async function loadFAQ() {
