@@ -1694,6 +1694,15 @@ async def admin_publish_release(req: ReleaseRequest, authorization: str = Header
     """Publish a new release"""
     verify_admin_token(authorization)
 
+    # Aynı sürüm zaten var mı kontrol et
+    history = get_releases_history()
+    for existing in history:
+        if existing.get('version') == req.version:
+            raise HTTPException(
+                status_code=400,
+                detail=f"'{req.version}' sürümü zaten mevcut. Farklı bir sürüm numarası kullanın."
+            )
+
     release_data = {
         "version": req.version,
         "download_url": req.download_url,
@@ -1720,6 +1729,78 @@ async def admin_set_current_release(req: SetCurrentReleaseRequest, authorization
             return {"success": True}
 
     return {"success": False, "error": "Sürüm bulunamadı"}
+
+@app.delete("/api/admin/release/{version}")
+async def admin_delete_release(version: str, authorization: str = Header(None)):
+    """Delete a release from history"""
+    verify_admin_token(authorization)
+
+    history = get_releases_history()
+    new_history = [r for r in history if r.get('version') != version]
+
+    if len(new_history) == len(history):
+        raise HTTPException(status_code=404, detail=f"'{version}' sürümü bulunamadı")
+
+    # History'yi güncelle
+    with open(RELEASES_HISTORY_FILE, 'w') as f:
+        json.dump(new_history, f, indent=2)
+
+    # Eğer silinen current release ise, en son sürümü current yap
+    current = get_current_release()
+    if current.get('version') == version:
+        if new_history:
+            with open(RELEASES_FILE, 'w') as f:
+                json.dump(new_history[0], f, indent=2)
+        else:
+            # Hiç sürüm kalmadı, varsayılan oluştur
+            default_release = {
+                "version": "1.0.0",
+                "download_url": "",
+                "release_notes": "İlk sürüm",
+                "release_date": datetime.now().strftime("%Y-%m-%d"),
+                "is_critical": False,
+                "min_version": "1.0.0"
+            }
+            with open(RELEASES_FILE, 'w') as f:
+                json.dump(default_release, f, indent=2)
+
+    return {"success": True, "message": f"'{version}' sürümü silindi"}
+
+@app.put("/api/admin/release/{version}")
+async def admin_update_release(version: str, req: ReleaseRequest, authorization: str = Header(None)):
+    """Update an existing release"""
+    verify_admin_token(authorization)
+
+    history = get_releases_history()
+    updated = False
+
+    for i, release in enumerate(history):
+        if release.get('version') == version:
+            history[i] = {
+                "version": req.version,
+                "download_url": req.download_url,
+                "release_notes": req.release_notes,
+                "release_date": release.get('release_date', datetime.now().strftime("%Y-%m-%d")),
+                "is_critical": req.is_critical,
+                "min_version": req.min_version or req.version
+            }
+            updated = True
+            break
+
+    if not updated:
+        raise HTTPException(status_code=404, detail=f"'{version}' sürümü bulunamadı")
+
+    # History'yi güncelle
+    with open(RELEASES_HISTORY_FILE, 'w') as f:
+        json.dump(history, f, indent=2)
+
+    # Current release de güncellenmeli mi?
+    current = get_current_release()
+    if current.get('version') == version:
+        with open(RELEASES_FILE, 'w') as f:
+            json.dump(history[0] if history else current, f, indent=2)
+
+    return {"success": True}
 
 @app.get("/api/admin/files")
 async def admin_files(authorization: str = Header(None)):

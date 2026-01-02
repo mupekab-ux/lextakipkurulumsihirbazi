@@ -173,7 +173,7 @@ def build_nuitka():
             cmd.append(f"--include-data-files={pyd_file}={pyd_file}")
 
     # Data dosyaları
-    cmd.append("--include-data-dir=app/themes=app/themes")
+    cmd.append("--include-data-dir=app/themes=themes")
     cmd.append("--include-data-dir=assets=assets")
 
     # Ana dosya
