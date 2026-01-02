@@ -155,6 +155,9 @@ def build_nuitka():
         "--assume-yes-for-downloads",
         f"--windows-company-name={APP_NAME}",
         f"--windows-product-name={APP_NAME}",
+        "--windows-file-version=1.0.0.0",
+        "--windows-product-version=1.0.0.0",
+        "--windows-file-description=Hukuk Burolari Icin Dava Takip Sistemi",
         "--lto=yes",
     ]
 
