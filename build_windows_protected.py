@@ -239,8 +239,9 @@ def main():
     # Temizlik
     clean_build()
 
-    # Cython derleme (opsiyonel - Nuitka zaten koruma sağlıyor)
-    # compile_cython()
+    # Cython derleme - kritik dosyaları C'ye derler (.pyd)
+    if not compile_cython():
+        print("⚠ Cython derleme atlandı, sadece Nuitka ile devam ediliyor...")
 
     # Nuitka build
     if not build_nuitka():
