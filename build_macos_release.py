@@ -23,6 +23,7 @@ import shutil
 import subprocess
 import platform
 import glob
+from pathlib import Path
 
 # Build ayarları
 APP_NAME = "TakibiEsasi"
@@ -30,6 +31,17 @@ MAIN_FILE = "app/main.py"
 ICON_FILE = "assets/icon.icns"
 OUTPUT_DIR = "dist"
 BUILD_TEMP = "build_temp"
+
+
+def get_version():
+    """version.txt dosyasından versiyon bilgisini okur."""
+    version_file = Path(__file__).parent / "version.txt"
+    if version_file.exists():
+        return version_file.read_text().strip()
+    return "1.0.0"
+
+
+APP_VERSION = get_version()
 
 # Cython ile derlenecek dosyalar (kritik/güvenlik modülleri)
 CYTHON_MODULES = [
@@ -153,7 +165,7 @@ def build_nuitka():
         # macOS ayarları
         "--macos-create-app-bundle",
         f"--macos-app-name={APP_NAME}",
-        "--macos-app-version=1.0.0",
+        f"--macos-app-version={APP_VERSION}",
         "--macos-disable-console",
 
         # PyQt6 plugin
@@ -276,7 +288,7 @@ def cleanup():
 
 def main():
     print("=" * 60)
-    print("TakibiEsasi - macOS Korumalı Build")
+    print(f"TakibiEsasi - macOS Korumalı Build v{APP_VERSION}")
     print("Cython + Nuitka (Maksimum Koruma)")
     print("=" * 60)
 

@@ -31,6 +31,17 @@ ICON_FILE = "app/icon.ico"
 OUTPUT_DIR = "dist"
 BUILD_TEMP = "build_temp"
 
+
+def get_version():
+    """version.txt dosyasından versiyon bilgisini okur."""
+    version_file = Path(__file__).parent / "version.txt"
+    if version_file.exists():
+        return version_file.read_text().strip()
+    return "1.0.0"
+
+
+APP_VERSION = get_version()
+
 # Cython ile derlenecek dosyalar (kritik/güvenlik modülleri)
 CYTHON_MODULES = [
     "app/license.py",
@@ -155,8 +166,8 @@ def build_nuitka():
         "--assume-yes-for-downloads",
         f"--windows-company-name={APP_NAME}",
         f"--windows-product-name={APP_NAME}",
-        "--windows-file-version=1.0.0.0",
-        "--windows-product-version=1.0.0.0",
+        f"--windows-file-version={APP_VERSION}.0",
+        f"--windows-product-version={APP_VERSION}.0",
         "--windows-file-description=Hukuk Burolari Icin Dava Takip Sistemi",
         "--lto=yes",
     ]
@@ -225,7 +236,7 @@ def cleanup():
 
 def main():
     print("=" * 60)
-    print(f"TakibiEsasi - Windows Korumalı Build")
+    print(f"TakibiEsasi - Windows Korumalı Build v{APP_VERSION}")
     print("=" * 60)
 
     # Platform kontrolü
