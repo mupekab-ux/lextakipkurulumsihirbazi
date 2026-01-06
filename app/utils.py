@@ -116,15 +116,15 @@ def resource_path(relative_path: str) -> str:
     if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
         # PyInstaller
         base = Path(sys._MEIPASS)
-    elif '__nuitka_binary_dir' in dir():
-        # Nuitka onefile - geçici klasör
-        base = Path(__nuitka_binary_dir)  # noqa: F821
     elif getattr(sys, 'frozen', False) or '__compiled__' in dir():
-        # Nuitka standalone veya diğer frozen durumlar
+        # Nuitka standalone veya onefile
         base = Path(sys.executable).parent
     else:
         # Geliştirme ortamı - app klasörünün bir üst dizini
         base = Path(__file__).resolve().parent.parent
+        # Geliştirme ortamında themes -> app/themes olarak çevir
+        if relative_path.startswith("themes/"):
+            relative_path = "app/" + relative_path
     return str((base / relative_path).resolve())
 
 
