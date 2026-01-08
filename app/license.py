@@ -29,6 +29,11 @@ logger = logging.getLogger(__name__)
 # Lisans dosyası konumu
 LICENSE_FILE_NAME = ".takibiesasi_license"
 
+# Sunucu tarafından açıkça reddedilen lisans durumunu takip eder
+# Bu bayrak True olduğunda, demo sistemine düşülmemeli
+_license_explicitly_rejected = False
+_license_rejection_reason = ""
+
 
 def _get_license_dir() -> Path:
     """Lisans dosyasının saklanacağı dizini döndürür."""
@@ -536,6 +541,19 @@ def verify_local_license() -> Tuple[bool, str]:
     return True, "Lisans geçerli."
 
 
+def was_license_rejected() -> bool:
+    """
+    Son lisans kontrolünde sunucu tarafından açıkça reddedilip reddedilmediğini döndürür.
+    Bu durumda demo sistemine düşülmemeli.
+    """
+    return _license_explicitly_rejected
+
+
+def get_rejection_reason() -> str:
+    """Lisans red nedenini döndürür."""
+    return _license_rejection_reason
+
+
 def is_activated() -> bool:
     """
     Uygulama aktive edilmiş mi kontrol eder.
@@ -547,6 +565,12 @@ def is_activated() -> bool:
     4. Offline token geçerliyse True döndür
     5. Hiçbiri yoksa False döndür
     """
+    global _license_explicitly_rejected, _license_rejection_reason
+
+    # Her kontrolde bayrakları sıfırla
+    _license_explicitly_rejected = False
+    _license_rejection_reason = ""
+
     # Önce lokal lisans dosyası var mı kontrol et
     license_data = load_license()
     if not license_data:
@@ -600,6 +624,9 @@ def is_activated() -> bool:
                 logger.warning(f"Sunucu lisansı reddetti: {error}")
                 # Offline token'ı da sil çünkü lisans artık geçersiz
                 delete_offline_token()
+                # Açıkça reddedildi olarak işaretle - demo'ya düşülmemeli
+                _license_explicitly_rejected = True
+                _license_rejection_reason = error
                 return False
 
     except requests.exceptions.ConnectionError:

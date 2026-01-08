@@ -31,6 +31,7 @@
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#FBBF24">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="TakibiEsasi">
     <link rel="apple-touch-icon" href="/media/fe9116e3aebc757020656c9e373d440b.png">
@@ -90,10 +91,13 @@
     </script>
     -->
 
-    <!-- Favicon -->
+    <!-- Favicon - Google için optimize edildi -->
+    <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="icon" type="image/png" sizes="48x48" href="/media/c5589bc11a58a6b27306b96373324630.png">
-    <link rel="icon" type="image/png" sizes="192x192" href="/media/fe9116e3aebc757020656c9e373d440b.png">
-    <link rel="apple-touch-icon" href="/media/fe9116e3aebc757020656c9e373d440b.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/media/4a82ae7d81f02bb33ed5877a7baacd2a.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/media/fe9116e3aebc757020656c9e373d440b.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/media/fe9116e3aebc757020656c9e373d440b.png">
+    <link rel="shortcut icon" href="/favicon.ico">
 
     <!-- Preconnect to external resources -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1267,8 +1271,22 @@
         }
 
         .testimonials-slider {
-            max-width: 850px;
+            max-width: 950px;
             margin: 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            position: relative;
+        }
+
+        .testimonial-cards-wrapper {
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .testimonial-cards {
+            display: flex;
+            transition: transform 0.5s ease-in-out;
         }
 
         .testimonial-card {
@@ -1277,6 +1295,60 @@
             border-radius: 24px;
             padding: 56px;
             text-align: center;
+            min-width: 100%;
+            box-sizing: border-box;
+        }
+
+        .testimonial-nav {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-white);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .testimonial-nav:hover {
+            background: var(--gold-light);
+            color: var(--bg-black);
+            border-color: var(--gold-light);
+        }
+
+        .testimonial-nav:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .testimonial-dots {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 32px;
+        }
+
+        .testimonial-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .testimonial-dot:hover {
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        .testimonial-dot.active {
+            background: var(--gold-light);
+            transform: scale(1.2);
         }
 
         .testimonial-quote {
@@ -1335,6 +1407,30 @@
 
         .testimonial-rating i {
             margin: 0 2px;
+        }
+
+        @media (max-width: 768px) {
+            .testimonial-nav {
+                width: 40px;
+                height: 40px;
+                font-size: 14px;
+            }
+
+            .testimonials-slider {
+                gap: 10px;
+            }
+
+            .testimonial-card {
+                padding: 32px 24px;
+            }
+
+            .testimonial-text {
+                font-size: 20px;
+            }
+
+            .testimonial-quote {
+                font-size: 48px;
+            }
         }
 
         /* ==================== FAQ ==================== */
@@ -2254,9 +2350,20 @@
             </div>
 
             <div class="testimonials-slider" data-aos="fade-up" data-aos-delay="100">
-                <div class="testimonial-card" id="testimonial-card">
-                    <!-- Yorumlar admin panelinden eklenir -->
+                <button class="testimonial-nav testimonial-prev" onclick="prevTestimonial()">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <div class="testimonial-cards-wrapper">
+                    <div class="testimonial-cards" id="testimonial-cards">
+                        <!-- Yorumlar admin panelinden eklenir -->
+                    </div>
                 </div>
+                <button class="testimonial-nav testimonial-next" onclick="nextTestimonial()">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            <div class="testimonial-dots" id="testimonial-dots">
+                <!-- Dots dinamik eklenir -->
             </div>
         </div>
     </section>
@@ -2450,6 +2557,24 @@
     <script>
         const API_BASE = '';
 
+        // XSS Koruması - HTML karakterlerini escape et
+        function sanitize(str) {
+            if (str === null || str === undefined) return '';
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // URL doğrulama - javascript: protocol engelle
+        function sanitizeUrl(url) {
+            if (!url) return '#';
+            const lower = url.toLowerCase().trim();
+            if (lower.startsWith('javascript:') || lower.startsWith('data:') || lower.startsWith('vbscript:')) {
+                return '#';
+            }
+            return url;
+        }
+
         // Initialize AOS
         AOS.init({
             duration: 800,
@@ -2491,9 +2616,9 @@
                     const socialTwitter = document.getElementById('social-twitter');
                     const socialLinkedin = document.getElementById('social-linkedin');
                     const socialInstagram = document.getElementById('social-instagram');
-                    if (socialTwitter && settings.social_twitter) { socialTwitter.href = settings.social_twitter; socialTwitter.title = 'Twitter'; }
-                    if (socialLinkedin && settings.social_linkedin) { socialLinkedin.href = settings.social_linkedin; socialLinkedin.title = 'LinkedIn'; }
-                    if (socialInstagram && settings.social_instagram) { socialInstagram.href = settings.social_instagram; socialInstagram.title = 'Instagram'; }
+                    if (socialTwitter && settings.social_twitter) { socialTwitter.href = sanitizeUrl(settings.social_twitter); socialTwitter.title = 'Twitter'; }
+                    if (socialLinkedin && settings.social_linkedin) { socialLinkedin.href = sanitizeUrl(settings.social_linkedin); socialLinkedin.title = 'LinkedIn'; }
+                    if (socialInstagram && settings.social_instagram) { socialInstagram.href = sanitizeUrl(settings.social_instagram); socialInstagram.title = 'Instagram'; }
                 }
             } catch (e) { console.log('Site settings load error'); }
         }
@@ -2596,19 +2721,25 @@
             const dots = document.getElementById('galleryDots');
 
             // Render slides
-            track.innerHTML = screenshotData.map((s, i) => `
+            track.innerHTML = screenshotData.map((s, i) => {
+                const safeTitle = sanitize(s.title || 'Ekran Görüntüsü');
+                const safeUrl = sanitizeUrl(s.image_url);
+                return `
                 <div class="gallery-slide">
-                    <img src="${s.image_url}" alt="${s.title || 'Ekran Görüntüsü'}" loading="lazy">
-                    ${s.title ? `<div class="slide-caption">${s.title}</div>` : ''}
+                    <img src="${safeUrl}" alt="${safeTitle}" loading="lazy">
+                    ${s.title ? `<div class="slide-caption">${safeTitle}</div>` : ''}
                 </div>
-            `).join('');
+            `}).join('');
 
             // Render thumbnails
-            thumbs.innerHTML = screenshotData.map((s, i) => `
+            thumbs.innerHTML = screenshotData.map((s, i) => {
+                const safeTitle = sanitize(s.title || 'Thumbnail');
+                const safeUrl = sanitizeUrl(s.image_url);
+                return `
                 <div class="thumb-item ${i === 0 ? 'active' : ''}" onclick="goToSlide(${i})">
-                    <img src="${s.image_url}" alt="${s.title || 'Thumbnail'}" loading="lazy">
+                    <img src="${safeUrl}" alt="${safeTitle}" loading="lazy">
                 </div>
-            `).join('');
+            `}).join('');
 
             // Render dots
             dots.innerHTML = screenshotData.map((_, i) => `
@@ -2729,7 +2860,9 @@
                             const isComingSoon = plan.period === 'Yakında' || plan.price === 0;
                             const cardClass = isComingSoon ? 'coming-soon' : (plan.is_popular ? 'popular' : '');
                             const badge = isComingSoon ? '<span class="coming-soon-badge">Yakında</span>' : (plan.is_popular ? '<span class="pricing-badge">Önerilen</span>' : '');
-                            const priceDisplay = isComingSoon ? '<div class="price" style="font-size: 32px;">Çok Yakında</div>' : `<div class="price">₺${plan.price}<span>/${plan.period || 'ay'}</span></div>`;
+                            const safePeriod = sanitize(plan.period || 'ay');
+                            const safePrice = parseFloat(plan.price) || 0;
+                            const priceDisplay = isComingSoon ? '<div class="price" style="font-size: 32px;">Çok Yakında</div>' : `<div class="price">₺${safePrice}<span>/${safePeriod}</span></div>`;
                             let buttonHtml;
                             if (isComingSoon) {
                                 buttonHtml = '<button class="btn btn-outline" disabled style="opacity: 0.6; cursor: not-allowed;">Yakında</button>';
@@ -2742,10 +2875,10 @@
                             return `
                                 <div class="pricing-card ${cardClass}" data-aos="fade-up" data-aos-delay="${index * 100}">
                                     ${badge}
-                                    <h3>${plan.name}</h3>
+                                    <h3>${sanitize(plan.name)}</h3>
                                     ${priceDisplay}
                                     <ul class="pricing-features">
-                                        ${features.map(f => `<li><i class="fas fa-check"></i> ${f}</li>`).join('')}
+                                        ${features.map(f => `<li><i class="fas fa-check"></i> ${sanitize(f)}</li>`).join('')}
                                     </ul>
                                     ${buttonHtml}
                                 </div>
@@ -2756,31 +2889,88 @@
             } catch (e) { console.log('Pricing load error'); }
         }
 
+        // Testimonials Slider
+        let currentTestimonialIndex = 0;
+        let totalTestimonials = 0;
+
         async function loadTestimonials() {
             try {
                 const response = await fetch(API_BASE + '/api/site/testimonials');
                 if (response.ok) {
                     const testimonials = await response.json();
                     if (testimonials && testimonials.length > 0) {
-                        const t = testimonials[0];
-                        const initials = t.name.split(' ').map(n => n[0]).join('').toUpperCase();
-                        document.getElementById('testimonial-card').innerHTML = `
-                            <div class="testimonial-quote">"</div>
-                            <p class="testimonial-text">${t.content}</p>
-                            <div class="testimonial-author">
-                                <div class="testimonial-avatar">${initials}</div>
-                                <div class="testimonial-info">
-                                    <h4>${t.name}</h4>
-                                    <p>${t.title || ''}</p>
+                        totalTestimonials = testimonials.length;
+
+                        // Tüm testimonial kartlarını oluştur
+                        const cardsHtml = testimonials.map((t, index) => {
+                            const safeName = sanitize(t.name || '');
+                            const safeContent = sanitize(t.content || '');
+                            const safeTitle = sanitize(t.title || '');
+                            const initials = safeName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+                            const safeRating = Math.min(Math.max(parseInt(t.rating) || 5, 0), 5);
+                            return `
+                                <div class="testimonial-card" data-index="${index}">
+                                    <div class="testimonial-quote">"</div>
+                                    <p class="testimonial-text">${safeContent}</p>
+                                    <div class="testimonial-author">
+                                        <div class="testimonial-avatar">${initials}</div>
+                                        <div class="testimonial-info">
+                                            <h4>${safeName}</h4>
+                                            <p>${safeTitle}</p>
+                                        </div>
+                                    </div>
+                                    <div class="testimonial-rating">
+                                        ${'<i class="fas fa-star"></i>'.repeat(safeRating)}
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="testimonial-rating">
-                                ${'<i class="fas fa-star"></i>'.repeat(t.rating || 5)}
-                            </div>
-                        `;
+                            `;
+                        }).join('');
+
+                        document.getElementById('testimonial-cards').innerHTML = cardsHtml;
+
+                        // Navigasyon noktalarını oluştur
+                        const dotsHtml = testimonials.map((_, index) =>
+                            `<span class="testimonial-dot ${index === 0 ? 'active' : ''}" onclick="goToTestimonial(${index})"></span>`
+                        ).join('');
+                        document.getElementById('testimonial-dots').innerHTML = dotsHtml;
+
+                        // İlk testimonial'ı göster
+                        updateSlider();
                     }
                 }
             } catch (e) { console.log('Testimonials load error'); }
+        }
+
+        function updateSlider() {
+            const cardsContainer = document.getElementById('testimonial-cards');
+            const dots = document.querySelectorAll('.testimonial-dot');
+
+            if (cardsContainer) {
+                cardsContainer.style.transform = `translateX(-${currentTestimonialIndex * 100}%)`;
+            }
+
+            dots.forEach((dot, index) => {
+                dot.classList.toggle('active', index === currentTestimonialIndex);
+            });
+        }
+
+        function prevTestimonial() {
+            if (totalTestimonials === 0) return;
+            currentTestimonialIndex = (currentTestimonialIndex - 1 + totalTestimonials) % totalTestimonials;
+            updateSlider();
+        }
+
+        function nextTestimonial() {
+            if (totalTestimonials === 0) return;
+            currentTestimonialIndex = (currentTestimonialIndex + 1) % totalTestimonials;
+            updateSlider();
+        }
+
+        function goToTestimonial(index) {
+            if (index >= 0 && index < totalTestimonials) {
+                currentTestimonialIndex = index;
+                updateSlider();
+            }
         }
 
         async function loadFAQ() {
@@ -2792,11 +2982,11 @@
                         document.getElementById('faq-list').innerHTML = faqs.map((faq, index) => `
                             <div class="faq-item ${index === 0 ? 'active' : ''}">
                                 <button class="faq-question">
-                                    ${faq.question}
+                                    ${sanitize(faq.question)}
                                     <i class="fas fa-chevron-down"></i>
                                 </button>
                                 <div class="faq-answer">
-                                    <p>${faq.answer}</p>
+                                    <p>${sanitize(faq.answer)}</p>
                                 </div>
                             </div>
                         `).join('');

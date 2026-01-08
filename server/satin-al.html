@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Satın Al - TakibiEsasi</title>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="192x192" href="/media/4a82ae7d81f02bb33ed5877a7baacd2a.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -713,6 +714,14 @@
         let selectedPlan = null;
         let selectedPaymentMethod = 'card';
 
+        // XSS Koruması - HTML karakterlerini escape et
+        function sanitize(str) {
+            if (str === null || str === undefined) return '';
+            const div = document.createElement('div');
+            div.textContent = String(str);
+            return div.innerHTML;
+        }
+
         // Sayfa yüklendiğinde
         document.addEventListener('DOMContentLoaded', () => {
             checkAuth();
@@ -748,30 +757,49 @@
         function displayPricing(plans) {
             const grid = document.getElementById('pricingGrid');
 
-            grid.innerHTML = plans.map(plan => {
+            // Plan verilerini güvenli şekilde sakla
+            window._pricingPlans = {};
+
+            grid.innerHTML = plans.map((plan, index) => {
+                window._pricingPlans[index] = {
+                    name: plan.name,
+                    price: parseFloat(plan.price) || 0,
+                    period: plan.period || 'ay'
+                };
+
                 const isComingSoon = plan.period === 'Yakında' || plan.price === 0;
                 const features = plan.features ? plan.features.split('\n').filter(f => f.trim()) : [];
+                const priceNum = parseFloat(plan.price) || 0;
 
                 return `
                     <div class="pricing-card ${plan.is_popular ? 'popular' : ''} ${isComingSoon ? 'coming-soon' : ''}">
                         ${plan.is_popular ? '<span class="pricing-badge">Önerilen</span>' : ''}
                         ${isComingSoon ? '<span class="coming-soon-badge">Yakında</span>' : ''}
-                        <h3>${plan.name}</h3>
+                        <h3>${sanitize(plan.name)}</h3>
                         <div class="price">
-                            ${isComingSoon ? '<span class="amount">-</span>' : `<span class="amount">₺${plan.price}</span><span class="period">/${plan.period || 'ay'}</span>`}
+                            ${isComingSoon ? '<span class="amount">-</span>' : `<span class="amount">₺${priceNum}</span><span class="period">/${sanitize(plan.period || 'ay')}</span>`}
                         </div>
                         <ul class="pricing-features">
-                            ${features.map(f => `<li><i class="fas fa-check"></i> ${f}</li>`).join('')}
+                            ${features.map(f => `<li><i class="fas fa-check"></i> ${sanitize(f)}</li>`).join('')}
                         </ul>
                         ${isComingSoon
                             ? '<button class="btn btn-outline" disabled>Yakında</button>'
-                            : `<button class="btn ${plan.is_popular ? 'btn-primary' : 'btn-outline'}" onclick="openPurchaseModal('${plan.name}', ${plan.price}, '${plan.period || 'ay'}')">
+                            : `<button class="btn ${plan.is_popular ? 'btn-primary' : 'btn-outline'}" data-plan-idx="${index}">
                                 <i class="fas fa-shopping-cart"></i> Satın Al
                                </button>`
                         }
                     </div>
                 `;
             }).join('');
+
+            // Event delegation for purchase buttons
+            grid.querySelectorAll('[data-plan-idx]').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const idx = this.getAttribute('data-plan-idx');
+                    const plan = window._pricingPlans[idx];
+                    if (plan) openPurchaseModal(plan.name, plan.price, plan.period);
+                });
+            });
         }
 
         // Satın alma modalını aç
@@ -864,7 +892,7 @@
                 }
             } catch (err) {
                 alert.className = 'alert alert-error';
-                alert.innerHTML = '<i class="fas fa-exclamation-circle"></i> ' + err.message;
+                alert.innerHTML = '<i class="fas fa-exclamation-circle"></i> ' + sanitize(err.message || 'Bir hata oluştu');
                 alert.style.display = 'block';
             } finally {
                 btn.disabled = false;

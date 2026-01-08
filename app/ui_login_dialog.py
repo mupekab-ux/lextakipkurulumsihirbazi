@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import os
+import sys
 from PyQt6.QtWidgets import (
     QDialog,
     QVBoxLayout,
@@ -8,6 +10,7 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QMessageBox,
 )
+from PyQt6.QtGui import QIcon
 
 try:  # pragma: no cover - runtime import guard
     from app.models import authenticate
@@ -15,10 +18,27 @@ except ModuleNotFoundError:  # pragma: no cover
     from models import authenticate
 
 
+def _resource_path(relative_path: str) -> str:
+    """Kaynak dosya yolunu çözer."""
+    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+        base_path = sys._MEIPASS
+    elif getattr(sys, 'frozen', False) or '__compiled__' in dir():
+        base_path = os.path.dirname(sys.executable)
+    else:
+        base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base_path, relative_path)
+
+
 class LoginDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("TakibiEsasi - Giriş")
+
+        # Pencere ikonunu ayarla
+        icon_path = _resource_path("assets/icon.png")
+        if os.path.exists(icon_path):
+            self.setWindowIcon(QIcon(icon_path))
+
         layout = QVBoxLayout(self)
 
         layout.addWidget(QLabel("Kullanıcı Adı"))

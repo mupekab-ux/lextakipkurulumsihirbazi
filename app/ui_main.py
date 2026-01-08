@@ -2913,7 +2913,7 @@ class FinanceTableModel(QAbstractTableModel):
             display[2] = str(item.get("muvekkil_adi") or "")
             display[3] = format_tl(item.get("sozlesme_ucreti_cents") or 0)
             display[4] = format_tl(item.get("toplam_ucret_cents", 0))
-            display[5] = format_tl(item.get("tahsil_edilen_cents", 0))
+            display[5] = format_tl(item.get("tahsil_edilen_cents", 0) or 0)
             percent_raw = item.get("sozlesme_yuzdesi")
             percent_value: float | None
             try:
@@ -2968,7 +2968,7 @@ class FinanceTableModel(QAbstractTableModel):
         if role == Qt.ItemDataRole.TextAlignmentRole:
             if column in self.currency_columns:
                 return Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
-            if column == 6:
+            if column == 8:  # % Oran kolonu
                 return Qt.AlignmentFlag.AlignCenter
         return None
 
@@ -3120,7 +3120,7 @@ class HariciFinanceTableModel(QAbstractTableModel):
             display[2] = str(item.get("harici_muvekkil") or "")
             display[3] = format_tl(item.get("sabit_ucret_cents") or 0)
             display[4] = format_tl(item.get("toplam_ucret_cents") or 0)
-            display[5] = format_tl(item.get("tahsil_edilen_cents") or 0)
+            display[5] = format_tl(item.get("tahsil_edilen_cents", 0) or 0)
             percent_raw = item.get("yuzde_orani")
             percent_value: float | None
             try:
@@ -3167,7 +3167,7 @@ class HariciFinanceTableModel(QAbstractTableModel):
         if role == Qt.ItemDataRole.TextAlignmentRole:
             if column in self.currency_columns:
                 return Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
-            if column == 6:
+            if column == 8:  # % Oran kolonu
                 return Qt.AlignmentFlag.AlignCenter
         return None
 

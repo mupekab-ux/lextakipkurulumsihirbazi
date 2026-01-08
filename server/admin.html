@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TakibiEsasi - Admin Panel</title>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="192x192" href="/media/4a82ae7d81f02bb33ed5877a7baacd2a.png">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -867,6 +868,25 @@
 
     <script>
         const API_BASE = '/api';
+
+        // XSS Koruması - HTML karakterlerini escape et
+        function sanitize(str) {
+            if (str === null || str === undefined) return '';
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // URL doğrulama - javascript: protocol engelle
+        function sanitizeUrl(url) {
+            if (!url) return '#';
+            const lower = url.toLowerCase().trim();
+            if (lower.startsWith('javascript:') || lower.startsWith('data:') || lower.startsWith('vbscript:')) {
+                return '#';
+            }
+            return url;
+        }
+
         let authToken = localStorage.getItem('adminToken');
         let monthlyChart = null;
         let dailyChart = null;
@@ -877,7 +897,7 @@
             const container = document.getElementById('toastContainer');
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
-            toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'times-circle' : 'info-circle'}"></i><span>${message}</span>`;
+            toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'times-circle' : 'info-circle'}"></i><span>${sanitize(message)}</span>`;
             container.appendChild(toast);
             setTimeout(() => toast.remove(), 3000);
         }
@@ -1003,37 +1023,45 @@
                 // Recent activity
                 const activityIcons = { license_activation: 'key', license_created: 'plus', order_completed: 'shopping-cart', user_registration: 'user-plus', license_toggled: 'toggle-on' };
                 const activityColors = { license_activation: 'success', license_created: 'primary', order_completed: 'info', user_registration: 'warning', license_toggled: 'danger' };
-                document.getElementById('recentActivity').innerHTML = (s.recent_activity || []).slice(0, 5).map(a => `
+                document.getElementById('recentActivity').innerHTML = (s.recent_activity || []).slice(0, 5).map(a => {
+                    const iconClass = activityIcons[a.type] || 'circle';
+                    const colorClass = activityColors[a.type] || 'info';
+                    return `
                     <div class="activity-item">
-                        <div class="activity-icon icon ${activityColors[a.type] || 'info'}"><i class="fas fa-${activityIcons[a.type] || 'circle'}"></i></div>
+                        <div class="activity-icon icon ${colorClass}"><i class="fas fa-${iconClass}"></i></div>
                         <div class="activity-content">
-                            <div class="title">${a.description}</div>
-                            <div class="time">${formatDateTime(a.created_at)}</div>
+                            <div class="title">${sanitize(a.description)}</div>
+                            <div class="time">${sanitize(formatDateTime(a.created_at))}</div>
                         </div>
                     </div>
-                `).join('') || '<p style="color: var(--text-muted); text-align: center; padding: 20px;">Henuz aktivite yok</p>';
+                `}).join('') || '<p style="color: var(--text-muted); text-align: center; padding: 20px;">Henuz aktivite yok</p>';
 
                 // Recent orders
-                document.getElementById('recentOrders').innerHTML = (s.recent_orders || []).slice(0, 5).map(o => `
+                document.getElementById('recentOrders').innerHTML = (s.recent_orders || []).slice(0, 5).map(o => {
+                    const statusClass = o.status === 'completed' ? 'success' : o.status === 'pending' ? 'warning' : 'danger';
+                    return `
                     <tr>
-                        <td><code>${o.order_number}</code></td>
-                        <td>${o.user_name || o.user_email || '-'}</td>
-                        <td>${formatMoney(o.total)}</td>
-                        <td><span class="badge badge-${o.status === 'completed' ? 'success' : o.status === 'pending' ? 'warning' : 'danger'}">${o.status}</span></td>
+                        <td><code>${sanitize(o.order_number)}</code></td>
+                        <td>${sanitize(o.user_name || o.user_email || '-')}</td>
+                        <td>${sanitize(formatMoney(o.total))}</td>
+                        <td><span class="badge badge-${statusClass}">${sanitize(o.status)}</span></td>
                     </tr>
-                `).join('') || '<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Henuz siparis yok</td></tr>';
+                `}).join('') || '<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Henuz siparis yok</td></tr>';
 
                 // Recent licenses
-                document.getElementById('recentLicenses').innerHTML = (s.recent_licenses || []).slice(0, 5).map(l => `
+                document.getElementById('recentLicenses').innerHTML = (s.recent_licenses || []).slice(0, 5).map(l => {
+                    const sourceClass = l.source === 'purchase' ? 'success' : 'info';
+                    const activeClass = l.is_active ? 'success' : 'danger';
+                    return `
                     <tr>
-                        <td><code>${l.license_key}</code></td>
-                        <td>${l.customer_name || l.email || '-'}</td>
-                        <td><span class="badge badge-${l.source === 'purchase' ? 'success' : 'info'}">${l.source === 'purchase' ? 'Satin Alma' : 'Manuel'}</span></td>
-                        <td>${l.purchase_price ? formatMoney(l.purchase_price) : '-'}</td>
-                        <td><span class="badge badge-${l.is_active ? 'success' : 'danger'}">${l.is_active ? 'Aktif' : 'Pasif'}</span></td>
-                        <td>${formatDate(l.created_at)}</td>
+                        <td><code>${sanitize(l.license_key)}</code></td>
+                        <td>${sanitize(l.customer_name || l.email || '-')}</td>
+                        <td><span class="badge badge-${sourceClass}">${l.source === 'purchase' ? 'Satin Alma' : 'Manuel'}</span></td>
+                        <td>${l.purchase_price ? sanitize(formatMoney(l.purchase_price)) : '-'}</td>
+                        <td><span class="badge badge-${activeClass}">${l.is_active ? 'Aktif' : 'Pasif'}</span></td>
+                        <td>${sanitize(formatDate(l.created_at))}</td>
                     </tr>
-                `).join('') || '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Henuz lisans yok</td></tr>';
+                `}).join('') || '<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Henuz lisans yok</td></tr>';
 
             } catch (e) { console.error('Dashboard load error:', e); }
         }
@@ -1050,17 +1078,20 @@
                 }
 
                 const data = await api('/admin/orders');
-                document.getElementById('ordersTable').innerHTML = (data.orders || []).map(o => `
+                document.getElementById('ordersTable').innerHTML = (data.orders || []).map(o => {
+                    const statusClass = o.status === 'completed' ? 'success' : o.status === 'pending' ? 'warning' : 'danger';
+                    const orderId = parseInt(o.id) || 0;
+                    return `
                     <tr>
-                        <td><code>${o.order_number}</code></td>
-                        <td>${o.user_name || o.user_email || '-'}</td>
-                        <td>${o.product_name || '-'}</td>
-                        <td>${formatMoney(o.total || 0)}</td>
-                        <td><span class="badge badge-${o.status === 'completed' ? 'success' : o.status === 'pending' ? 'warning' : 'danger'}">${getStatusText(o.status)}</span></td>
-                        <td>${formatDate(o.created_at)}</td>
-                        <td><button class="btn btn-sm btn-secondary" onclick="viewOrderDetail(${o.id})"><i class="fas fa-eye"></i></button></td>
+                        <td><code>${sanitize(o.order_number)}</code></td>
+                        <td>${sanitize(o.user_name || o.user_email || '-')}</td>
+                        <td>${sanitize(o.product_name || '-')}</td>
+                        <td>${sanitize(formatMoney(o.total || 0))}</td>
+                        <td><span class="badge badge-${statusClass}">${sanitize(getStatusText(o.status))}</span></td>
+                        <td>${sanitize(formatDate(o.created_at))}</td>
+                        <td><button class="btn btn-sm btn-secondary" onclick="viewOrderDetail(${orderId})"><i class="fas fa-eye"></i></button></td>
                     </tr>
-                `).join('') || '<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">Henuz siparis yok</td></tr>';
+                `}).join('') || '<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">Henuz siparis yok</td></tr>';
             } catch (e) { console.error('Orders load error:', e); }
         }
 
@@ -1081,24 +1112,27 @@
                 const data = await api(`/admin/orders/${id}`);
                 if (data.success && data.order) {
                     const o = data.order;
+                    const quantity = parseInt(o.quantity) || 1;
+                    const totalPrice = (parseInt(o.total_price_cents) || 0) / 100;
+
                     document.getElementById('simpleModal').innerHTML = `
                         <div class="modal" style="display:block;">
                             <div class="modal-header">
-                                <h3>Siparis Detayi - ${o.order_number || 'N/A'}</h3>
+                                <h3>Siparis Detayi - ${sanitize(o.order_number || 'N/A')}</h3>
                                 <button class="btn btn-sm btn-secondary" onclick="closeSimpleModal()">&times;</button>
                             </div>
                             <div class="modal-body">
                                 <div class="detail-grid">
-                                    <div class="detail-item"><div class="label">Siparis No</div><div class="value">${o.order_number || '-'}</div></div>
-                                    <div class="detail-item"><div class="label">Durum</div><div class="value">${getStatusText(o.payment_status)}</div></div>
-                                    <div class="detail-item"><div class="label">Musteri</div><div class="value">${o.user_name || o.billing_name || '-'}</div></div>
-                                    <div class="detail-item"><div class="label">E-posta</div><div class="value">${o.user_email || o.billing_email || '-'}</div></div>
-                                    <div class="detail-item"><div class="label">Urun</div><div class="value">${o.product_name || '-'}</div></div>
-                                    <div class="detail-item"><div class="label">Adet</div><div class="value">${o.quantity || 1}</div></div>
-                                    <div class="detail-item"><div class="label">Tutar</div><div class="value">${formatMoney((o.total_price_cents || 0) / 100)}</div></div>
-                                    <div class="detail-item"><div class="label">Olusturma</div><div class="value">${formatDate(o.created_at)}</div></div>
-                                    <div class="detail-item"><div class="label">Odeme Tarihi</div><div class="value">${o.paid_at ? formatDate(o.paid_at) : '-'}</div></div>
-                                    <div class="detail-item"><div class="label">Fatura Adresi</div><div class="value">${o.billing_address || '-'}</div></div>
+                                    <div class="detail-item"><div class="label">Siparis No</div><div class="value">${sanitize(o.order_number || '-')}</div></div>
+                                    <div class="detail-item"><div class="label">Durum</div><div class="value">${sanitize(getStatusText(o.payment_status))}</div></div>
+                                    <div class="detail-item"><div class="label">Musteri</div><div class="value">${sanitize(o.user_name || o.billing_name || '-')}</div></div>
+                                    <div class="detail-item"><div class="label">E-posta</div><div class="value">${sanitize(o.user_email || o.billing_email || '-')}</div></div>
+                                    <div class="detail-item"><div class="label">Urun</div><div class="value">${sanitize(o.product_name || '-')}</div></div>
+                                    <div class="detail-item"><div class="label">Adet</div><div class="value">${quantity}</div></div>
+                                    <div class="detail-item"><div class="label">Tutar</div><div class="value">${sanitize(formatMoney(totalPrice))}</div></div>
+                                    <div class="detail-item"><div class="label">Olusturma</div><div class="value">${sanitize(formatDate(o.created_at))}</div></div>
+                                    <div class="detail-item"><div class="label">Odeme Tarihi</div><div class="value">${o.paid_at ? sanitize(formatDate(o.paid_at)) : '-'}</div></div>
+                                    <div class="detail-item"><div class="label">Fatura Adresi</div><div class="value">${sanitize(o.billing_address || '-')}</div></div>
                                 </div>
                             </div>
                         </div>
@@ -1137,21 +1171,49 @@
         }
 
         function renderLicenses(licenses) {
-            document.getElementById('licensesTable').innerHTML = licenses.map(l => `
+            // Lisans anahtarlarını güvenli şekilde sakla
+            window._adminLicenseKeys = {};
+
+            document.getElementById('licensesTable').innerHTML = licenses.map((l, index) => {
+                window._adminLicenseKeys[index] = l.license_key;
+                const sourceClass = l.source === 'purchase' ? 'success' : 'info';
+                const activeClass = l.is_active ? 'success' : 'danger';
+                const machineIdShort = l.machine_id ? l.machine_id.substring(0, 15) + '...' : '-';
+                const transferCount = parseInt(l.transfer_count) || 0;
+
+                return `
                 <tr>
-                    <td><code style="cursor:pointer" onclick="showLicenseDetail('${l.license_key}')">${l.license_key}</code></td>
-                    <td>${l.customer_name || '-'}</td>
-                    <td><span class="badge badge-${l.source === 'purchase' ? 'success' : 'info'}">${l.source === 'purchase' ? 'Satin Alma' : 'Manuel'}</span></td>
-                    <td>${l.purchase_price_cents ? formatMoney(l.purchase_price_cents / 100) : '-'}</td>
-                    <td><small>${l.machine_id ? l.machine_id.substring(0, 15) + '...' : '-'}</small></td>
-                    <td>${l.transfer_count}/2</td>
-                    <td><span class="badge badge-${l.is_active ? 'success' : 'danger'}">${l.is_active ? 'Aktif' : 'Pasif'}</span></td>
+                    <td><code style="cursor:pointer" data-license-idx="${index}">${sanitize(l.license_key)}</code></td>
+                    <td>${sanitize(l.customer_name || '-')}</td>
+                    <td><span class="badge badge-${sourceClass}">${l.source === 'purchase' ? 'Satin Alma' : 'Manuel'}</span></td>
+                    <td>${l.purchase_price_cents ? sanitize(formatMoney(l.purchase_price_cents / 100)) : '-'}</td>
+                    <td><small>${sanitize(machineIdShort)}</small></td>
+                    <td>${transferCount}/2</td>
+                    <td><span class="badge badge-${activeClass}">${l.is_active ? 'Aktif' : 'Pasif'}</span></td>
                     <td>
-                        <button class="btn btn-sm btn-secondary" onclick="toggleLicense('${l.license_key}')" title="Aktif/Pasif"><i class="fas fa-power-off"></i></button>
-                        <button class="btn btn-sm btn-secondary" onclick="resetTransfer('${l.license_key}')" title="Transfer Sifirla"><i class="fas fa-redo"></i></button>
+                        <button class="btn btn-sm btn-secondary" data-action="toggle" data-idx="${index}" title="Aktif/Pasif"><i class="fas fa-power-off"></i></button>
+                        <button class="btn btn-sm btn-secondary" data-action="reset" data-idx="${index}" title="Transfer Sifirla"><i class="fas fa-redo"></i></button>
                     </td>
                 </tr>
-            `).join('') || '<tr><td colspan="8" style="text-align: center; color: var(--text-muted);">Lisans bulunamadi</td></tr>';
+            `}).join('') || '<tr><td colspan="8" style="text-align: center; color: var(--text-muted);">Lisans bulunamadi</td></tr>';
+
+            // Event delegation for license actions
+            document.getElementById('licensesTable').querySelectorAll('[data-action]').forEach(btn => {
+                btn.onclick = function() {
+                    const idx = this.getAttribute('data-idx');
+                    const key = window._adminLicenseKeys[idx];
+                    if (!key) return;
+                    if (this.getAttribute('data-action') === 'toggle') toggleLicense(key);
+                    else if (this.getAttribute('data-action') === 'reset') resetTransfer(key);
+                };
+            });
+            document.getElementById('licensesTable').querySelectorAll('[data-license-idx]').forEach(el => {
+                el.onclick = function() {
+                    const idx = this.getAttribute('data-license-idx');
+                    const key = window._adminLicenseKeys[idx];
+                    if (key) showLicenseDetail(key);
+                };
+            });
         }
 
         function filterLicenses() {
@@ -1191,17 +1253,20 @@
                     document.getElementById('userStatToday').textContent = data.stats?.today || 0;
                     document.getElementById('userStatWithOrders').textContent = data.stats?.with_orders || 0;
 
-                    document.getElementById('usersTable').innerHTML = (data.users || []).map(u => `
+                    document.getElementById('usersTable').innerHTML = (data.users || []).map(u => {
+                        const verifiedClass = u.email_verified ? 'success' : 'warning';
+                        const userId = parseInt(u.id) || 0;
+                        return `
                         <tr>
-                            <td>${u.id}</td>
-                            <td>${u.email}</td>
-                            <td>${u.full_name || '-'}</td>
-                            <td>${u.phone || '-'}</td>
-                            <td><span class="badge badge-${u.email_verified ? 'success' : 'warning'}">${u.email_verified ? 'Dogrulandi' : 'Bekliyor'}</span></td>
-                            <td>${formatDate(u.created_at)}</td>
-                            <td><button class="btn btn-sm btn-secondary" onclick="viewUserDetail(${u.id})"><i class="fas fa-eye"></i></button></td>
+                            <td>${userId}</td>
+                            <td>${sanitize(u.email)}</td>
+                            <td>${sanitize(u.full_name || '-')}</td>
+                            <td>${sanitize(u.phone || '-')}</td>
+                            <td><span class="badge badge-${verifiedClass}">${u.email_verified ? 'Dogrulandi' : 'Bekliyor'}</span></td>
+                            <td>${sanitize(formatDate(u.created_at))}</td>
+                            <td><button class="btn btn-sm btn-secondary" onclick="viewUserDetail(${userId})"><i class="fas fa-eye"></i></button></td>
                         </tr>
-                    `).join('') || '<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">Kullanici yok</td></tr>';
+                    `}).join('') || '<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">Kullanici yok</td></tr>';
                 }
             } catch (e) { console.error('Users load error:', e); }
         }
@@ -1213,40 +1278,48 @@
 
                 const u = data.user;
                 const s = data.summary;
+                const verifiedClass = u.email_verified ? 'success' : 'warning';
+
+                const licensesHtml = (data.licenses || []).map(l => {
+                    const activeClass = l.is_active ? 'success' : 'danger';
+                    return `<div class="item-card"><div class="item-info"><div class="item-title"><code>${sanitize(l.license_key)}</code></div><div class="item-desc">Kaynak: ${sanitize(l.source || 'manuel')} | Fiyat: ${l.purchase_price ? sanitize(formatMoney(l.purchase_price)) : '-'}</div></div><span class="badge badge-${activeClass}">${l.is_active ? 'Aktif' : 'Pasif'}</span></div>`;
+                }).join('');
+
+                const ordersHtml = (data.orders || []).map(o => {
+                    const statusClass = o.status === 'completed' ? 'success' : 'warning';
+                    return `<div class="item-card"><div class="item-info"><div class="item-title">${sanitize(o.order_number)}</div><div class="item-desc">${sanitize(o.product_name)} - ${sanitize(formatMoney(o.total))}</div></div><span class="badge badge-${statusClass}">${sanitize(o.status)}</span></div>`;
+                }).join('');
+
                 document.getElementById('userDetailContent').innerHTML = `
                     <div class="user-detail-section">
                         <h4>Kullanici Bilgileri</h4>
                         <div class="detail-grid">
-                            <div class="detail-item"><div class="label">E-posta</div><div class="value">${u.email}</div></div>
-                            <div class="detail-item"><div class="label">Ad Soyad</div><div class="value">${u.full_name || '-'}</div></div>
-                            <div class="detail-item"><div class="label">Telefon</div><div class="value">${u.phone || '-'}</div></div>
-                            <div class="detail-item"><div class="label">Sirket</div><div class="value">${u.company_name || '-'}</div></div>
-                            <div class="detail-item"><div class="label">E-posta Durumu</div><div class="value"><span class="badge badge-${u.email_verified ? 'success' : 'warning'}">${u.email_verified ? 'Dogrulandi' : 'Bekliyor'}</span></div></div>
-                            <div class="detail-item"><div class="label">Kayit Tarihi</div><div class="value">${formatDateTime(u.created_at)}</div></div>
+                            <div class="detail-item"><div class="label">E-posta</div><div class="value">${sanitize(u.email)}</div></div>
+                            <div class="detail-item"><div class="label">Ad Soyad</div><div class="value">${sanitize(u.full_name || '-')}</div></div>
+                            <div class="detail-item"><div class="label">Telefon</div><div class="value">${sanitize(u.phone || '-')}</div></div>
+                            <div class="detail-item"><div class="label">Sirket</div><div class="value">${sanitize(u.company_name || '-')}</div></div>
+                            <div class="detail-item"><div class="label">E-posta Durumu</div><div class="value"><span class="badge badge-${verifiedClass}">${u.email_verified ? 'Dogrulandi' : 'Bekliyor'}</span></div></div>
+                            <div class="detail-item"><div class="label">Kayit Tarihi</div><div class="value">${sanitize(formatDateTime(u.created_at))}</div></div>
                         </div>
                     </div>
                     <div class="user-detail-section">
                         <h4>Ozet</h4>
                         <div class="detail-grid">
-                            <div class="detail-item"><div class="label">Toplam Siparis</div><div class="value">${s.total_orders}</div></div>
-                            <div class="detail-item"><div class="label">Tamamlanan</div><div class="value">${s.completed_orders}</div></div>
-                            <div class="detail-item"><div class="label">Toplam Harcama</div><div class="value" style="color: var(--success);">${formatMoney(s.total_spent)}</div></div>
-                            <div class="detail-item"><div class="label">Lisans Sayisi</div><div class="value">${s.total_licenses}</div></div>
+                            <div class="detail-item"><div class="label">Toplam Siparis</div><div class="value">${parseInt(s.total_orders) || 0}</div></div>
+                            <div class="detail-item"><div class="label">Tamamlanan</div><div class="value">${parseInt(s.completed_orders) || 0}</div></div>
+                            <div class="detail-item"><div class="label">Toplam Harcama</div><div class="value" style="color: var(--success);">${sanitize(formatMoney(s.total_spent))}</div></div>
+                            <div class="detail-item"><div class="label">Lisans Sayisi</div><div class="value">${parseInt(s.total_licenses) || 0}</div></div>
                         </div>
                     </div>
-                    ${data.licenses.length > 0 ? `
+                    ${(data.licenses || []).length > 0 ? `
                     <div class="user-detail-section">
                         <h4>Lisanslar</h4>
-                        <div class="items-list">
-                            ${data.licenses.map(l => `<div class="item-card"><div class="item-info"><div class="item-title"><code>${l.license_key}</code></div><div class="item-desc">Kaynak: ${l.source || 'manuel'} | Fiyat: ${l.purchase_price ? formatMoney(l.purchase_price) : '-'}</div></div><span class="badge badge-${l.is_active ? 'success' : 'danger'}">${l.is_active ? 'Aktif' : 'Pasif'}</span></div>`).join('')}
-                        </div>
+                        <div class="items-list">${licensesHtml}</div>
                     </div>` : ''}
-                    ${data.orders.length > 0 ? `
+                    ${(data.orders || []).length > 0 ? `
                     <div class="user-detail-section">
                         <h4>Siparisler</h4>
-                        <div class="items-list">
-                            ${data.orders.map(o => `<div class="item-card"><div class="item-info"><div class="item-title">${o.order_number}</div><div class="item-desc">${o.product_name} - ${formatMoney(o.total)}</div></div><span class="badge badge-${o.status === 'completed' ? 'success' : 'warning'}">${o.status}</span></div>`).join('')}
-                        </div>
+                        <div class="items-list">${ordersHtml}</div>
                     </div>` : ''}
                 `;
                 openModal('userDetailModal');

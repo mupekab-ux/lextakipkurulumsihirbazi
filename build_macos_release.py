@@ -1,19 +1,20 @@
 # -*- coding: utf-8 -*-
 """
-TakibiEsasi - Windows Korumalı Build Script
+TakibiEsasi - macOS Korumalı Build Script (Cython + Nuitka)
 
 Bu script:
-1. Kritik dosyaları Cython ile derler (.pyd)
-2. Nuitka ile .exe oluşturur (daha güçlü koruma)
+1. Kritik dosyaları Cython ile derler (.so)
+2. Nuitka ile .app oluşturur (maksimum koruma)
+3. DMG paketi oluşturur
 
 Kullanım:
-    python build_windows_protected.py
+    python build_macos_release.py [--dmg]
 
 Gereksinimler:
     pip install cython nuitka ordered-set zstandard
 
-Windows gereksinimleri:
-    Visual Studio Build Tools (C++ derleyici)
+macOS gereksinimleri:
+    xcode-select --install
 """
 
 import os
@@ -27,7 +28,7 @@ from pathlib import Path
 # Build ayarları
 APP_NAME = "TakibiEsasi"
 MAIN_FILE = "app/main.py"
-ICON_FILE = "app/icon.ico"
+ICON_FILE = "assets/icon.icns"
 OUTPUT_DIR = "dist"
 BUILD_TEMP = "build_temp"
 
@@ -47,24 +48,32 @@ CYTHON_MODULES = [
     "app/license.py",
     "app/demo_manager.py",
     "app/updater.py",
-    "app/db_crypto.py",  # Veritabanı şifreleme
+    "app/db_crypto.py",
     "app/services/user_service.py",
 ]
 
 
 def check_platform():
-    """Windows'ta mıyız kontrol et."""
-    if platform.system() != "Windows":
-        print("✗ Bu script sadece Windows'ta çalışır!")
+    """macOS'ta mıyız kontrol et."""
+    if platform.system() != "Darwin":
+        print("✗ Bu script sadece macOS'ta çalışır!")
         print(f"  Şu anki sistem: {platform.system()}")
         return False
-    print(f"✓ Windows {platform.version()}")
+    print(f"✓ macOS {platform.mac_ver()[0]}")
     return True
 
 
 def check_requirements():
     """Gerekli araçları kontrol et."""
     print("\nGereksinimler kontrol ediliyor...")
+
+    # Xcode
+    result = subprocess.run(["xcode-select", "-p"], capture_output=True)
+    if result.returncode != 0:
+        print("✗ Xcode Command Line Tools kurulu değil!")
+        print("  Kurmak için: xcode-select --install")
+        return False
+    print("✓ Xcode Command Line Tools")
 
     # Cython
     try:
@@ -78,7 +87,7 @@ def check_requirements():
     # Nuitka
     try:
         import nuitka
-        print(f"✓ Nuitka kurulu")
+        print("✓ Nuitka kurulu")
     except ImportError:
         print("✗ Nuitka kurulu değil!")
         print("  Kurmak için: pip install nuitka ordered-set zstandard")
@@ -98,8 +107,8 @@ def clean_build():
             shutil.rmtree(dir_name)
             print(f"  Silindi: {dir_name}")
 
-    # Eski .pyd dosyalarını temizle
-    for pattern in ["app/*.pyd", "app/**/*.pyd", "app/*.c", "app/**/*.c"]:
+    # Eski .so ve .c dosyalarını temizle
+    for pattern in ["app/*.so", "app/**/*.so", "app/*.c", "app/**/*.c"]:
         for f in glob.glob(pattern, recursive=True):
             os.remove(f)
             print(f"  Silindi: {f}")
@@ -113,8 +122,7 @@ def compile_cython():
 
     # setup_cython.py çalıştır
     result = subprocess.run(
-        [sys.executable, "setup_cython.py", "build_ext", "--inplace"],
-        shell=True
+        [sys.executable, "setup_cython.py", "build_ext", "--inplace"]
     )
 
     if result.returncode != 0:
@@ -125,8 +133,8 @@ def compile_cython():
     compiled_files = []
     for module in CYTHON_MODULES:
         base = module.replace(".py", "")
-        pyd_files = glob.glob(f"{base}*.pyd")
-        compiled_files.extend(pyd_files)
+        so_files = glob.glob(f"{base}*.so")
+        compiled_files.extend(so_files)
 
     if not compiled_files:
         print("✗ Derlenmiş dosya bulunamadı!")
@@ -140,7 +148,7 @@ def compile_cython():
 
 
 def build_nuitka():
-    """Nuitka ile .exe oluştur."""
+    """Nuitka ile .app oluştur."""
     print("\n" + "=" * 60)
     print("ADIM 2: Nuitka Build")
     print("=" * 60)
@@ -152,36 +160,44 @@ def build_nuitka():
         "--standalone",
         "--onefile",
         f"--output-dir={OUTPUT_DIR}",
-        f"--output-filename={APP_NAME}.exe",
-        "--windows-console-mode=disable",
+        f"--output-filename={APP_NAME}",
+
+        # macOS ayarları
+        "--macos-create-app-bundle",
+        f"--macos-app-name={APP_NAME}",
+        f"--macos-app-version={APP_VERSION}",
+        "--macos-disable-console",
+
+        # PyQt6 plugin
         "--enable-plugin=pyqt6",
+
+        # Ek modüller
         "--include-module=openpyxl",
         "--include-module=bcrypt",
         "--include-module=docx",
         "--include-module=pandas",
         "--include-module=requests",
         "--include-module=sqlite3",
-        "--include-module=cryptography",  # Veritabanı şifreleme (fallback)
-        "--nofollow-import-to=sqlcipher3",  # SQLCipher opsiyonel
+        "--include-module=cryptography",
+        "--nofollow-import-to=sqlcipher3",
         "--assume-yes-for-downloads",
-        f"--windows-company-name={APP_NAME}",
-        f"--windows-product-name={APP_NAME}",
-        f"--windows-file-version={APP_VERSION}.0",
-        f"--windows-product-version={APP_VERSION}.0",
-        "--windows-file-description=Hukuk Burolari Icin Dava Takip Sistemi",
+
+        # Performans
         "--lto=yes",
     ]
 
     # Icon ekle
     if os.path.exists(ICON_FILE):
-        cmd.append(f"--windows-icon-from-ico={ICON_FILE}")
+        cmd.append(f"--macos-app-icon={ICON_FILE}")
+    elif os.path.exists("app/icon.icns"):
+        cmd.append("--macos-app-icon=app/icon.icns")
 
-    # .pyd dosyalarını dahil et
+    # .so dosyalarını dahil et
     for module in CYTHON_MODULES:
         base = module.replace(".py", "")
-        pyd_files = glob.glob(f"{base}*.pyd")
-        for pyd_file in pyd_files:
-            cmd.append(f"--include-data-files={pyd_file}={pyd_file}")
+        so_files = glob.glob(f"{base}*.so")
+        for so_file in so_files:
+            cmd.append(f"--include-data-files={so_file}={so_file}")
 
     # Data dosyaları
     cmd.append("--include-data-dir=app/themes=themes")
@@ -200,14 +216,50 @@ def build_nuitka():
         print("✗ Nuitka build başarısız!")
         return False
 
-    # .exe oluşturuldu mu kontrol et
-    exe_path = f"{OUTPUT_DIR}/{APP_NAME}.exe"
-    if os.path.exists(exe_path):
-        size_mb = os.path.getsize(exe_path) / (1024 * 1024)
-        print(f"\n✓ Uygulama oluşturuldu: {exe_path} ({size_mb:.1f} MB)")
+    # .app oluşturuldu mu kontrol et
+    app_path = f"{OUTPUT_DIR}/{APP_NAME}.app"
+    if os.path.exists(app_path):
+        print(f"\n✓ Uygulama oluşturuldu: {app_path}")
         return True
 
-    print("✗ EXE bulunamadı!")
+    print("✗ .app bulunamadı!")
+    return False
+
+
+def create_dmg():
+    """DMG installer oluştur."""
+    print("\n" + "=" * 60)
+    print("ADIM 3: DMG Oluşturma")
+    print("=" * 60)
+
+    app_path = f"{OUTPUT_DIR}/{APP_NAME}.app"
+    if not os.path.exists(app_path):
+        print(f"✗ Uygulama bulunamadı: {app_path}")
+        return False
+
+    dmg_path = f"{OUTPUT_DIR}/{APP_NAME}.dmg"
+
+    # Eski DMG'yi sil
+    if os.path.exists(dmg_path):
+        os.remove(dmg_path)
+
+    cmd = [
+        "hdiutil", "create",
+        "-volname", APP_NAME,
+        "-srcfolder", app_path,
+        "-ov",
+        "-format", "UDZO",
+        dmg_path
+    ]
+
+    result = subprocess.run(cmd)
+
+    if result.returncode == 0 and os.path.exists(dmg_path):
+        size_mb = os.path.getsize(dmg_path) / (1024 * 1024)
+        print(f"\n✓ DMG oluşturuldu: {dmg_path} ({size_mb:.1f} MB)")
+        return True
+
+    print("✗ DMG oluşturma başarısız!")
     return False
 
 
@@ -223,7 +275,7 @@ def cleanup():
             except:
                 pass
 
-    # Build temp klasörlerini sil
+    # Build temp klasörünü sil
     for dir_name in [BUILD_TEMP, "build"]:
         if os.path.exists(dir_name):
             try:
@@ -236,7 +288,8 @@ def cleanup():
 
 def main():
     print("=" * 60)
-    print(f"TakibiEsasi - Windows Korumalı Build v{APP_VERSION}")
+    print(f"TakibiEsasi - macOS Korumalı Build v{APP_VERSION}")
+    print("Cython + Nuitka (Maksimum Koruma)")
     print("=" * 60)
 
     # Platform kontrolü
@@ -250,7 +303,7 @@ def main():
     # Temizlik
     clean_build()
 
-    # Cython derleme - kritik dosyaları C'ye derler (.pyd)
+    # Cython derleme
     if not compile_cython():
         print("⚠ Cython derleme atlandı, sadece Nuitka ile devam ediliyor...")
 
@@ -258,14 +311,22 @@ def main():
     if not build_nuitka():
         return False
 
+    # DMG oluştur (--dmg parametresi varsa)
+    if "--dmg" in sys.argv:
+        if not create_dmg():
+            return False
+
     # Temizlik
     cleanup()
 
     print("\n" + "=" * 60)
     print("✓ BUILD BAŞARILI!")
     print("=" * 60)
-    print(f"\nÇıktı: {OUTPUT_DIR}/{APP_NAME}.exe")
-    print("\nSonraki adım: Inno Setup ile installer oluşturun")
+    print(f"\nÇıktılar:")
+    print(f"  Uygulama: {OUTPUT_DIR}/{APP_NAME}.app")
+    if "--dmg" in sys.argv:
+        print(f"  DMG: {OUTPUT_DIR}/{APP_NAME}.dmg")
+    print("\nÖNEMLİ: Bu build tersine mühendisliğe karşı korumalı.")
     print()
 
     return True

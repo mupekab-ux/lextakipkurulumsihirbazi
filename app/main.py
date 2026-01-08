@@ -100,9 +100,9 @@ def check_demo_on_startup() -> bool:
         # Önce mevcut lisans sistemini kontrol et (license.py)
         # Bu, demo sisteminden bağımsız olarak çalışan eski lisans sistemi
         try:
-            from app.license import is_activated, get_license_info
+            from app.license import is_activated, get_license_info, was_license_rejected, get_rejection_reason
         except ModuleNotFoundError:
-            from license import is_activated, get_license_info
+            from license import is_activated, get_license_info, was_license_rejected, get_rejection_reason
 
         if is_activated():
             # Mevcut lisans geçerli - demo kontrolüne gerek yok
@@ -113,6 +113,22 @@ def check_demo_on_startup() -> bool:
                 demo_manager = get_demo_manager(db_path)
                 demo_manager.activate_license(license_info.get("license_key", ""))
             return True
+
+        # Sunucu lisansı açıkça reddettiyse, demo'ya düşmeden hata göster
+        if was_license_rejected():
+            rejection_reason = get_rejection_reason()
+            QMessageBox.critical(
+                None,
+                "Lisans Geçersiz",
+                f"Lisansınız sunucu tarafından reddedildi:\n\n{rejection_reason}\n\n"
+                "Yeni bir lisans satın almak veya mevcut lisansınızı aktive etmek için "
+                "aktivasyon ekranını kullanabilirsiniz."
+            )
+            # Aktivasyon dialogunu göster
+            activation = ActivationDialog()
+            if activation.exec() == QDialog.DialogCode.Accepted:
+                return True
+            return False
 
         db_path = get_database_path()
         demo_manager = get_demo_manager(db_path)

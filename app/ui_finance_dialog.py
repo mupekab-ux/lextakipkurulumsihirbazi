@@ -953,8 +953,16 @@ class FinanceDialog(QDialog):
                         f"Bu ödemeyi silmek için {'müvekkil kasasından' if yontem == 'Kasadan' else 'ödeme planından'} silin.",
                     )
                     return
-            # Ödeme ID'sini al ve veritabanından sil
+            # Silinen ödeme bilgilerini timeline için al
             date_edit = self.payments_table.cellWidget(row, 0)
+            amount_spin = self.payments_table.cellWidget(row, 1)
+            payment_date = ""
+            payment_amount = 0
+            if isinstance(date_edit, QDateEdit) and date_edit.date() != date_edit.minimumDate():
+                payment_date = date_edit.date().toString("dd.MM.yyyy")
+            if isinstance(amount_spin, QDoubleSpinBox):
+                payment_amount = tl_to_cents(amount_spin.value())
+            # Ödeme ID'sini al ve veritabanından sil
             if isinstance(date_edit, QDateEdit):
                 payment_id = date_edit.property("payment_id")
                 if payment_id:
@@ -963,6 +971,11 @@ class FinanceDialog(QDialog):
                     except Exception as exc:
                         QMessageBox.warning(self, "Uyarı", f"Ödeme silinemedi:\n{exc}")
                         return
+                    # Timeline kaydı ekle
+                    timeline_msg = f"Ödeme silindi: {format_tl(payment_amount)}"
+                    if payment_date:
+                        timeline_msg += f" (Tarih: {payment_date})"
+                    add_finans_timeline_entry(self.dosya_id, timeline_msg, self._current_username)
             self.payments_table.removeRow(row)
             # Finans toplamlarını güncelle
             self.refresh_finance_data()
@@ -1153,8 +1166,14 @@ class FinanceDialog(QDialog):
     def remove_expense_row(self) -> None:
         row = self.expenses_table.currentRow()
         if row >= 0:
-            # Masraf ID'sini al ve veritabanından sil
+            # Silinen masraf bilgilerini timeline için al
             name_item = self.expenses_table.item(row, 0)
+            amount_spin = self.expenses_table.cellWidget(row, 1)
+            expense_name = name_item.text() if isinstance(name_item, QTableWidgetItem) else ""
+            expense_amount = 0
+            if isinstance(amount_spin, QDoubleSpinBox):
+                expense_amount = tl_to_cents(amount_spin.value())
+            # Masraf ID'sini al ve veritabanından sil
             if isinstance(name_item, QTableWidgetItem):
                 expense_id = name_item.data(Qt.ItemDataRole.UserRole)
                 if expense_id:
@@ -1164,7 +1183,6 @@ class FinanceDialog(QDialog):
                         if isinstance(source_combo, QComboBox) and source_combo.currentText() == "Kasadan":
                             # Kasadan masrafı silmek için müvekkil kasasındaki ilgili kaydı da sil
                             date_edit = self.expenses_table.cellWidget(row, 3)
-                            amount_spin = self.expenses_table.cellWidget(row, 1)
                             if isinstance(date_edit, QDateEdit) and isinstance(amount_spin, QDoubleSpinBox):
                                 tarih = date_edit.date().toString("yyyy-MM-dd") if date_edit.date() != date_edit.minimumDate() else ""
                                 tutar_kurus = tl_to_cents(amount_spin.value())
@@ -1174,6 +1192,11 @@ class FinanceDialog(QDialog):
                                     except Exception:
                                         pass
                         delete_expense(int(expense_id))
+                        # Timeline kaydı ekle
+                        timeline_msg = f"Masraf silindi: {format_tl(expense_amount)}"
+                        if expense_name:
+                            timeline_msg += f" ({expense_name})"
+                        add_finans_timeline_entry(self.dosya_id, timeline_msg, self._current_username)
                     except Exception as exc:
                         QMessageBox.warning(self, "Uyarı", f"Masraf silinemedi:\n{exc}")
                         return
@@ -1401,6 +1424,10 @@ class FinanceDialog(QDialog):
                     QMessageBox.warning(self, "Uyarı", f"Kayıt silinemedi:\n{exc}")
                     return
 
+                # Timeline kaydı ekle
+                timeline_msg = f"Müvekkil kasası: {format_tl(tutar_kurus)} {islem_turu} kaydı silindi."
+                add_finans_timeline_entry(self.dosya_id, timeline_msg, self._current_username)
+
                 # Otomatik oluşturulan kayıtları da sil
                 if self.finans_id and tarih and tutar_kurus > 0:
                     if islem_turu == "Sözleşme Ödemesi":
@@ -1474,6 +1501,7 @@ class FinanceDialog(QDialog):
                 return
 
             saved_count = 0
+            updated_count = 0
             for idx, row in enumerate(rows):
                 entry_id = row.get("id")
                 islem_turu = row["islem_turu"]
@@ -1486,6 +1514,7 @@ class FinanceDialog(QDialog):
                         row.get("aciklama"),
                     )
                     saved_count += 1
+                    updated_count += 1
                 else:
                     new_id = insert_muvekkil_kasasi_entry(
                         self.dosya_id,
@@ -1515,6 +1544,14 @@ class FinanceDialog(QDialog):
                             )
                         except Exception:
                             pass  # Ödeme ekleme başarısız olsa da kasa kaydı yapıldı
+
+            # Güncelleme varsa timeline kaydı ekle
+            if updated_count > 0:
+                add_finans_timeline_entry(
+                    self.dosya_id,
+                    f"Müvekkil kasası güncellendi ({updated_count} kayıt).",
+                    self._current_username,
+                )
 
             # Tüm verileri yenile
             self.load_client_cash()
