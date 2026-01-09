@@ -39,7 +39,6 @@ hiddenimports = [
     'PyQt6.QtGui',
     'PyQt6.QtWidgets',
     'openpyxl',
-    'pandas',
     'requests',
     'docx',
     'bcrypt',

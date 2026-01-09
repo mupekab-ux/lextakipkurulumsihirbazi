@@ -21,12 +21,12 @@ jobs:
       - name: Install Dependencies
         run: |
           pip install --upgrade pip
-          pip install PyQt6 openpyxl bcrypt python-docx pandas requests
+          pip install PyQt6 openpyxl bcrypt python-docx requests
           pip install nuitka ordered-set zstandard
 
       - name: Build with Nuitka
         run: |
-          python -m nuitka --standalone --onefile --output-dir=dist_nuitka --output-filename=TakibiEsasi.exe --windows-console-mode=disable --enable-plugin=pyqt6 --include-module=openpyxl --include-module=bcrypt --include-module=docx --include-module=pandas --include-module=requests --include-module=sqlite3 --assume-yes-for-downloads --windows-company-name=TakibiEsasi --windows-product-name=TakibiEsasi --lto=yes app/main.py
+          python -m nuitka --standalone --onefile --output-dir=dist_nuitka --output-filename=TakibiEsasi.exe --windows-console-mode=disable --enable-plugin=pyqt6 --include-module=openpyxl --include-module=bcrypt --include-module=docx --include-module=requests --include-module=sqlite3 --assume-yes-for-downloads --windows-company-name=TakibiEsasi --windows-product-name=TakibiEsasi --lto=yes app/main.py
 
       - name: List output files
         run: dir dist_nuitka
@@ -53,7 +53,7 @@ jobs:
       - name: Install Dependencies
         run: |
           pip install --upgrade pip
-          pip install PyQt6 openpyxl bcrypt python-docx pandas requests
+          pip install PyQt6 openpyxl bcrypt python-docx requests
           pip install cython pyinstaller
 
       - name: Compile Critical Files with Cython
@@ -90,7 +90,6 @@ jobs:
             --hidden-import=openpyxl \
             --hidden-import=bcrypt \
             --hidden-import=docx \
-            --hidden-import=pandas \
             --hidden-import=requests \
             --hidden-import=sqlite3 \
             --hidden-import=PyQt6 \

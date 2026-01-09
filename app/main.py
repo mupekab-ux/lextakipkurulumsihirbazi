@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+import warnings
+# 3. parti kütüphanelerdeki utcnow() uyarılarını bastır
+warnings.filterwarnings("ignore", message=".*utcnow.*", category=DeprecationWarning)
+
 import os
 import sys
 from PyQt6.QtWidgets import QApplication, QInputDialog, QLineEdit, QMessageBox, QDialog

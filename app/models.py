@@ -51,7 +51,6 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import RGBColor, Pt, Mm
 from docx.enum.section import WD_ORIENT, WD_SECTION
-import pandas as pd
 try:  # pragma: no cover - runtime import guard
     from app.utils import (
         hash_password,
@@ -1490,9 +1489,11 @@ def _prepare_export_dict(row: Dict[str, Any]) -> Dict[str, Any]:
 
 def export_dosyalar_to_csv(path: str, rows: List[Dict[str, Any]]) -> None:
     """Verilen kayıt listesini CSV olarak dışa aktarır."""
-    data = [_prepare_export_dict(row) for row in rows]
-    df = pd.DataFrame(data, columns=HEADER_LABELS)
-    df.to_csv(path, index=False, encoding="utf-8")
+    with open(path, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.writer(f)
+        writer.writerow(HEADER_LABELS)
+        for row in rows:
+            writer.writerow(_prepare_export_row(row))
 
 
 def export_dosyalar_to_xlsx(path: str, rows: List[Dict[str, Any]]) -> None:

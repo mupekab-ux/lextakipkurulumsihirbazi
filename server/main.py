@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 from pydantic import BaseModel
 from typing import Optional, List, Dict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from collections import defaultdict
 import psycopg2
 import psycopg2.extras
@@ -760,12 +760,12 @@ def generate_offline_token(license_key: str, machine_id: str) -> dict:
     Offline çalışma için JWT token oluşturur.
     Token 30 gün geçerlidir.
     """
-    expires_at = datetime.utcnow() + timedelta(days=OFFLINE_TOKEN_DAYS)
+    expires_at = datetime.now(timezone.utc) + timedelta(days=OFFLINE_TOKEN_DAYS)
 
     payload = {
         "license_key": license_key,
         "machine_id": machine_id,
-        "issued_at": datetime.utcnow().isoformat(),
+        "issued_at": datetime.now(timezone.utc).isoformat(),
         "expires_at": expires_at.isoformat(),
         "exp": expires_at.timestamp()  # JWT standard expiry
     }
@@ -1206,7 +1206,7 @@ def create_user_token(user_id: int, email: str) -> str:
             "user_id": user_id,
             "email": email,
             "type": "user",
-            "exp": datetime.utcnow() + timedelta(days=7)
+            "exp": datetime.now(timezone.utc) + timedelta(days=7)
         },
         JWT_SECRET,
         algorithm="HS256"
@@ -1443,7 +1443,7 @@ async def admin_login(req: AdminLoginRequest):
     """Admin login"""
     if req.username == ADMIN_USERNAME and req.password == ADMIN_PASSWORD:
         token = jwt.encode(
-            {"user": req.username, "exp": datetime.utcnow() + timedelta(hours=24)},
+            {"user": req.username, "exp": datetime.now(timezone.utc) + timedelta(hours=24)},
             JWT_SECRET,
             algorithm="HS256"
         )
@@ -3457,7 +3457,7 @@ async def forgot_password(req: ForgotPasswordRequest):
 
         # Generate reset token
         reset_token = generate_token()
-        expires_at = datetime.utcnow() + timedelta(hours=1)
+        expires_at = datetime.now(timezone.utc) + timedelta(hours=1)
 
         # Save token
         cur.execute("""
@@ -3789,7 +3789,7 @@ async def get_user_demo_status(authorization: str = Header(None)):
                 "can_start_demo": True
             }
 
-        days_remaining = max(0, (demo['demo_end_date'] - datetime.utcnow()).days) if demo['demo_end_date'] else 0
+        days_remaining = max(0, (demo['demo_end_date'] - datetime.now(timezone.utc)).days) if demo['demo_end_date'] else 0
         is_active = demo['status'] == 'active' and days_remaining > 0
 
         return {
@@ -4710,7 +4710,7 @@ async def demo_heartbeat(req: DemoHeartbeatRequest, request: Request):
         session = cur.fetchone()
 
         if not session:
-            demo_end = datetime.utcnow() + timedelta(days=14)
+            demo_end = datetime.now(timezone.utc) + timedelta(days=14)
             cur.execute("""
                 INSERT INTO demo_sessions (machine_id, machine_name, os_info, demo_start_date, demo_end_date, last_heartbeat, total_usage_minutes)
                 VALUES (%s, %s, %s, CURRENT_TIMESTAMP, %s, CURRENT_TIMESTAMP, %s) RETURNING id, demo_end_date, status
@@ -4725,7 +4725,7 @@ async def demo_heartbeat(req: DemoHeartbeatRequest, request: Request):
         """, (req.usage_minutes, req.machine_name, req.os_info, session['id']))
         conn.commit()
 
-        days_remaining = max(0, (session['demo_end_date'] - datetime.utcnow()).days) if session['demo_end_date'] else 0
+        days_remaining = max(0, (session['demo_end_date'] - datetime.now(timezone.utc)).days) if session['demo_end_date'] else 0
         status = session['status']
 
         if days_remaining <= 0 and status == 'active':
@@ -4753,7 +4753,7 @@ async def get_demo_status(machine_id: str):
         if not session:
             return {"success": True, "status": "no_demo", "can_start": True}
 
-        days_remaining = max(0, (session['demo_end_date'] - datetime.utcnow()).days) if session['demo_end_date'] else 0
+        days_remaining = max(0, (session['demo_end_date'] - datetime.now(timezone.utc)).days) if session['demo_end_date'] else 0
 
         return {"success": True, "status": session['status'], "days_remaining": days_remaining,
                 "total_usage_minutes": session['total_usage_minutes'], "launch_count": session['launch_count']}
@@ -4779,7 +4779,7 @@ async def admin_get_demo_sessions(authorization: str = Header(None)):
 
         sessions = []
         for r in cur.fetchall():
-            days_remaining = max(0, (r['demo_end_date'] - datetime.utcnow()).days) if r['demo_end_date'] else 0
+            days_remaining = max(0, (r['demo_end_date'] - datetime.now(timezone.utc)).days) if r['demo_end_date'] else 0
             sessions.append({"id": r['id'], "machine_id": r['machine_id'][:20] + "..." if r['machine_id'] and len(r['machine_id']) > 20 else r['machine_id'],
                              "machine_name": r['machine_name'], "user_email": r['user_email'], "status": r['status'],
                              "days_remaining": days_remaining, "total_usage_minutes": r['total_usage_minutes'], "launch_count": r['launch_count']})

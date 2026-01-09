@@ -7,7 +7,7 @@ import logging
 import mimetypes
 import os
 import shutil
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional
@@ -187,7 +187,7 @@ def add_attachments(dosya_id: int, paths: Iterable[str]) -> List[int]:
                     stored_filename,
                     mime,
                     size,
-                    datetime.utcnow().isoformat(timespec="seconds"),
+                    datetime.now(timezone.utc).isoformat(timespec="seconds"),
                 ),
             )
             inserted_ids.append(int(cur.lastrowid))
@@ -380,7 +380,7 @@ def update_attachment_source(attachment_id: int, new_source_path: str) -> None:
                 stored_filename,
                 mime,
                 size,
-                datetime.utcnow().isoformat(timespec="seconds"),
+                datetime.now(timezone.utc).isoformat(timespec="seconds"),
                 attachment_id,
             ),
         )

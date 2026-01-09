@@ -50,7 +50,7 @@ except ImportError:
 
 
 def get_machine_id() -> str:
-    """Makine kimliğini al (license.py'den)."""
+    """Makine kimliğini al (license.py'den) - V2 algoritması."""
     try:
         try:
             from app.license import generate_machine_id
@@ -66,18 +66,29 @@ def get_machine_id() -> str:
         return hashlib.sha256(fallback.encode()).hexdigest()
 
 
-def derive_db_key() -> str:
-    """
-    Veritabanı şifreleme anahtarını türet.
+def get_machine_id_v1() -> str:
+    """Eski V1 makine kimliğini al (geriye uyumluluk için)."""
+    try:
+        try:
+            from app.license import generate_machine_id_v1
+        except ImportError:
+            from license import generate_machine_id_v1
+        return generate_machine_id_v1()
+    except Exception as e:
+        logger.warning(f"V1 Makine ID alınamadı: {e}")
+        return ""
 
-    Kombinasyon:
-    - Makine ID (donanım parmak izi)
-    - Uygulama secret
+
+def _derive_db_key_from_machine_id(machine_id: str) -> str:
+    """
+    Belirli bir machine ID'den veritabanı anahtarı türet.
+
+    Args:
+        machine_id: Makine kimliği
 
     Returns:
         64 karakterlik hex string (256-bit anahtar)
     """
-    machine_id = get_machine_id()
     combined = f"{APP_SECRET}:{machine_id}"
 
     # PBKDF2 benzeri çoklu hash (basit ama etkili)
@@ -88,9 +99,35 @@ def derive_db_key() -> str:
     return key.hex()
 
 
-def derive_fernet_key() -> bytes:
+def derive_db_key() -> str:
     """
-    Cryptography/Fernet için anahtar türet.
+    Veritabanı şifreleme anahtarını türet (V2 machine ID).
+
+    Returns:
+        64 karakterlik hex string (256-bit anahtar)
+    """
+    return _derive_db_key_from_machine_id(get_machine_id())
+
+
+def derive_db_key_v1() -> str:
+    """
+    V1 machine ID ile veritabanı anahtarı türet (geriye uyumluluk).
+
+    Returns:
+        64 karakterlik hex string (256-bit anahtar)
+    """
+    v1_id = get_machine_id_v1()
+    if not v1_id:
+        raise RuntimeError("V1 Machine ID alınamadı")
+    return _derive_db_key_from_machine_id(v1_id)
+
+
+def _derive_fernet_key_from_machine_id(machine_id: str) -> bytes:
+    """
+    Belirli bir machine ID'den Fernet anahtarı türet.
+
+    Args:
+        machine_id: Makine kimliği
 
     Returns:
         32-byte base64-encoded key for Fernet
@@ -102,7 +139,6 @@ def derive_fernet_key() -> bytes:
     from cryptography.hazmat.primitives import hashes
     import base64
 
-    machine_id = get_machine_id()
     salt = APP_SECRET.encode('utf-8')
     password = machine_id.encode('utf-8')
 
@@ -115,6 +151,29 @@ def derive_fernet_key() -> bytes:
 
     key = base64.urlsafe_b64encode(kdf.derive(password))
     return key
+
+
+def derive_fernet_key() -> bytes:
+    """
+    Cryptography/Fernet için anahtar türet (V2 machine ID).
+
+    Returns:
+        32-byte base64-encoded key for Fernet
+    """
+    return _derive_fernet_key_from_machine_id(get_machine_id())
+
+
+def derive_fernet_key_v1() -> bytes:
+    """
+    V1 machine ID ile Fernet anahtarı türet (geriye uyumluluk).
+
+    Returns:
+        32-byte base64-encoded key for Fernet
+    """
+    v1_id = get_machine_id_v1()
+    if not v1_id:
+        raise RuntimeError("V1 Machine ID alınamadı")
+    return _derive_fernet_key_from_machine_id(v1_id)
 
 
 def encrypt_file(file_path: str, key: bytes = None) -> bool:
@@ -161,6 +220,7 @@ def encrypt_file(file_path: str, key: bytes = None) -> bool:
 def decrypt_file(file_path: str, key: bytes = None) -> bool:
     """
     Fernet ile şifrelenmiş dosyayı çöz.
+    V2 anahtarı başarısız olursa V1 anahtarını dener (geriye uyumluluk).
 
     Args:
         file_path: Şifresi çözülecek dosya
@@ -173,14 +233,9 @@ def decrypt_file(file_path: str, key: bytes = None) -> bool:
         logger.warning("Cryptography yüklü değil")
         return False
 
-    from cryptography.fernet import Fernet as FernetClass
+    from cryptography.fernet import Fernet as FernetClass, InvalidToken
 
     try:
-        if key is None:
-            key = derive_fernet_key()
-
-        fernet = FernetClass(key)
-
         with open(file_path, 'rb') as f:
             marker = f.read(14)
             if marker != b'TAKIBI_ENC_V1\x00':
@@ -188,13 +243,39 @@ def decrypt_file(file_path: str, key: bytes = None) -> bool:
                 return False
             encrypted = f.read()
 
-        decrypted = fernet.decrypt(encrypted)
+        # Anahtar verilmişse sadece onu kullan
+        if key is not None:
+            fernet = FernetClass(key)
+            decrypted = fernet.decrypt(encrypted)
+            with open(file_path, 'wb') as f:
+                f.write(decrypted)
+            logger.info(f"Dosya şifresi çözüldü: {file_path}")
+            return True
 
-        with open(file_path, 'wb') as f:
-            f.write(decrypted)
+        # Önce V2 anahtarı ile dene
+        try:
+            key_v2 = derive_fernet_key()
+            fernet = FernetClass(key_v2)
+            decrypted = fernet.decrypt(encrypted)
+            with open(file_path, 'wb') as f:
+                f.write(decrypted)
+            logger.info(f"Dosya şifresi çözüldü (V2): {file_path}")
+            return True
+        except InvalidToken:
+            logger.info("V2 anahtarı başarısız, V1 deneniyor...")
 
-        logger.info(f"Dosya şifresi çözüldü: {file_path}")
-        return True
+        # V2 başarısız - V1 ile dene (geriye uyumluluk)
+        try:
+            key_v1 = derive_fernet_key_v1()
+            fernet = FernetClass(key_v1)
+            decrypted = fernet.decrypt(encrypted)
+            with open(file_path, 'wb') as f:
+                f.write(decrypted)
+            logger.info(f"Dosya şifresi çözüldü (V1 fallback): {file_path}")
+            return True
+        except (InvalidToken, RuntimeError) as e:
+            logger.error(f"V1 fallback da başarısız: {e}")
+            return False
 
     except Exception as e:
         logger.error(f"Dosya şifre çözme hatası: {e}")

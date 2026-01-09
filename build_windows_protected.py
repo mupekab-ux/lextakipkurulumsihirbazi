@@ -18,6 +18,12 @@ Windows gereksinimleri:
 
 import os
 import sys
+
+# Windows konsolunda Unicode karakterleri destekle
+if sys.platform == "win32":
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 import shutil
 import subprocess
 import platform
@@ -153,16 +159,16 @@ def build_nuitka():
         "--onefile",
         f"--output-dir={OUTPUT_DIR}",
         f"--output-filename={APP_NAME}.exe",
-        "--windows-console-mode=disable",
+        "--windows-console-mode=attach",  # Debug için attach, release için disable yapın
         "--enable-plugin=pyqt6",
         "--include-module=openpyxl",
         "--include-module=bcrypt",
         "--include-module=docx",
-        "--include-module=pandas",
         "--include-module=requests",
         "--include-module=sqlite3",
         "--include-module=cryptography",  # Veritabanı şifreleme (fallback)
         "--nofollow-import-to=sqlcipher3",  # SQLCipher opsiyonel
+        "--nofollow-import-to=numpy",  # NumPy derleme hatası önleme
         "--assume-yes-for-downloads",
         f"--windows-company-name={APP_NAME}",
         f"--windows-product-name={APP_NAME}",
@@ -183,8 +189,13 @@ def build_nuitka():
         for pyd_file in pyd_files:
             cmd.append(f"--include-data-files={pyd_file}={pyd_file}")
 
-    # Data dosyaları
-    cmd.append("--include-data-dir=app/themes=themes")
+    # Data dosyaları - her dosyayı açıkça ekle (onefile modunda daha güvenilir)
+    # Tema dosyaları
+    for qss_file in glob.glob("app/themes/*.qss"):
+        qss_file = qss_file.replace("\\", "/")
+        cmd.append(f"--include-data-files={qss_file}={qss_file}")
+
+    # Assets
     cmd.append("--include-data-dir=assets=assets")
 
     # Ana dosya

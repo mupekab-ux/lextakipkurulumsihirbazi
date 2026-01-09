@@ -175,7 +175,6 @@ def build_nuitka():
         "--include-module=openpyxl",
         "--include-module=bcrypt",
         "--include-module=docx",
-        "--include-module=pandas",
         "--include-module=requests",
         "--include-module=sqlite3",
         "--include-module=cryptography",
@@ -199,8 +198,13 @@ def build_nuitka():
         for so_file in so_files:
             cmd.append(f"--include-data-files={so_file}={so_file}")
 
-    # Data dosyaları
-    cmd.append("--include-data-dir=app/themes=themes")
+    # Data dosyaları - her dosyayı açıkça ekle (onefile modunda daha güvenilir)
+    # Tema dosyaları
+    for qss_file in glob.glob("app/themes/*.qss"):
+        qss_file = qss_file.replace("\\", "/")
+        cmd.append(f"--include-data-files={qss_file}={qss_file}")
+
+    # Assets
     cmd.append("--include-data-dir=assets=assets")
 
     # Ana dosya

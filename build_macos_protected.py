@@ -37,6 +37,7 @@ CYTHON_MODULES = [
     "app/license.py",
     "app/demo_manager.py",
     "app/updater.py",
+    "app/db_crypto.py",  # Veritabanı şifreleme
     "app/services/user_service.py",
 ]
 
@@ -232,7 +233,6 @@ def build_pyinstaller():
         "--hidden-import=openpyxl",
         "--hidden-import=bcrypt",
         "--hidden-import=docx",
-        "--hidden-import=pandas",
         "--hidden-import=requests",
         "--hidden-import=sqlite3",
         "--hidden-import=PyQt6",

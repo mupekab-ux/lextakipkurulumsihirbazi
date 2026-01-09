@@ -3,12 +3,12 @@
 Dışa aktarma ve yedekleme işlemleri.
 """
 
+import csv
 import os
 import shutil
 from services.base import *
 
 try:
-    import pandas as pd
     from openpyxl import Workbook
     from docx import Document
     from docx.oxml import OxmlElement
@@ -16,7 +16,6 @@ try:
     from docx.shared import RGBColor, Pt, Mm
     from docx.enum.section import WD_ORIENT, WD_SECTION
 except ImportError:
-    pd = None
     Workbook = None
     Document = None
 
@@ -169,11 +168,11 @@ def _apply_docx_cell_colors(cell, bg_hex: str | None) -> None:
 
 def export_dosyalar_to_csv(path: str, rows: List[Dict[str, Any]]) -> None:
     """Verilen kayıt listesini CSV olarak dışa aktarır."""
-    if pd is None:
-        raise ImportError("pandas modülü yüklü değil")
-    data = [_prepare_export_dict(row) for row in rows]
-    df = pd.DataFrame(data, columns=HEADER_LABELS)
-    df.to_csv(path, index=False, encoding="utf-8")
+    with open(path, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.writer(f)
+        writer.writerow(HEADER_LABELS)
+        for row in rows:
+            writer.writerow(_prepare_export_row(row))
 
 
 def export_dosyalar_to_xlsx(path: str, rows: List[Dict[str, Any]]) -> None:
@@ -437,6 +436,7 @@ def validate_database_file(
     if not path or not os.path.exists(path):
         return False, required
 
+    conn = None
     try:
         conn = sqlite3.connect(path)
         cur = conn.cursor()
@@ -445,10 +445,8 @@ def validate_database_file(
     except sqlite3.Error:
         return False, required
     finally:
-        try:
+        if conn is not None:
             conn.close()
-        except Exception:
-            pass
 
     missing = required - tables
     return len(missing) == 0, missing

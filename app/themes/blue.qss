@@ -70,11 +70,12 @@ QTabWidget::pane {
 
 QTabBar::tab {
     background-color: #BBDEFB;
-    color: #1565C0;
+    color: #0D47A1;
     border: 1px solid #90CAF9;
     border-bottom: none;
     padding: 6px 12px;
     margin-right: 2px;
+    font-weight: 500;
 }
 
 QTabBar::tab:selected {
@@ -98,12 +99,55 @@ QLineEdit, QTextEdit, QPlainTextEdit, QSpinBox, QDoubleSpinBox, QDateEdit, QDate
 }
 
 QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QDateEdit:focus {
-    border: 1px solid #42A5F5;
+    border: 2px solid #1565C0;
 }
 
 QLineEdit:disabled, QTextEdit:disabled, QSpinBox:disabled {
     background-color: #E3F2FD;
     color: #64B5F6;
+}
+
+/* --- SpinBox Butonları --- */
+QSpinBox::up-button, QDoubleSpinBox::up-button {
+    background-color: #BBDEFB;
+    border: 1px solid #90CAF9;
+    border-radius: 2px;
+    width: 16px;
+    margin: 1px;
+}
+
+QSpinBox::up-button:hover, QDoubleSpinBox::up-button:hover {
+    background-color: #90CAF9;
+}
+
+QSpinBox::up-button:pressed, QDoubleSpinBox::up-button:pressed {
+    background-color: #64B5F6;
+}
+
+QSpinBox::down-button, QDoubleSpinBox::down-button {
+    background-color: #BBDEFB;
+    border: 1px solid #90CAF9;
+    border-radius: 2px;
+    width: 16px;
+    margin: 1px;
+}
+
+QSpinBox::down-button:hover, QDoubleSpinBox::down-button:hover {
+    background-color: #90CAF9;
+}
+
+QSpinBox::down-button:pressed, QDoubleSpinBox::down-button:pressed {
+    background-color: #64B5F6;
+}
+
+QSpinBox::up-arrow, QDoubleSpinBox::up-arrow {
+    width: 8px;
+    height: 8px;
+}
+
+QSpinBox::down-arrow, QDoubleSpinBox::down-arrow {
+    width: 8px;
+    height: 8px;
 }
 
 /* --- ComboBox --- */
@@ -189,11 +233,16 @@ QTableView, QTableWidget {
     border: 1px solid #64B5F6;
     selection-background-color: #64B5F6;
     selection-color: #FFFFFF;
+    font-weight: 500;
 }
 
 QTableView::item:selected, QTableWidget::item:selected {
     background-color: #64B5F6;
     color: #FFFFFF;
+}
+
+QTableView::item:hover, QTableWidget::item:hover {
+    background-color: #BBDEFB;
 }
 
 QHeaderView::section {
@@ -381,7 +430,7 @@ QSlider::handle:horizontal:hover {
 /* --- Status Bar --- */
 QStatusBar {
     background-color: #BBDEFB;
-    color: #1565C0;
+    color: #0D47A1;
     border-top: 1px solid #90CAF9;
 }
 
@@ -462,5 +511,6 @@ QDockWidget::title {
 
 /* --- Form Layout Label --- */
 QFormLayout QLabel {
-    color: #1565C0;
+    color: #0D47A1;
+    font-weight: 500;
 }

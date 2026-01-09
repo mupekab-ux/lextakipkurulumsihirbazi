@@ -5,7 +5,7 @@
 /* --- Temel Widget --- */
 QWidget {
     background-color: #F5F5F5;
-    color: #333333;
+    color: #1A1A1A;
     font-family: "Segoe UI", Arial, sans-serif;
 }
 
@@ -15,7 +15,7 @@ QMainWindow {
 
 QDialog {
     background-color: #F5F5F5;
-    color: #333333;
+    color: #1A1A1A;
 }
 
 /* --- Menü Barı --- */
@@ -70,11 +70,12 @@ QTabWidget::pane {
 
 QTabBar::tab {
     background-color: #E0E0E0;
-    color: #666666;
+    color: #444444;
     border: 1px solid #CCCCCC;
     border-bottom: none;
     padding: 6px 12px;
     margin-right: 2px;
+    font-weight: 500;
 }
 
 QTabBar::tab:selected {
@@ -98,12 +99,55 @@ QLineEdit, QTextEdit, QPlainTextEdit, QSpinBox, QDoubleSpinBox, QDateEdit, QDate
 }
 
 QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QDateEdit:focus {
-    border: 1px solid #999999;
+    border: 2px solid #4A90D9;
 }
 
 QLineEdit:disabled, QTextEdit:disabled, QSpinBox:disabled {
     background-color: #E8E8E8;
     color: #999999;
+}
+
+/* --- SpinBox Butonları --- */
+QSpinBox::up-button, QDoubleSpinBox::up-button {
+    background-color: #E0E0E0;
+    border: 1px solid #CCCCCC;
+    border-radius: 2px;
+    width: 16px;
+    margin: 1px;
+}
+
+QSpinBox::up-button:hover, QDoubleSpinBox::up-button:hover {
+    background-color: #D0D0D0;
+}
+
+QSpinBox::up-button:pressed, QDoubleSpinBox::up-button:pressed {
+    background-color: #C0C0C0;
+}
+
+QSpinBox::down-button, QDoubleSpinBox::down-button {
+    background-color: #E0E0E0;
+    border: 1px solid #CCCCCC;
+    border-radius: 2px;
+    width: 16px;
+    margin: 1px;
+}
+
+QSpinBox::down-button:hover, QDoubleSpinBox::down-button:hover {
+    background-color: #D0D0D0;
+}
+
+QSpinBox::down-button:pressed, QDoubleSpinBox::down-button:pressed {
+    background-color: #C0C0C0;
+}
+
+QSpinBox::up-arrow, QDoubleSpinBox::up-arrow {
+    width: 8px;
+    height: 8px;
+}
+
+QSpinBox::down-arrow, QDoubleSpinBox::down-arrow {
+    width: 8px;
+    height: 8px;
 }
 
 /* --- ComboBox --- */
@@ -184,15 +228,20 @@ QToolButton:checked {
 QTableView, QTableWidget {
     background-color: #FFFFFF;
     alternate-background-color: #F8F8F8;
-    color: #333333;
+    color: #1A1A1A;
     gridline-color: #C8C8C8;
     border: 1px solid #B8B8B8;
     selection-background-color: #D0E4FF;
-    selection-color: #333333;
+    selection-color: #1A1A1A;
+    font-weight: 500;
 }
 
 QTableView::item:selected, QTableWidget::item:selected {
     background-color: #D0E4FF;
+}
+
+QTableView::item:hover, QTableWidget::item:hover {
+    background-color: #E8E8E8;
 }
 
 QHeaderView::section {
@@ -378,7 +427,7 @@ QSlider::handle:horizontal:hover {
 /* --- Status Bar --- */
 QStatusBar {
     background-color: #E8E8E8;
-    color: #666666;
+    color: #444444;
     border-top: 1px solid #CCCCCC;
 }
 
@@ -459,5 +508,6 @@ QDockWidget::title {
 
 /* --- Form Layout Label --- */
 QFormLayout QLabel {
-    color: #555555;
+    color: #333333;
+    font-weight: 500;
 }

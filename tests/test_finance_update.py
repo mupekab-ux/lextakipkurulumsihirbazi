@@ -192,17 +192,6 @@ if "docx" not in sys.modules:
     sys.modules["docx.shared"] = docx_shared
     sys.modules["docx.enum.section"] = docx_enum_section
 
-if "pandas" not in sys.modules:
-    pandas_module = types.ModuleType("pandas")
-
-    class DummyDataFrame:  # pragma: no cover - sadece import için
-        def __init__(self, *args, **kwargs):
-            pass
-
-    pandas_module.DataFrame = DummyDataFrame  # type: ignore[attr-defined]
-    pandas_module.Series = DummyDataFrame  # type: ignore[attr-defined]
-    sys.modules["pandas"] = pandas_module
-
 from app import db, models
 
 

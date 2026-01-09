@@ -2,7 +2,7 @@
 
 1) Python 3.12 kurun
 2) Gerekli paketleri yükleyin:
-   pip install -r requirements.txt  # PyQt6, openpyxl, bcrypt, python-docx ve pandas içerir
+   pip install -r requirements.txt  # PyQt6, openpyxl, bcrypt, python-docx içerir
 3) TakibiEsasi uygulamasını çalıştırmak için:
    python app/main.py
 4) Tek .exe (TakibiEsasi.exe) üretmek için:

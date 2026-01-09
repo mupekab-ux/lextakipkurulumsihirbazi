@@ -116,15 +116,29 @@ def resource_path(relative_path: str) -> str:
     if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
         # PyInstaller
         base = Path(sys._MEIPASS)
-    elif getattr(sys, 'frozen', False) or '__compiled__' in dir():
-        # Nuitka standalone veya onefile
-        base = Path(sys.executable).parent
+    elif '__compiled__' in dir() or getattr(sys, 'frozen', False):
+        # Nuitka onefile veya standalone
+        # __file__ onefile modunda extract dizinini gösterir
+        # app/utils.py için parent.parent kök dizini verir
+        file_based = Path(__file__).resolve().parent.parent
+        exe_based = Path(sys.executable).parent
+
+        # Birden fazla olası yolu dene
+        possible_bases = [
+            file_based,                              # .../extract_dir/
+            exe_based,                               # exe'nin bulunduğu dizin
+            Path(__file__).resolve().parent,         # .../extract_dir/app/
+        ]
+
+        for base in possible_bases:
+            if (base / relative_path).exists():
+                return str((base / relative_path).resolve())
+
+        # Hiçbiri bulunamazsa fallback
+        base = file_based
     else:
         # Geliştirme ortamı - app klasörünün bir üst dizini
         base = Path(__file__).resolve().parent.parent
-        # Geliştirme ortamında themes -> app/themes olarak çevir
-        if relative_path.startswith("themes/"):
-            relative_path = "app/" + relative_path
     return str((base / relative_path).resolve())
 
 
@@ -145,7 +159,15 @@ def _load_stylesheet(theme_label: str) -> str:
     if cached is not None:
         return cached
     filename = THEME_MAP[normalized]
-    path = Path(resource_path(f"themes/{filename}"))
+    theme_path = f"app/themes/{filename}"
+    path = Path(resource_path(theme_path))
+    if not path.exists():
+        # Debug: hangi yolları denedik
+        import logging
+        logging.warning(f"Tema dosyası bulunamadı: {path}")
+        logging.warning(f"  __file__: {__file__}")
+        logging.warning(f"  sys.executable: {sys.executable}")
+        raise FileNotFoundError(f"Tema dosyası bulunamadı: {path}")
     stylesheet = path.read_text(encoding="utf-8")
     _THEME_CACHE[normalized] = stylesheet
     return stylesheet
@@ -158,13 +180,23 @@ def apply_theme(theme_label: str | None) -> None:
     if app is None:
         return
     normalized = normalize_theme_label(theme_label)
+
+    # İç içe try-except Nuitka'da hata veriyor, düz yapı kullan
+    stylesheet = None
     try:
         stylesheet = _load_stylesheet(normalized)
     except Exception:
+        pass
+
+    if stylesheet is None:
         try:
             stylesheet = _load_stylesheet(THEME_DEFAULT)
         except Exception:
-            stylesheet = ""
+            pass
+
+    if stylesheet is None:
+        stylesheet = ""
+
     app.setStyleSheet(stylesheet)
     for widget in app.topLevelWidgets():
         refresh = getattr(widget, "refresh_finance_colors", None)
@@ -618,21 +650,38 @@ VEKALET_DIRNAME = "vekaletler"
 def get_base_dir() -> str:
     """Return the writable base directory used by the application."""
 
-    try:
-        try:
-            from app.db import DOCS_DIR  # type: ignore
-        except ModuleNotFoundError:
-            from db import DOCS_DIR  # type: ignore
+    # DOCS_DIR'ı almaya çalış - düz yapı (iç içe try-except Nuitka'da hata veriyor)
+    docs_dir = None
 
-        if DOCS_DIR:
-            return os.path.abspath(DOCS_DIR)
+    # Önce app.db'den dene
+    try:
+        from app.db import DOCS_DIR as _docs  # type: ignore
+        docs_dir = _docs
+    except (ModuleNotFoundError, ImportError):
+        pass
     except Exception:
         pass
 
+    # app.db'den alınamadıysa db'den dene
+    if docs_dir is None:
+        try:
+            from db import DOCS_DIR as _docs  # type: ignore
+            docs_dir = _docs
+        except (ModuleNotFoundError, ImportError):
+            pass
+        except Exception:
+            pass
+
+    if docs_dir:
+        return os.path.abspath(docs_dir)
+
+    # Fallback: executable dizini
     try:
         return os.path.abspath(os.path.dirname(sys.executable))
     except Exception:
-        return os.path.abspath(os.path.dirname(__file__))
+        pass
+
+    return os.path.abspath(os.path.dirname(__file__))
 
 
 def get_vekalet_dir() -> str:

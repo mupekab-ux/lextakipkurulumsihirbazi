@@ -63,26 +63,48 @@ def safe_int(value: Any, default: int = 0) -> int:
     """Güvenli integer dönüşümü."""
     if value is None or value == "":
         return default
+
+    # İlk deneme: doğrudan int
+    result = None
     try:
-        return int(value)
+        result = int(value)
     except (TypeError, ValueError):
-        try:
-            return int(Decimal(str(value)))
-        except (InvalidOperation, ValueError, TypeError):
-            return default
+        pass
+
+    if result is not None:
+        return result
+
+    # İkinci deneme: Decimal üzerinden
+    try:
+        result = int(Decimal(str(value)))
+    except (InvalidOperation, ValueError, TypeError):
+        pass
+
+    return result if result is not None else default
 
 
 def safe_float(value: Any, default: float = 0.0) -> float:
     """Güvenli float dönüşümü."""
     if value is None or value == "":
         return default
+
+    # İlk deneme: doğrudan float
+    result = None
     try:
-        return float(value)
+        result = float(value)
     except (TypeError, ValueError):
-        try:
-            return float(Decimal(str(value)))
-        except (InvalidOperation, ValueError, TypeError):
-            return default
+        pass
+
+    if result is not None:
+        return result
+
+    # İkinci deneme: Decimal üzerinden
+    try:
+        result = float(Decimal(str(value)))
+    except (InvalidOperation, ValueError, TypeError):
+        pass
+
+    return result if result is not None else default
 
 
 def normalize_iso_date(value: Any) -> Optional[str]:

@@ -86,7 +86,6 @@ def build():
         "--include-module=openpyxl",
         "--include-module=bcrypt",
         "--include-module=docx",
-        "--include-module=pandas",
         "--include-module=requests",
         "--include-module=sqlite3",
         "--include-module=cryptography",  # Veritabanı şifreleme (fallback)

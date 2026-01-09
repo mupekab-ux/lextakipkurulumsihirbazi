@@ -20,7 +20,7 @@ import os
 import platform
 import subprocess
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, Dict, Any, Tuple
 
@@ -79,8 +79,76 @@ def _get_license_file_path() -> Path:
 
 
 # =============================================================================
-# MAKINA ID OLUŞTURMA
+# MAKINA ID OLUŞTURMA (V2 - Daha Stabil)
 # =============================================================================
+
+# Machine ID versiyon sabitleri
+MACHINE_ID_VERSION = 2  # Yeni stabil versiyon
+MACHINE_ID_FILE_NAME = ".takibiesasi_machine_id"  # Önbellek dosyası
+
+
+def _get_motherboard_uuid() -> str:
+    """
+    Anakart UUID'sini alır - EN STABİL bileşen.
+    BIOS'ta kayıtlı olduğu için hiçbir zaman değişmez.
+    """
+    try:
+        if platform.system() == "Windows":
+            result = subprocess.run(
+                ["powershell", "-Command",
+                 "(Get-CimInstance -ClassName Win32_ComputerSystemProduct).UUID"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+                creationflags=subprocess.CREATE_NO_WINDOW
+            )
+            uuid_val = result.stdout.strip()
+            # Bazı sistemlerde geçersiz UUID döner
+            invalid_uuids = [
+                "FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF",
+                "00000000-0000-0000-0000-000000000000",
+                ""
+            ]
+            if uuid_val and uuid_val not in invalid_uuids:
+                return uuid_val
+        else:
+            # Linux: /sys/class/dmi/id/product_uuid
+            try:
+                with open("/sys/class/dmi/id/product_uuid", "r") as f:
+                    return f.read().strip()
+            except (FileNotFoundError, PermissionError):
+                pass
+    except Exception as e:
+        logger.warning(f"Motherboard UUID alınamadı: {e}")
+
+    return ""
+
+
+def _get_baseboard_serial() -> str:
+    """
+    Anakart seri numarasını alır - çok stabil.
+    Motherboard UUID yoksa yedek olarak kullanılır.
+    """
+    try:
+        if platform.system() == "Windows":
+            result = subprocess.run(
+                ["powershell", "-Command",
+                 "(Get-CimInstance -ClassName Win32_BaseBoard).SerialNumber"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+                creationflags=subprocess.CREATE_NO_WINDOW
+            )
+            serial = result.stdout.strip()
+            # "To Be Filled By O.E.M." gibi geçersiz değerleri filtrele
+            invalid_serials = ["To Be Filled By O.E.M.", "Default string", ""]
+            if serial and serial not in invalid_serials:
+                return serial
+    except Exception as e:
+        logger.warning(f"Baseboard serial alınamadı: {e}")
+
+    return ""
+
 
 def _get_cpu_id() -> str:
     """CPU kimliğini alır (Windows için PowerShell, Linux için /proc/cpuinfo)."""
@@ -110,51 +178,6 @@ def _get_cpu_id() -> str:
     return "UNKNOWN_CPU"
 
 
-def _get_disk_serial() -> str:
-    """Birincil disk seri numarasını alır."""
-    try:
-        if platform.system() == "Windows":
-            # Windows: PowerShell ile disk seri numarası
-            result = subprocess.run(
-                ["powershell", "-Command",
-                 "(Get-CimInstance -ClassName Win32_DiskDrive | Select-Object -First 1).SerialNumber"],
-                capture_output=True,
-                text=True,
-                timeout=10,
-                creationflags=subprocess.CREATE_NO_WINDOW
-            )
-            serial = result.stdout.strip()
-            if serial:
-                return serial
-        else:
-            # Linux: lsblk veya /sys/block/*/serial
-            result = subprocess.run(
-                ["lsblk", "-ndo", "SERIAL"],
-                capture_output=True,
-                text=True,
-                timeout=10
-            )
-            serial = result.stdout.strip().split('\n')[0]
-            if serial:
-                return serial
-    except Exception as e:
-        logger.warning(f"Disk seri numarası alınamadı: {e}")
-
-    return "UNKNOWN_DISK"
-
-
-def _get_mac_address() -> str:
-    """Birincil ağ adaptörünün MAC adresini alır."""
-    try:
-        mac = uuid.getnode()
-        # uuid.getnode() 48-bit integer döndürür
-        mac_str = ':'.join(('%012X' % mac)[i:i+2] for i in range(0, 12, 2))
-        return mac_str
-    except Exception as e:
-        logger.warning(f"MAC adresi alınamadı: {e}")
-        return "UNKNOWN_MAC"
-
-
 def _get_windows_product_id() -> str:
     """Windows ürün kimliğini alır (ek güvenlik katmanı)."""
     try:
@@ -176,26 +199,97 @@ def _get_windows_product_id() -> str:
     return ""
 
 
+def _get_machine_id_cache_path() -> Path:
+    """Machine ID önbellek dosyasının yolunu döndürür."""
+    return _get_license_dir() / MACHINE_ID_FILE_NAME
+
+
+def _load_cached_machine_id() -> Optional[str]:
+    """
+    Önbelleklenmiş machine ID'yi yükle.
+    İlk aktivasyonda oluşturulan ID'yi korur.
+    """
+    try:
+        cache_path = _get_machine_id_cache_path()
+        if cache_path.exists():
+            with open(cache_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                cached_id = data.get("machine_id")
+                version = data.get("version", 1)
+                if cached_id and version == MACHINE_ID_VERSION:
+                    logger.debug("Önbelleklenmiş machine ID kullanılıyor")
+                    return cached_id
+    except Exception as e:
+        logger.warning(f"Machine ID önbelleği okunamadı: {e}")
+    return None
+
+
+def _save_cached_machine_id(machine_id: str) -> bool:
+    """Machine ID'yi önbelleğe kaydet."""
+    try:
+        cache_path = _get_machine_id_cache_path()
+        data = {
+            "machine_id": machine_id,
+            "version": MACHINE_ID_VERSION,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        with open(cache_path, 'w', encoding='utf-8') as f:
+            json.dump(data, f)
+        logger.debug("Machine ID önbelleğe kaydedildi")
+        return True
+    except Exception as e:
+        logger.warning(f"Machine ID önbelleğe kaydedilemedi: {e}")
+        return False
+
+
 def generate_machine_id() -> str:
     """
-    Benzersiz makine kimliği oluşturur.
+    Benzersiz makine kimliği oluşturur (V2 - Daha Stabil).
 
-    Kombinasyon:
-    - CPU ID
-    - Disk Seri Numarası
-    - MAC Adresi
-    - Windows Ürün Kimliği (varsa)
+    STABİL BİLEŞENLER (değişmez):
+    1. Motherboard UUID (BIOS'ta kayıtlı)
+    2. Baseboard Serial (anakart seri no)
+    3. CPU ID
+    4. Windows Product ID
+
+    NOT: MAC adresi ve Disk Serial KALDIRILDI çünkü:
+    - uuid.getnode() rastgele değer döndürebilir
+    - Disk sırası değişebilir (USB vs.)
 
     Returns:
         SHA-256 hash olarak makine kimliği (64 karakter hex)
     """
-    components = [
-        _get_cpu_id(),
-        _get_disk_serial(),
-        _get_mac_address(),
-        _get_windows_product_id(),
-        platform.node(),  # Bilgisayar adı
-    ]
+    # Önce önbellekten kontrol et (geriye uyumluluk)
+    cached = _load_cached_machine_id()
+    if cached:
+        return cached
+
+    # Stabil bileşenleri topla
+    components = []
+
+    # 1. Motherboard UUID - en güvenilir
+    mb_uuid = _get_motherboard_uuid()
+    if mb_uuid:
+        components.append(mb_uuid)
+
+    # 2. Baseboard Serial - yedek
+    bb_serial = _get_baseboard_serial()
+    if bb_serial:
+        components.append(bb_serial)
+
+    # 3. CPU ID
+    cpu_id = _get_cpu_id()
+    if cpu_id and cpu_id != "UNKNOWN_CPU":
+        components.append(cpu_id)
+
+    # 4. Windows Product ID
+    win_id = _get_windows_product_id()
+    if win_id:
+        components.append(win_id)
+
+    # 5. Bilgisayar adı (son çare olarak)
+    if not components:
+        components.append(platform.node())
 
     # Boş olmayan bileşenleri birleştir
     combined = "|".join(c for c in components if c)
@@ -203,8 +297,54 @@ def generate_machine_id() -> str:
     # SHA-256 hash oluştur
     machine_id = hashlib.sha256(combined.encode('utf-8')).hexdigest()
 
-    logger.debug(f"Makine ID oluşturuldu: {machine_id[:16]}...")
+    # Önbelleğe kaydet (ilk çalıştırmada)
+    _save_cached_machine_id(machine_id)
+
+    logger.debug(f"Makine ID oluşturuldu (V2): {machine_id[:16]}...")
     return machine_id
+
+
+def generate_machine_id_v1() -> str:
+    """
+    ESKİ Machine ID algoritması (V1) - Geriye uyumluluk için.
+    Mevcut lisansları doğrulamak için kullanılır.
+    """
+    def _get_disk_serial_v1() -> str:
+        try:
+            if platform.system() == "Windows":
+                result = subprocess.run(
+                    ["powershell", "-Command",
+                     "(Get-CimInstance -ClassName Win32_DiskDrive | Select-Object -First 1).SerialNumber"],
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                    creationflags=subprocess.CREATE_NO_WINDOW
+                )
+                serial = result.stdout.strip()
+                if serial:
+                    return serial
+        except Exception:
+            pass
+        return "UNKNOWN_DISK"
+
+    def _get_mac_address_v1() -> str:
+        try:
+            mac = uuid.getnode()
+            mac_str = ':'.join(('%012X' % mac)[i:i+2] for i in range(0, 12, 2))
+            return mac_str
+        except Exception:
+            return "UNKNOWN_MAC"
+
+    components = [
+        _get_cpu_id(),
+        _get_disk_serial_v1(),
+        _get_mac_address_v1(),
+        _get_windows_product_id(),
+        platform.node(),
+    ]
+
+    combined = "|".join(c for c in components if c)
+    return hashlib.sha256(combined.encode('utf-8')).hexdigest()
 
 
 def get_short_machine_id() -> str:
@@ -517,6 +657,7 @@ def delete_license() -> bool:
 def verify_local_license() -> Tuple[bool, str]:
     """
     Yerel lisans dosyasını doğrular.
+    Hem V1 hem V2 machine ID'leri destekler (geriye uyumluluk).
 
     Returns:
         (geçerli_mi, mesaj) tuple'ı
@@ -526,18 +667,38 @@ def verify_local_license() -> Tuple[bool, str]:
     if license_data is None:
         return False, "Lisans bulunamadı. Lütfen ürünü aktive edin."
 
-    # Makine ID kontrolü
-    current_machine_id = generate_machine_id()
     stored_machine_id = license_data.get("machine_id", "")
 
-    if current_machine_id != stored_machine_id:
-        return False, "Bu lisans farklı bir bilgisayar için aktive edilmiş."
+    # Makine ID kontrolü - V2 ile dene
+    current_machine_id_v2 = generate_machine_id()
 
-    # Lisans anahtarı kontrolü
+    if current_machine_id_v2 == stored_machine_id:
+        return _verify_license_key(license_data)
+
+    # V2 eşleşmediyse V1 ile dene (geriye uyumluluk)
+    current_machine_id_v1 = generate_machine_id_v1()
+
+    if current_machine_id_v1 == stored_machine_id:
+        # V1 eşleşti - lisansı V2'ye migrate et
+        logger.info("V1 machine ID eşleşti, V2'ye migrate ediliyor...")
+        license_data["machine_id"] = current_machine_id_v2
+        save_license(
+            license_key=license_data.get("license_key", ""),
+            activation_date=license_data.get("activation_date", ""),
+            machine_id=current_machine_id_v2,
+            customer_name=license_data.get("customer_name", ""),
+            customer_email=license_data.get("customer_email", "")
+        )
+        return _verify_license_key(license_data)
+
+    return False, "Bu lisans farklı bir bilgisayar için aktive edilmiş."
+
+
+def _verify_license_key(license_data: Dict[str, Any]) -> Tuple[bool, str]:
+    """Lisans anahtarını doğrular."""
     license_key = license_data.get("license_key", "")
     if not license_key:
         return False, "Geçersiz lisans anahtarı."
-
     return True, "Lisans geçerli."
 
 
@@ -552,6 +713,26 @@ def was_license_rejected() -> bool:
 def get_rejection_reason() -> str:
     """Lisans red nedenini döndürür."""
     return _license_rejection_reason
+
+
+def _check_machine_id_match(stored_machine_id: str) -> Tuple[bool, str]:
+    """
+    Machine ID eşleşmesini kontrol et (V1 ve V2 destekli).
+
+    Returns:
+        (eşleşti_mi, kullanılacak_machine_id)
+    """
+    # V2 ile dene
+    current_v2 = generate_machine_id()
+    if current_v2 == stored_machine_id:
+        return True, current_v2
+
+    # V1 ile dene (geriye uyumluluk)
+    current_v1 = generate_machine_id_v1()
+    if current_v1 == stored_machine_id:
+        return True, current_v2  # V2 döndür migration için
+
+    return False, current_v2
 
 
 def is_activated() -> bool:
@@ -582,17 +763,28 @@ def is_activated() -> bool:
         logger.info("Lisans anahtarı bulunamadı")
         return False
 
-    # Makine ID kontrolü
-    current_machine_id = generate_machine_id()
+    # Makine ID kontrolü (V1 ve V2 destekli)
     stored_machine_id = license_data.get("machine_id", "")
+    matched, current_machine_id = _check_machine_id_match(stored_machine_id)
 
-    if current_machine_id != stored_machine_id:
+    if not matched:
         logger.warning(
             f"Makine ID eşleşmiyor! "
             f"Yerel dosyadaki: {stored_machine_id[:16]}... vs "
-            f"Mevcut: {current_machine_id[:16]}..."
+            f"Mevcut V2: {current_machine_id[:16]}..."
         )
         return False
+
+    # Eğer V1'den V2'ye migrate edilmesi gerekiyorsa
+    if stored_machine_id != current_machine_id:
+        logger.info("Machine ID V1'den V2'ye migrate ediliyor...")
+        save_license(
+            license_key=license_key,
+            activation_date=license_data.get("activation_date", ""),
+            machine_id=current_machine_id,
+            customer_name=license_data.get("customer_name", ""),
+            customer_email=license_data.get("customer_email", "")
+        )
 
     # Online doğrulama dene
     try:
