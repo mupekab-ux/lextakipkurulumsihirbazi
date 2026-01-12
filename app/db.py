@@ -100,31 +100,48 @@ def _get_documents_dir() -> str:
 
 
 def _get_app_data_dir() -> str:
-    """Uygulama veri klasörünü oluşturur ve döndürür."""
+    """Uygulama veri klasörünü oluşturur ve döndürür.
+
+    LOCALAPPDATA birincil konum olarak kullanılır (OneDrive senkronizasyonunu önlemek için).
+    Başarısız olursa Documents klasörüne düşülür.
+    """
+    import sys
+
+    # Birincil: LOCALAPPDATA (OneDrive'dan bağımsız, sabit konum)
+    if sys.platform == "win32":
+        localappdata = os.environ.get("LOCALAPPDATA")
+        if localappdata:
+            app_dir = os.path.join(localappdata, "TakibiEsasi")
+            try:
+                os.makedirs(app_dir, exist_ok=True)
+                return app_dir
+            except (OSError, PermissionError):
+                pass
+
+    # Fallback 1: Documents klasörü
     docs_dir = _get_documents_dir()
     app_dir = os.path.join(docs_dir, "TakibiEsasi")
-
     try:
         os.makedirs(app_dir, exist_ok=True)
-    except (OSError, PermissionError) as e:
-        # Documents klasörü erişilemezse, kullanıcı klasöründe oluştur
-        import sys
-        if sys.platform == "win32":
-            fallback = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")), "TakibiEsasi")
-        else:
-            fallback = os.path.join(os.path.expanduser("~"), ".takibiesasi")
+        return app_dir
+    except (OSError, PermissionError):
+        pass
 
-        try:
-            os.makedirs(fallback, exist_ok=True)
-            return fallback
-        except Exception:
-            # Son çare: geçici klasör
-            import tempfile
-            temp_dir = os.path.join(tempfile.gettempdir(), "TakibiEsasi")
-            os.makedirs(temp_dir, exist_ok=True)
-            return temp_dir
+    # Fallback 2: Kullanıcı ana dizini
+    if sys.platform == "win32":
+        fallback = os.path.join(os.path.expanduser("~"), "TakibiEsasi")
+    else:
+        fallback = os.path.join(os.path.expanduser("~"), ".takibiesasi")
 
-    return app_dir
+    try:
+        os.makedirs(fallback, exist_ok=True)
+        return fallback
+    except Exception:
+        # Son çare: geçici klasör
+        import tempfile
+        temp_dir = os.path.join(tempfile.gettempdir(), "TakibiEsasi")
+        os.makedirs(temp_dir, exist_ok=True)
+        return temp_dir
 
 
 DOCS_DIR = _get_app_data_dir()
@@ -3488,8 +3505,9 @@ def get_backup_info(backup_path: str) -> dict[str, Any] | None:
 
 # --------------------------------------------------------- Dosya Klasör Yönetimi --
 
-# Ana dosyalar klasörü (Documents/TakibiEsasi Dosyaları)
-CASE_FILES_DIR = os.path.join(os.path.expanduser("~"), "Documents", "TakibiEsasi Dosyaları")
+# Ana dosyalar klasörü (LOCALAPPDATA/TakibiEsasi/Dosyalar)
+# DOCS_DIR zaten LOCALAPPDATA altında olduğundan, dosyalar da aynı yere gider
+CASE_FILES_DIR = os.path.join(DOCS_DIR, "Dosyalar")
 
 
 def get_case_files_root() -> str:

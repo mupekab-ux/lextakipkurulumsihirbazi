@@ -467,33 +467,45 @@ def normalize_str(value: str) -> str:
 def get_attachments_dir() -> Path:
     """Ek dosyalarının saklandığı klasörü döndürür ve yoksa oluşturur.
 
-    Depo talimatlarına uygun şekilde kullanıcı ``Documents/TakibiEsasi``
-    dizini altındaki ``attachments`` klasörü tercih edilir. Eğer sistemde
-    ``Documents`` klasörü bulunmuyorsa kullanıcının ana dizinine
-    yedeklenir.
+    LOCALAPPDATA/TakibiEsasi/attachments klasörü kullanılır (OneDrive senkronizasyonunu önlemek için).
+    Başarısız olursa Documents klasörüne düşülür.
     """
 
+    # Birincil: LOCALAPPDATA (Windows'ta OneDrive'dan bağımsız)
+    if sys.platform == "win32":
+        localappdata = os.environ.get("LOCALAPPDATA")
+        if localappdata:
+            base_path = Path(localappdata) / "TakibiEsasi"
+            try:
+                base_path.mkdir(parents=True, exist_ok=True)
+                attachments_dir = base_path / "attachments"
+                attachments_dir.mkdir(parents=True, exist_ok=True)
+                return attachments_dir
+            except Exception:
+                pass
+
+    # Fallback 1: Documents klasörü
     home = Path.home()
     documents_dir = home / "Documents"
     try:
         documents_dir.mkdir(parents=True, exist_ok=True)
     except Exception:
-        # Windows dışındaki kurulumlarda ``Documents`` klasörü olmayabilir.
         documents_dir = home
 
     base_path = documents_dir / "TakibiEsasi"
     try:
         base_path.mkdir(parents=True, exist_ok=True)
+        attachments_dir = base_path / "attachments"
+        attachments_dir.mkdir(parents=True, exist_ok=True)
+        return attachments_dir
     except Exception:
-        # Yazma izni yoksa uygulama dizinine geri düş.
-        fallback = Path(__file__).resolve().parent.parent
-        base_path = fallback / "attachments"
-        base_path.mkdir(parents=True, exist_ok=True)
-        return base_path
+        pass
 
-    attachments_dir = base_path / "attachments"
-    attachments_dir.mkdir(parents=True, exist_ok=True)
-    return attachments_dir
+    # Fallback 2: Uygulama dizini
+    fallback = Path(__file__).resolve().parent.parent
+    base_path = fallback / "attachments"
+    base_path.mkdir(parents=True, exist_ok=True)
+    return base_path
 
 
 # Modül yüklendiğinde ek klasörünün mevcut olduğundan emin ol.

@@ -204,6 +204,7 @@
                     <div class="nav-item" data-page="features"><i class="fas fa-rocket"></i> Ozellikler</div>
                     <div class="nav-item" data-page="screenshots"><i class="fas fa-images"></i> Ekran Goruntuleri</div>
                     <div class="nav-item" data-page="pricing"><i class="fas fa-tags"></i> Fiyatlandirma</div>
+                    <div class="nav-item" data-page="promo"><i class="fas fa-percent"></i> Promosyon Kodlari</div>
                     <div class="nav-item" data-page="testimonials"><i class="fas fa-quote-right"></i> Yorumlar</div>
                     <div class="nav-item" data-page="faq"><i class="fas fa-question-circle"></i> SSS</div>
                 </div>
@@ -521,6 +522,63 @@
                 <div class="card"><div class="items-list" id="messagesList"></div></div>
             </section>
 
+            <!-- Promo Codes -->
+            <section class="page-section" id="page-promo">
+                <div class="page-header">
+                    <h1>Promosyon Kodlari</h1>
+                    <div class="header-actions">
+                        <button class="btn btn-primary" onclick="openPromoModal()"><i class="fas fa-plus"></i> Yeni Kod</button>
+                    </div>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-card"><div class="icon primary"><i class="fas fa-ticket-alt"></i></div><div class="value" id="promoStatTotal">0</div><div class="label">Toplam Kod</div></div>
+                    <div class="stat-card"><div class="icon success"><i class="fas fa-check-circle"></i></div><div class="value" id="promoStatActive">0</div><div class="label">Aktif Kod</div></div>
+                    <div class="stat-card"><div class="icon info"><i class="fas fa-shopping-cart"></i></div><div class="value" id="promoStatUses">0</div><div class="label">Toplam Kullanim</div></div>
+                    <div class="stat-card"><div class="icon warning"><i class="fas fa-turkish-lira-sign"></i></div><div class="value" id="promoStatDiscount">0</div><div class="label">Toplam Indirim</div></div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h3 class="card-title">Promosyon Kodlari</h3></div>
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>Kod</th><th>Indirim</th><th>Min. Tutar</th><th>Kullanim</th><th>Gecerlilik</th><th>Durum</th><th>Islemler</th></tr></thead>
+                            <tbody id="promoCodesTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Promo Code Modal -->
+            <div class="modal-overlay" id="promoModal">
+                <div class="modal">
+                    <div class="modal-header"><h3 id="promoModalTitle">Yeni Promosyon Kodu</h3><button class="btn btn-icon btn-secondary" onclick="closeModal('promoModal')"><i class="fas fa-times"></i></button></div>
+                    <div class="modal-body">
+                        <input type="hidden" id="editPromoId">
+                        <div class="form-group"><label>Promosyon Kodu</label><input type="text" id="promoCode" placeholder="INDIRIM20" style="text-transform: uppercase;"></div>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>Indirim Tipi</label>
+                                <select id="promoDiscountType">
+                                    <option value="percent">Yuzde (%)</option>
+                                    <option value="fixed">Sabit (TL)</option>
+                                </select>
+                            </div>
+                            <div class="form-group"><label>Indirim Degeri</label><input type="number" id="promoDiscountValue" placeholder="20" step="0.01"></div>
+                        </div>
+                        <div class="form-group"><label>Minimum Sepet Tutari (TL)</label><input type="number" id="promoMinPurchase" placeholder="0" step="0.01" value="0"></div>
+                        <div class="form-group"><label>Maksimum Kullanim (bos = sinirsiz)</label><input type="number" id="promoMaxUses" placeholder="Sinirsiz"></div>
+                        <div class="grid-2">
+                            <div class="form-group"><label>Baslangic Tarihi</label><input type="datetime-local" id="promoValidFrom"></div>
+                            <div class="form-group"><label>Bitis Tarihi</label><input type="datetime-local" id="promoValidUntil"></div>
+                        </div>
+                        <div class="form-group"><label>Aciklama</label><textarea id="promoDescription" rows="2" placeholder="Promosyon kodu aciklamasi..."></textarea></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="closeModal('promoModal')">Iptal</button>
+                        <button class="btn btn-primary" onclick="savePromoCode()"><i class="fas fa-save"></i> Kaydet</button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Email Management -->
             <section class="page-section" id="page-email">
                 <div class="page-header">
@@ -534,10 +592,66 @@
 
                 <!-- Templates Tab -->
                 <div id="emailTemplatesTab">
+                    <!-- Active Email Service Status -->
+                    <div id="emailServiceStatus" class="card" style="margin-bottom: 20px; padding: 16px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div id="serviceIcon" style="width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: rgba(16, 185, 129, 0.2);">
+                                    <i class="fas fa-envelope" style="font-size: 20px; color: var(--success);"></i>
+                                </div>
+                                <div>
+                                    <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase;">Aktif Mail Servisi</div>
+                                    <div id="activeServiceName" style="font-size: 18px; font-weight: 600; color: var(--success);">Resend</div>
+                                    <div id="serviceModeLabel" style="font-size: 11px; color: var(--text-muted);">Otomatik</div>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 24px; flex-wrap: wrap; align-items: center;">
+                                <div style="text-align: center;">
+                                    <div style="font-size: 12px; color: var(--text-muted);">Resend</div>
+                                    <div id="resendStatus" style="font-size: 14px; font-weight: 500;"><span class="badge badge-success">Aktif</span></div>
+                                </div>
+                                <div style="text-align: center;">
+                                    <div style="font-size: 12px; color: var(--text-muted);">Brevo (Yedek)</div>
+                                    <div id="brevoStatus" style="font-size: 14px; font-weight: 500;"><span class="badge badge-info">Hazir</span></div>
+                                </div>
+                                <div style="text-align: center;">
+                                    <div style="font-size: 12px; color: var(--text-muted);">Toplam Kapasite</div>
+                                    <div style="font-size: 14px; font-weight: 500; color: var(--primary);">400/gun</div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Manual Service Switch -->
+                        <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);">
+                            <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">Manuel Servis Secimi</div>
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                <button onclick="switchEmailService('auto')" id="btnServiceAuto" class="btn btn-sm" style="padding: 8px 16px; border-radius: 6px; font-size: 13px; background: var(--bg-input); border: 1px solid var(--border); color: var(--text); cursor: pointer;">
+                                    <i class="fas fa-magic"></i> Otomatik
+                                </button>
+                                <button onclick="switchEmailService('resend')" id="btnServiceResend" class="btn btn-sm" style="padding: 8px 16px; border-radius: 6px; font-size: 13px; background: var(--bg-input); border: 1px solid var(--border); color: var(--text); cursor: pointer;">
+                                    <i class="fas fa-paper-plane"></i> Resend
+                                </button>
+                                <button onclick="switchEmailService('brevo')" id="btnServiceBrevo" class="btn btn-sm" style="padding: 8px 16px; border-radius: 6px; font-size: 13px; background: var(--bg-input); border: 1px solid var(--border); color: var(--text); cursor: pointer;">
+                                    <i class="fas fa-envelope"></i> Brevo
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Email Limit Warning -->
+                    <div id="emailLimitWarning" class="alert" style="display: none; margin-bottom: 20px; padding: 16px; border-radius: 10px; background: rgba(239, 68, 68, 0.15); border: 1px solid var(--danger);">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <i class="fas fa-exclamation-triangle" style="font-size: 24px; color: var(--danger);"></i>
+                            <div>
+                                <strong style="color: var(--danger);">Gunluk Mail Limiti Uyarisi!</strong>
+                                <p style="margin: 4px 0 0; color: var(--text-muted);" id="emailLimitMessage">-</p>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="stats-grid" style="margin-bottom: 24px;">
                         <div class="stat-card"><div class="icon primary"><i class="fas fa-file-alt"></i></div><div class="value" id="emailStatTemplates">0</div><div class="label">Toplam Sablon</div></div>
                         <div class="stat-card"><div class="icon success"><i class="fas fa-paper-plane"></i></div><div class="value" id="emailStatSent">0</div><div class="label">Gonderilen</div></div>
-                        <div class="stat-card"><div class="icon info"><i class="fas fa-calendar-day"></i></div><div class="value" id="emailStatToday">0</div><div class="label">Bugun</div></div>
+                        <div class="stat-card" id="emailLimitCard"><div class="icon info"><i class="fas fa-calendar-day"></i></div><div class="value" id="emailStatToday">0/100</div><div class="label">Bugun / Limit</div></div>
                         <div class="stat-card"><div class="icon danger"><i class="fas fa-exclamation-triangle"></i></div><div class="value" id="emailStatFailed">0</div><div class="label">Basarisiz</div></div>
                     </div>
                     <div class="card">
@@ -950,7 +1064,7 @@
             const loaders = {
                 dashboard: loadDashboard, licenses: loadLicenses, users: loadUsers, orders: loadOrders,
                 'sales-report': loadSalesReport, activity: loadActivity, demo: loadDemo, messages: loadMessages,
-                features: loadFeatures, screenshots: loadScreenshots, pricing: loadPricing,
+                features: loadFeatures, screenshots: loadScreenshots, pricing: loadPricing, promo: loadPromoCodes,
                 testimonials: loadTestimonials, faq: loadFaq, announcements: loadAnnouncements,
                 media: loadMedia, releases: loadReleases, files: loadFiles, email: loadEmailManagement
             };
@@ -1438,6 +1552,151 @@
         let emailLogsPage = 1;
         let emailDailyChart = null;
 
+        // ============ PROMO CODES ============
+
+        async function loadPromoCodes() {
+            try {
+                const [codesData, statsData] = await Promise.all([
+                    api('/admin/promo/list'),
+                    api('/admin/promo/stats')
+                ]);
+
+                const codes = codesData.codes || [];
+                const stats = statsData.stats || {};
+
+                // Update stats
+                document.getElementById('promoStatTotal').textContent = stats.total_codes || 0;
+                document.getElementById('promoStatActive').textContent = stats.active_codes || 0;
+                document.getElementById('promoStatUses').textContent = stats.total_uses || 0;
+                document.getElementById('promoStatDiscount').textContent = (stats.total_discount || 0).toFixed(2) + ' TL';
+
+                // Render table
+                document.getElementById('promoCodesTable').innerHTML = codes.map(p => {
+                    const discountText = p.discount_type === 'percent' ? `%${p.discount_value}` : `${p.discount_value} TL`;
+                    const usageText = p.max_uses ? `${p.used_count}/${p.max_uses}` : p.used_count;
+                    const validText = getValidityText(p.valid_from, p.valid_until);
+
+                    return `
+                        <tr>
+                            <td><strong style="color: var(--primary);">${p.code}</strong></td>
+                            <td><span class="badge badge-${p.discount_type === 'percent' ? 'info' : 'warning'}">${discountText}</span></td>
+                            <td>${p.min_purchase > 0 ? p.min_purchase + ' TL' : '-'}</td>
+                            <td>${usageText}</td>
+                            <td style="font-size:13px;">${validText}</td>
+                            <td><span class="badge badge-${p.is_active ? 'success' : 'danger'}">${p.is_active ? 'Aktif' : 'Pasif'}</span></td>
+                            <td>
+                                <button class="btn btn-sm btn-secondary" onclick="editPromoCode(${p.id})"><i class="fas fa-edit"></i></button>
+                                <button class="btn btn-sm btn-${p.is_active ? 'warning' : 'success'}" onclick="togglePromoCode(${p.id}, ${!p.is_active})"><i class="fas fa-${p.is_active ? 'pause' : 'play'}"></i></button>
+                                <button class="btn btn-sm btn-danger" onclick="deletePromoCode(${p.id})"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('') || '<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">Henuz promosyon kodu yok</td></tr>';
+
+            } catch (e) {
+                console.error('Promo codes load error:', e);
+                showToast('Promosyon kodlari yuklenemedi', 'error');
+            }
+        }
+
+        function getValidityText(validFrom, validUntil) {
+            const now = new Date();
+            if (validFrom && new Date(validFrom) > now) {
+                return `${formatDate(validFrom)} baslayacak`;
+            }
+            if (validUntil) {
+                const until = new Date(validUntil);
+                if (until < now) return `<span style="color:var(--danger);">Suresi doldu</span>`;
+                return `${formatDate(validUntil)}'e kadar`;
+            }
+            return '<span style="color:var(--success);">Suresiz</span>';
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            return new Date(dateStr).toLocaleDateString('tr-TR');
+        }
+
+        let allPromoCodes = [];
+
+        function openPromoModal(promo = null) {
+            document.getElementById('promoModalTitle').textContent = promo ? 'Promosyon Kodu Duzenle' : 'Yeni Promosyon Kodu';
+            document.getElementById('editPromoId').value = promo ? promo.id : '';
+            document.getElementById('promoCode').value = promo ? promo.code : '';
+            document.getElementById('promoDiscountType').value = promo ? promo.discount_type : 'percent';
+            document.getElementById('promoDiscountValue').value = promo ? promo.discount_value : '';
+            document.getElementById('promoMinPurchase').value = promo ? promo.min_purchase : 0;
+            document.getElementById('promoMaxUses').value = promo ? (promo.max_uses || '') : '';
+            document.getElementById('promoValidFrom').value = promo && promo.valid_from ? promo.valid_from.slice(0, 16) : '';
+            document.getElementById('promoValidUntil').value = promo && promo.valid_until ? promo.valid_until.slice(0, 16) : '';
+            document.getElementById('promoDescription').value = promo ? (promo.description || '') : '';
+            openModal('promoModal');
+        }
+
+        async function editPromoCode(id) {
+            try {
+                const data = await api('/admin/promo/list');
+                const promo = (data.codes || []).find(p => p.id === id);
+                if (promo) openPromoModal(promo);
+            } catch (e) {
+                showToast('Promosyon kodu yuklenemedi', 'error');
+            }
+        }
+
+        async function savePromoCode() {
+            const id = document.getElementById('editPromoId').value;
+            const code = document.getElementById('promoCode').value.trim();
+            const discountType = document.getElementById('promoDiscountType').value;
+            const discountValue = parseFloat(document.getElementById('promoDiscountValue').value);
+            const minPurchase = parseFloat(document.getElementById('promoMinPurchase').value) || 0;
+            const maxUses = document.getElementById('promoMaxUses').value ? parseInt(document.getElementById('promoMaxUses').value) : null;
+            const validFrom = document.getElementById('promoValidFrom').value || null;
+            const validUntil = document.getElementById('promoValidUntil').value || null;
+            const description = document.getElementById('promoDescription').value.trim();
+
+            if (!code || isNaN(discountValue)) {
+                showToast('Kod ve indirim degeri zorunludur', 'error');
+                return;
+            }
+
+            try {
+                if (id) {
+                    await api(`/admin/promo/${id}`, 'PUT', { code, discount_type: discountType, discount_value: discountValue, min_purchase: minPurchase, max_uses: maxUses, valid_from: validFrom, valid_until: validUntil, description });
+                    showToast('Promosyon kodu guncellendi', 'success');
+                } else {
+                    await api('/admin/promo/create', 'POST', { code, discount_type: discountType, discount_value: discountValue, min_purchase: minPurchase, max_uses: maxUses, valid_from: validFrom, valid_until: validUntil, description });
+                    showToast('Promosyon kodu olusturuldu', 'success');
+                }
+                closeModal('promoModal');
+                await loadPromoCodes();
+            } catch (e) {
+                showToast(e.message || 'Islem basarisiz', 'error');
+            }
+        }
+
+        async function togglePromoCode(id, activate) {
+            try {
+                await api(`/admin/promo/${id}`, 'PUT', { is_active: activate });
+                showToast(activate ? 'Promosyon kodu aktif edildi' : 'Promosyon kodu durduruldu', 'success');
+                await loadPromoCodes();
+            } catch (e) {
+                showToast('Islem basarisiz', 'error');
+            }
+        }
+
+        async function deletePromoCode(id) {
+            if (!confirm('Bu promosyon kodunu silmek istediginize emin misiniz?')) return;
+            try {
+                await api(`/admin/promo/${id}`, 'DELETE');
+                showToast('Promosyon kodu silindi', 'success');
+                await loadPromoCodes();
+            } catch (e) {
+                showToast('Silme islemi basarisiz', 'error');
+            }
+        }
+
+        // ============ EMAIL MANAGEMENT ============
+
         async function loadEmailManagement() {
             // Setup tabs
             document.querySelectorAll('#emailTabs .tab').forEach(tab => {
@@ -1454,6 +1713,7 @@
 
             await loadEmailTemplates();
             await loadEmailStats();
+            await loadEmailLogs(); // İlk açılışta logları da yükle
         }
 
         async function loadEmailTemplates() {
@@ -1517,8 +1777,87 @@
                 const data = await api('/admin/email/stats');
                 if (data.success) {
                     document.getElementById('emailStatSent').textContent = data.stats.total_sent || 0;
-                    document.getElementById('emailStatToday').textContent = data.stats.today_sent || 0;
                     document.getElementById('emailStatFailed').textContent = data.stats.total_failed || 0;
+
+                    // Email limit handling
+                    const limit = data.stats.limit || {};
+                    const sentToday = limit.sent_today || 0;
+                    const dailyLimit = limit.daily_limit || 100;
+                    const remaining = limit.remaining || 0;
+                    const percentage = limit.percentage || 0;
+
+                    document.getElementById('emailStatToday').textContent = `${sentToday}/${dailyLimit}`;
+
+                    // Update card color based on usage
+                    const limitCard = document.getElementById('emailLimitCard');
+                    const limitIcon = limitCard.querySelector('.icon');
+                    limitIcon.className = 'icon ' + (percentage >= 100 ? 'danger' : percentage >= 80 ? 'warning' : 'info');
+
+                    // Show warning if needed
+                    const warningEl = document.getElementById('emailLimitWarning');
+                    const messageEl = document.getElementById('emailLimitMessage');
+
+                    if (limit.limit_reached) {
+                        warningEl.style.display = 'block';
+                        warningEl.style.background = 'rgba(59, 130, 246, 0.15)';
+                        warningEl.style.borderColor = 'var(--info)';
+                        warningEl.querySelector('i').style.color = 'var(--info)';
+                        warningEl.querySelector('strong').style.color = 'var(--info)';
+                        warningEl.querySelector('strong').textContent = 'Brevo Yedek Sistemi Aktif';
+                        messageEl.textContent = `Resend limiti doldu (${dailyLimit}). Mailler otomatik olarak Brevo uzerinden gonderiliyor. (300 mail/gun kapasitesi mevcut)`;
+                    } else if (limit.warning) {
+                        warningEl.style.display = 'block';
+                        warningEl.style.background = 'rgba(245, 158, 11, 0.15)';
+                        warningEl.style.borderColor = 'var(--warning)';
+                        warningEl.querySelector('i').style.color = 'var(--warning)';
+                        warningEl.querySelector('strong').style.color = 'var(--warning)';
+                        warningEl.querySelector('strong').textContent = 'Gunluk Mail Limiti Uyarisi!';
+                        messageEl.textContent = `Gunluk limitin %${percentage}'ini kullandiniz. ${remaining} mail kaldi. Limit dolunca Brevo devreye girecek.`;
+                    } else {
+                        warningEl.style.display = 'none';
+                    }
+
+                    // Update active service display
+                    const activeService = data.stats.active_service || 'resend';
+                    const serviceMode = data.stats.service_mode || 'auto';
+                    const forcedService = data.stats.forced_service || null;
+                    const brevoConfigured = data.stats.brevo_configured || false;
+                    const activeServiceEl = document.getElementById('activeServiceName');
+                    const serviceModeEl = document.getElementById('serviceModeLabel');
+                    const serviceIconEl = document.getElementById('serviceIcon');
+                    const resendStatusEl = document.getElementById('resendStatus');
+                    const brevoStatusEl = document.getElementById('brevoStatus');
+
+                    // Update mode label
+                    if (serviceMode === 'manual') {
+                        serviceModeEl.textContent = 'Manuel mod';
+                        serviceModeEl.style.color = 'var(--warning)';
+                    } else if (serviceMode === 'auto_fallback') {
+                        serviceModeEl.textContent = 'Otomatik (Limit doldu)';
+                        serviceModeEl.style.color = 'var(--info)';
+                    } else {
+                        serviceModeEl.textContent = 'Otomatik';
+                        serviceModeEl.style.color = 'var(--text-muted)';
+                    }
+
+                    // Update service switch buttons
+                    updateServiceButtons(forcedService);
+
+                    if (activeService === 'brevo') {
+                        activeServiceEl.textContent = 'Brevo' + (serviceMode === 'manual' ? ' (Manuel)' : ' (Yedek)');
+                        activeServiceEl.style.color = 'var(--info)';
+                        serviceIconEl.style.background = 'rgba(59, 130, 246, 0.2)';
+                        serviceIconEl.querySelector('i').style.color = 'var(--info)';
+                        resendStatusEl.innerHTML = serviceMode === 'manual' ? '<span class="badge badge-warning">Devre Disi</span>' : '<span class="badge badge-warning">Limit Doldu</span>';
+                        brevoStatusEl.innerHTML = '<span class="badge badge-success">Aktif</span>';
+                    } else {
+                        activeServiceEl.textContent = 'Resend' + (serviceMode === 'manual' ? ' (Manuel)' : '');
+                        activeServiceEl.style.color = 'var(--success)';
+                        serviceIconEl.style.background = 'rgba(16, 185, 129, 0.2)';
+                        serviceIconEl.querySelector('i').style.color = 'var(--success)';
+                        resendStatusEl.innerHTML = '<span class="badge badge-success">Aktif</span>';
+                        brevoStatusEl.innerHTML = brevoConfigured ? '<span class="badge badge-info">Hazir</span>' : '<span class="badge badge-danger">Yapilandirilmadi</span>';
+                    }
 
                     // Template breakdown
                     document.getElementById('emailByTemplateList').innerHTML = (data.stats.by_template || []).map(t => `
@@ -1555,6 +1894,53 @@
                     });
                 }
             } catch (e) { console.error('Email stats load error:', e); }
+        }
+
+        function updateServiceButtons(forcedService) {
+            const btnAuto = document.getElementById('btnServiceAuto');
+            const btnResend = document.getElementById('btnServiceResend');
+            const btnBrevo = document.getElementById('btnServiceBrevo');
+
+            // Reset all buttons
+            [btnAuto, btnResend, btnBrevo].forEach(btn => {
+                btn.style.background = 'var(--bg-input)';
+                btn.style.borderColor = 'var(--border)';
+                btn.style.color = 'var(--text)';
+            });
+
+            // Highlight active button
+            if (!forcedService) {
+                btnAuto.style.background = 'var(--primary)';
+                btnAuto.style.borderColor = 'var(--primary)';
+                btnAuto.style.color = 'var(--bg-dark)';
+            } else if (forcedService === 'resend') {
+                btnResend.style.background = 'var(--success)';
+                btnResend.style.borderColor = 'var(--success)';
+                btnResend.style.color = 'white';
+            } else if (forcedService === 'brevo') {
+                btnBrevo.style.background = 'var(--info)';
+                btnBrevo.style.borderColor = 'var(--info)';
+                btnBrevo.style.color = 'white';
+            }
+        }
+
+        async function switchEmailService(service) {
+            try {
+                const result = await api('/admin/email/switch-service', {
+                    method: 'POST',
+                    body: JSON.stringify({ service: service })
+                });
+
+                if (result.success) {
+                    showToast(result.message, 'success');
+                    loadEmailStats(); // Refresh stats to update UI
+                } else {
+                    showToast(result.detail || 'Servis degistirilemedi', 'error');
+                }
+            } catch (e) {
+                console.error('Service switch error:', e);
+                showToast('Servis degistirme hatasi', 'error');
+            }
         }
 
         function editEmailTemplate(key) {

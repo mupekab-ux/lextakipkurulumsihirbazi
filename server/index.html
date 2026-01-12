@@ -92,12 +92,30 @@
     -->
 
     <!-- Favicon - Google için optimize edildi -->
-    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="icon" type="image/png" sizes="48x48" href="/media/c5589bc11a58a6b27306b96373324630.png">
+    <link rel="icon" href="/favicon.ico" sizes="32x32">
     <link rel="icon" type="image/png" sizes="192x192" href="/media/4a82ae7d81f02bb33ed5877a7baacd2a.png">
     <link rel="icon" type="image/png" sizes="512x512" href="/media/fe9116e3aebc757020656c9e373d440b.png">
     <link rel="apple-touch-icon" sizes="180x180" href="/media/fe9116e3aebc757020656c9e373d440b.png">
     <link rel="shortcut icon" href="/favicon.ico">
+
+    <!-- Google Structured Data - Organization Logo -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "TakibiEsasi",
+        "url": "https://takibiesasi.com",
+        "logo": "https://takibiesasi.com/media/fe9116e3aebc757020656c9e373d440b.png",
+        "description": "Avukatlar için profesyonel icra ve dava takip yazılımı",
+        "contactPoint": {
+            "@type": "ContactPoint",
+            "email": "destek@takibiesasi.com",
+            "contactType": "customer service"
+        }
+    }
+    </script>
 
     <!-- Preconnect to external resources -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -980,9 +998,11 @@
 
         .pricing-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(2, 1fr);
             gap: 28px;
             align-items: start;
+            max-width: 900px;
+            margin: 0 auto;
         }
 
         .pricing-card {
@@ -1032,6 +1052,21 @@
             font-size: 18px;
             color: var(--text-gray);
             font-weight: 400;
+        }
+
+        .pricing-card .price .vat-info {
+            font-size: 16px;
+            color: var(--text-gray);
+            font-weight: 400;
+            margin-left: 6px;
+        }
+
+        .pricing-card .vat-total {
+            font-size: 14px;
+            color: var(--text-gray);
+            margin-top: -20px;
+            margin-bottom: 20px;
+            opacity: 0.8;
         }
 
         .pricing-features {
@@ -2207,16 +2242,16 @@
         </div>
     </section>
 
-    <!-- Coming Soon: Büro Yönetim Sistemi -->
+    <!-- Büro Yönetim Sistemi -->
     <section class="coming-soon-section" id="buro">
         <div class="container">
             <div class="coming-soon-card" data-aos="fade-up">
-                <div class="coming-soon-badge-large">
-                    <i class="fas fa-rocket"></i>
-                    Yakında
+                <div class="coming-soon-badge-large" style="background: linear-gradient(135deg, #10b981, #059669);">
+                    <i class="fas fa-building"></i>
+                    Hazır
                 </div>
                 <h2>Büro Yönetim Sistemi</h2>
-                <p>Hukuk bürolarının tüm ihtiyaçlarını karşılayacak kapsamlı yönetim modülü geliyor. Çoklu avukat desteği, müvekkil portföyü ve çok daha fazlası.</p>
+                <p>Hukuk bürolarının tüm ihtiyaçlarını karşılayan kapsamlı yönetim modülü. Çoklu avukat desteği, finansal takip, büro senkronizasyon ve çok daha fazlası.</p>
 
                 <div class="coming-features-grid">
                     <div class="coming-feature-item">
@@ -2225,9 +2260,9 @@
                         <p>Büro çalışanlarını yönetin</p>
                     </div>
                     <div class="coming-feature-item">
-                        <i class="fas fa-users"></i>
-                        <h4>Müvekkil Portföyü</h4>
-                        <p>Tüm müvekkiller tek ekranda</p>
+                        <i class="fas fa-folder-open"></i>
+                        <h4>Dava & Dosya Yönetimi</h4>
+                        <p>Tüm dosyalar tek ekranda</p>
                     </div>
                     <div class="coming-feature-item">
                         <i class="fas fa-tasks"></i>
@@ -2235,15 +2270,29 @@
                         <p>İş dağılımını kolayca yapın</p>
                     </div>
                     <div class="coming-feature-item">
-                        <i class="fas fa-chart-line"></i>
-                        <h4>Performans Raporları</h4>
-                        <p>Detaylı istatistikler</p>
+                        <i class="fas fa-money-bill-wave"></i>
+                        <h4>Finansal Takip</h4>
+                        <p>Ödeme ve masraf yönetimi</p>
                     </div>
                     <div class="coming-feature-item">
-                        <i class="fas fa-calendar-alt"></i>
-                        <h4>Ortak Takvim & Randevu</h4>
-                        <p>Koordineli çalışma</p>
+                        <i class="fas fa-envelope-open-text"></i>
+                        <h4>Tebligat & Arabuluculuk</h4>
+                        <p>Süreç takibi</p>
                     </div>
+                    <div class="coming-feature-item">
+                        <i class="fas fa-sync-alt"></i>
+                        <h4>Büro Senkronizasyon</h4>
+                        <p>Yerel ağda veri paylaşımı</p>
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin-top: 30px;">
+                    <p style="color: #666; margin-bottom: 15px;">
+                        <i class="fas fa-envelope"></i> Teklif almak için: <strong>destek@takibiesasi.com</strong>
+                    </p>
+                    <a href="mailto:destek@takibiesasi.com?subject=Büro Yönetim Sistemi Teklif Talebi" class="btn btn-primary" style="font-size: 18px; padding: 15px 40px;">
+                        <i class="fas fa-paper-plane"></i> İletişime Geç
+                    </a>
                 </div>
 
             </div>
@@ -2300,42 +2349,36 @@
             </div>
 
             <div class="pricing-grid" id="pricing-grid">
-                <div class="pricing-card" data-aos="fade-up" data-aos-delay="0">
-                    <h3>Başlangıç</h3>
-                    <div class="price">₺99<span>/ay</span></div>
-                    <ul class="pricing-features">
-                        <li><i class="fas fa-check"></i> 5 Dava Takibi</li>
-                        <li><i class="fas fa-check"></i> 1 Kullanıcı</li>
-                        <li><i class="fas fa-check"></i> Temel Özellikler</li>
-                        <li><i class="fas fa-check"></i> E-posta Desteği</li>
-                    </ul>
-                    <a href="/kayit" class="btn btn-outline">Ücretsiz Dene</a>
-                </div>
-
-                <div class="pricing-card popular" data-aos="fade-up" data-aos-delay="100">
+                <div class="pricing-card popular" data-aos="fade-up" data-aos-delay="0">
                     <span class="pricing-badge">Önerilen</span>
                     <h3>Profesyonel</h3>
-                    <div class="price">₺199<span>/ay</span></div>
+                    <div class="price">5.990 ₺<span class="vat-info">+ KDV</span></div>
+                    <div class="vat-total">(KDV Dahil: 7.188 ₺)</div>
                     <ul class="pricing-features">
-                        <li><i class="fas fa-check"></i> Sınırsız Dava</li>
-                        <li><i class="fas fa-check"></i> 5 Kullanıcı</li>
+                        <li><i class="fas fa-check"></i> Sınırsız Dava Takibi</li>
+                        <li><i class="fas fa-check"></i> Ömür Boyu Lisans</li>
                         <li><i class="fas fa-check"></i> Tüm Özellikler</li>
                         <li><i class="fas fa-check"></i> Öncelikli Destek</li>
+                        <li><i class="fas fa-check"></i> Ücretsiz Güncellemeler</li>
                     </ul>
                     <a href="/satin-al" class="btn btn-primary">Satın Al</a>
                 </div>
 
-                <div class="pricing-card coming-soon" data-aos="fade-up" data-aos-delay="200">
-                    <span class="coming-soon-badge">Yakında</span>
+                <div class="pricing-card" data-aos="fade-up" data-aos-delay="100">
                     <h3>Büro</h3>
-                    <div class="price" style="font-size: 32px;">Çok Yakında</div>
+                    <div class="price" style="font-size: 28px;">Teklif Alın</div>
                     <ul class="pricing-features">
-                        <li><i class="fas fa-check"></i> Çoklu Avukat Desteği</li>
-                        <li><i class="fas fa-check"></i> Merkezi Yönetim Paneli</li>
-                        <li><i class="fas fa-check"></i> Gelişmiş Raporlama</li>
-                        <li><i class="fas fa-check"></i> Özel Destek Hattı</li>
+                        <li><i class="fas fa-check"></i> Çoklu Avukat & Personel Yönetimi</li>
+                        <li><i class="fas fa-check"></i> Dava & Dosya Yönetimi</li>
+                        <li><i class="fas fa-check"></i> Finansal Takip</li>
+                        <li><i class="fas fa-check"></i> Tebligat & Arabuluculuk Takibi</li>
+                        <li><i class="fas fa-check"></i> Görev Takvimi</li>
+                        <li><i class="fas fa-check"></i> Büro Senkronizasyon</li>
                     </ul>
-                    <button class="btn btn-outline" disabled style="opacity: 0.6; cursor: not-allowed;">Yakında</button>
+                    <p style="text-align: center; margin: 15px 0; color: #666; font-size: 14px;">
+                        <i class="fas fa-envelope"></i> destek@takibiesasi.com
+                    </p>
+                    <a href="mailto:destek@takibiesasi.com?subject=Büro Lisansı Teklif Talebi" class="btn btn-outline">İletişime Geç</a>
                 </div>
             </div>
         </div>
@@ -2857,14 +2900,25 @@
                     if (plans && plans.length > 0) {
                         document.getElementById('pricing-grid').innerHTML = plans.map((plan, index) => {
                             const features = plan.features ? plan.features.split('\n').filter(f => f.trim()) : [];
-                            const isComingSoon = plan.period === 'Yakında' || plan.price === 0;
+                            const isBuro = plan.name && plan.name.toLowerCase().includes('büro');
+                            const isComingSoon = !isBuro && (plan.period === 'Yakında' || plan.price === 0);
                             const cardClass = isComingSoon ? 'coming-soon' : (plan.is_popular ? 'popular' : '');
                             const badge = isComingSoon ? '<span class="coming-soon-badge">Yakında</span>' : (plan.is_popular ? '<span class="pricing-badge">Önerilen</span>' : '');
                             const safePeriod = sanitize(plan.period || 'ay');
                             const safePrice = parseFloat(plan.price) || 0;
-                            const priceDisplay = isComingSoon ? '<div class="price" style="font-size: 32px;">Çok Yakında</div>' : `<div class="price">₺${safePrice}<span>/${safePeriod}</span></div>`;
+                            let priceDisplay;
+                            if (isBuro) {
+                                priceDisplay = '<div class="price" style="font-size: 28px;">Teklif Alın</div>';
+                            } else if (isComingSoon) {
+                                priceDisplay = '<div class="price" style="font-size: 32px;">Çok Yakında</div>';
+                            } else {
+                                const kdvDahil = Math.round(safePrice * 1.20);
+                                priceDisplay = `<div class="price">${safePrice.toLocaleString('tr-TR')} ₺<span class="vat-info">+ KDV</span></div><div class="vat-total">(KDV Dahil: ${kdvDahil.toLocaleString('tr-TR')} ₺)</div>`;
+                            }
                             let buttonHtml;
-                            if (isComingSoon) {
+                            if (isBuro) {
+                                buttonHtml = `<p style="text-align: center; margin: 15px 0; color: #888; font-size: 14px;"><i class="fas fa-envelope"></i> destek@takibiesasi.com</p><a href="mailto:destek@takibiesasi.com?subject=Büro Lisansı Teklif Talebi" class="btn btn-outline">İletişime Geç</a>`;
+                            } else if (isComingSoon) {
                                 buttonHtml = '<button class="btn btn-outline" disabled style="opacity: 0.6; cursor: not-allowed;">Yakında</button>';
                             } else if (plan.is_popular) {
                                 buttonHtml = `<a href="/satin-al" class="btn btn-primary">Satın Al</a>`;
