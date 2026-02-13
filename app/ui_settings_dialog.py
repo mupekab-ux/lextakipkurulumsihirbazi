@@ -145,6 +145,22 @@ try:  # pragma: no cover - runtime import guard
 except ModuleNotFoundError:  # pragma: no cover
     from ui_transfer_dialog import TransferDialog
 
+try:  # pragma: no cover - runtime import guard
+    from app.ui_buro_settings import BuroSettingsTab
+    from app.sync import SyncManager, run_migration
+    from app.db import DB_PATH as SYNC_DB_PATH
+    SYNC_AVAILABLE = True
+except (ModuleNotFoundError, ImportError):  # pragma: no cover
+    try:
+        from ui_buro_settings import BuroSettingsTab
+        from sync import SyncManager, run_migration
+        from db import DB_PATH as SYNC_DB_PATH
+        SYNC_AVAILABLE = True
+    except (ModuleNotFoundError, ImportError):
+        SYNC_AVAILABLE = False
+        BuroSettingsTab = None
+        SyncManager = None
+
 
 PERMISSION_FIELDS: list[tuple[str, str]] = [
     ("view_all_cases", "Tüm dosyaları görebilir mi?"),
@@ -681,6 +697,20 @@ class SettingsDialog(QDialog):
 
         # Yasal belgeleri yükle
         self._load_legal_documents()
+
+        # Büro Senkronizasyon sekmesi
+        if SYNC_AVAILABLE and BuroSettingsTab is not None:
+            try:
+                # SyncManager'ı başlat
+                self.sync_manager = SyncManager(DB_PATH)
+                self.buro_settings_tab = BuroSettingsTab(
+                    sync_manager=self.sync_manager,
+                    parent=self
+                )
+                self.tabs.addTab(self.buro_settings_tab, "Büro Senkronizasyon")
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).warning(f"Büro senkronizasyon sekmesi yüklenemedi: {e}")
 
         layout = QVBoxLayout()
         layout.addWidget(self.tabs)

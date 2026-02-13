@@ -254,6 +254,12 @@ except ModuleNotFoundError:  # pragma: no cover
     from ui_finance_dialog import FinanceDialog
 
 try:  # pragma: no cover - runtime import guard
+    from app.sync import get_sync_service
+except (ModuleNotFoundError, ImportError):  # pragma: no cover
+    def get_sync_service():
+        return None
+
+try:  # pragma: no cover - runtime import guard
     from app.ui_finans_harici_quick_dialog import FinansHariciQuickDialog
 except ModuleNotFoundError:  # pragma: no cover
     from ui_finans_harici_quick_dialog import FinansHariciQuickDialog
@@ -6580,7 +6586,21 @@ class MainWindow(QMainWindow):
         print("[perf] summary ready")
 
     def _refresh_dosyalar_table(self) -> None:
-        """Dosyalar tablosunu yenileme butonu için wrapper."""
+        """Dosyalar tablosunu yenileme butonu için wrapper.
+
+        Eğer sync yapılandırılmışsa, önce sunucudan güncellemeleri alır,
+        ardından tabloyu yeniler.
+        """
+        # Sync yapılandırılmışsa önce sync yap
+        sync_service = get_sync_service()
+        if sync_service and sync_service.is_running:
+            try:
+                # Background sync yap (blocking değil)
+                sync_service.sync_manager.full_sync()
+            except Exception as e:
+                # Sync hatası olsa bile tabloyu yenile
+                print(f"Sync hatası (tablo yenilenecek): {e}")
+
         self.refresh_table()
 
     def _query_files(
